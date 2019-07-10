@@ -1,0 +1,13 @@
+body {
+  font: 100% Helvetica, sans-serif;
+  color: #333;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none; }
+
+.rounded-box {
+  border-radius: 5px;
+  border: 1px solid #73AD21;
+  padding: 10px; }
+/*# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInN0eWxlLnNjc3MiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBbUJBO0VBQ0ksZ0NBcEJpQztFQXFCakMsV0FwQmdCO0VBV2hCLHlCQUF5QjtFQUV6QixzQkFBc0I7RUFDdEIscUJBQXFCO0VBQ3JCLGlCQUFpQixFQUFBOztBQVNyQjtFQWpCSSxrQkFrQjBCO0VBQzFCLHlCQXpCbUI7RUEwQm5CLGFBQWEsRUFBQSIsImZpbGUiOiJzdHlsZS5vdXQuY3NzIn0= */

@@ -1,0 +1,62 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.705
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7D9AB55E-52AF-45BB-B797-56487E6B2B63}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoprefixerHost", "src\AutoprefixerHost\AutoprefixerHost.csproj", "{EE3A100A-B52D-484F-9AC9-E49930C20349}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{9D84A5F8-EC34-4813-9FAA-FE3BA8A9356F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoprefixerHost.Tests", "test\AutoprefixerHost.Tests\AutoprefixerHost.Tests.csproj", "{831DD4C4-A263-4FF2-A9E6-4FB04121216B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{A0E059ED-6301-4309-A610-EA4D470450CA}"
+	ProjectSection(SolutionItems) = preProject
+		build\common.props = build\common.props
+		build\Key.snk = build\Key.snk
+		build\net40-client-target.props = build\net40-client-target.props
+		build\nuget-common.props = build\nuget-common.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "licenses", "licenses", "{BAEEE409-1E82-4C4B-BFDA-FDA877EB6874}"
+	ProjectSection(SolutionItems) = preProject
+		licenses\advanced-string-builder-license.txt = licenses\advanced-string-builder-license.txt
+		licenses\autoprefixer-license.txt = licenses\autoprefixer-license.txt
+		licenses\js-engine-switcher-license.txt = licenses\js-engine-switcher-license.txt
+		licenses\newtonsoft-json-license.txt = licenses\newtonsoft-json-license.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{60E26AE0-4EC8-4DE7-BC45-A8B51BCAEE44}"
+	ProjectSection(SolutionItems) = preProject
+		CHANGELOG.md = CHANGELOG.md
+		LICENSE.txt = LICENSE.txt
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EE3A100A-B52D-484F-9AC9-E49930C20349}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE3A100A-B52D-484F-9AC9-E49930C20349}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE3A100A-B52D-484F-9AC9-E49930C20349}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE3A100A-B52D-484F-9AC9-E49930C20349}.Release|Any CPU.Build.0 = Release|Any CPU
+		{831DD4C4-A263-4FF2-A9E6-4FB04121216B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{831DD4C4-A263-4FF2-A9E6-4FB04121216B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{831DD4C4-A263-4FF2-A9E6-4FB04121216B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{831DD4C4-A263-4FF2-A9E6-4FB04121216B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EE3A100A-B52D-484F-9AC9-E49930C20349} = {7D9AB55E-52AF-45BB-B797-56487E6B2B63}
+		{831DD4C4-A263-4FF2-A9E6-4FB04121216B} = {9D84A5F8-EC34-4813-9FAA-FE3BA8A9356F}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4EF1034C-5D5C-4704-BB21-50DA62575BF4}
+	EndGlobalSection
+EndGlobal

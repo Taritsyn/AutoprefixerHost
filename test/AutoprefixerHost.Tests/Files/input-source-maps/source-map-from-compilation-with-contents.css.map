@@ -1,0 +1,12 @@
+{
+        "version": 3,
+        "file": "style.css",
+        "sources": [
+                "style.scss"
+        ],
+        "sourcesContent": [
+                "$font-stack:    Helvetica, sans-serif;\r\n$primary-color: #333;\r\n$border-color:  #73AD21;\r\n\r\n@mixin border-radius($radius) {\r\n    -webkit-border-radius: $radius;\r\n    -moz-border-radius: $radius;\r\n    -ms-border-radius: $radius;\r\n    border-radius: $radius;\r\n}\r\n\r\n@mixin no-select {\r\n    -webkit-user-select: none;\r\n    -khtml-user-select: none;\r\n    -moz-user-select: none;\r\n    -ms-user-select: none;\r\n    user-select: none;\r\n}\r\n\r\nbody {\r\n    font: 100% $font-stack;\r\n    color: $primary-color;\r\n    @include no-select();\r\n}\r\n\r\n.rounded-box {\r\n    @include border-radius(5px);\r\n    border: 1px solid $border-color;\r\n    padding: 10px;\r\n}"
+        ],
+        "names": [],
+        "mappings": "AAmBA,AAAA,IAAI,CAAC;EACD,IAAI,EAAE,IAAI,CApBE,SAAS,EAAE,UAAU;EAqBjC,KAAK,EApBO,IAAI;EAWhB,mBAAmB,EAAE,IAAI;EACzB,kBAAkB,EAAE,IAAI;EACxB,gBAAgB,EAAE,IAAI;EACtB,eAAe,EAAE,IAAI;EACrB,WAAW,EAAE,IAAI,GAOpB;;AAED,AAAA,YAAY,CAAC;EApBT,qBAAqB,EAqBE,GAAG;EApB1B,kBAAkB,EAoBK,GAAG;EAnB1B,iBAAiB,EAmBM,GAAG;EAlB1B,aAAa,EAkBU,GAAG;EAC1B,MAAM,EAAE,GAAG,CAAC,KAAK,CAzBL,OAAO;EA0BnB,OAAO,EAAE,IAAI,GAChB"
+}

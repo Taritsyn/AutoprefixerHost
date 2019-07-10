@@ -1,0 +1,31 @@
+::-webkit-input-placeholder {
+    color: gray;
+}
+
+::-moz-placeholder {
+    color: gray;
+}
+
+:-ms-input-placeholder {
+    color: gray;
+}
+
+::-ms-input-placeholder {
+    color: gray;
+}
+
+::placeholder {
+    color: gray;
+}
+
+/*#region Картинка */
+.image {
+    background-image: url(image@1x.png);
+}
+@media (-webkit-min-device-pixel-ratio: 2), (-o-min-device-pixel-ratio: 2/1), (min-resolution: 2dppx) {
+    .image {
+        background-image: url(image@2x.png);
+    }
+}
+/*#endregion*/
+/*# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInN0eWxlLmNzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtJQUNJLFdBQVc7QUFDZjs7QUFGQTtJQUNJLFdBQVc7QUFDZjs7QUFGQTtJQUNJLFdBQVc7QUFDZjs7QUFGQTtJQUNJLFdBQVc7QUFDZjs7QUFGQTtJQUNJLFdBQVc7QUFDZjs7QUFFQSxvQkFBb0I7QUFDcEI7SUFDSSxtQ0FBbUM7QUFDdkM7QUFDQTtJQUNJO1FBQ0ksbUNBQW1DO0lBQ3ZDO0FBQ0o7QUFDQSxhQUFhIiwiZmlsZSI6InN0eWxlLm91dC5jc3MiLCJzb3VyY2VzQ29udGVudCI6WyI6OnBsYWNlaG9sZGVyIHtcclxuICAgIGNvbG9yOiBncmF5O1xyXG59XHJcblxyXG4vKiNyZWdpb24g0JrQsNGA0YLQuNC90LrQsCAqL1xyXG4uaW1hZ2Uge1xyXG4gICAgYmFja2dyb3VuZC1pbWFnZTogdXJsKGltYWdlQDF4LnBuZyk7XHJcbn1cclxuQG1lZGlhIChtaW4tcmVzb2x1dGlvbjogMmRwcHgpIHtcclxuICAgIC5pbWFnZSB7XHJcbiAgICAgICAgYmFja2dyb3VuZC1pbWFnZTogdXJsKGltYWdlQDJ4LnBuZyk7XHJcbiAgICB9XHJcbn1cclxuLyojZW5kcmVnaW9uKi8iXX0= */

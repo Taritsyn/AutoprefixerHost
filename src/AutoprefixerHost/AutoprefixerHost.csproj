@@ -1,0 +1,91 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Product>Autoprefixer Host for .NET</Product>
+		<VersionPrefix>1.0.0</VersionPrefix>
+		<TargetFrameworks>net40-client;net45;netstandard1.3;netstandard2.0</TargetFrameworks>
+		<OutputType>Library</OutputType>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<AssemblyOriginatorKeyFile>../../build/Key.snk</AssemblyOriginatorKeyFile>
+		<SignAssembly>true</SignAssembly>
+		<PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
+		<NoWarn>$(NoWarn);CS1591;NU1605</NoWarn>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Title>$(Product)</Title>
+		<Authors>Andrey Taritsyn</Authors>
+		<Description>.NET wrapper around the Andrey Sitnik's Autoprefixer (https://github.com/postcss/autoprefixer) version 9.6.1.
+
+Since the original library is written in JavaScript, you will need a JS engine to run it. As a JS engine is used the JavaScript Engine Switcher library (https://github.com/Taritsyn/JavaScriptEngineSwitcher). For correct working, you need to install one of the following NuGet packages:
+
+ * JavaScriptEngineSwitcher.ChakraCore (while it is recommended to use version 3.1.1)
+ * JavaScriptEngineSwitcher.V8
+ * JavaScriptEngineSwitcher.Msie (only in the Chakra JsRT modes)
+
+After installing the packages, you will need to register the default JS engine (https://github.com/Taritsyn/JavaScriptEngineSwitcher/wiki/Registration-of-JS-engines).</Description>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+		<PackageProjectUrl>https://github.com/Taritsyn/AutoprefixerHost</PackageProjectUrl>
+		<PackageIconUrl>https://raw.githubusercontent.com/Taritsyn/AutoprefixerHost/master/images/AutoprefixerHost_Logo_128x128.png?token=AAB5PUZENQB4ZN65YYBLCHS5EYJY6</PackageIconUrl>
+		<RepositoryUrl>https://github.com/Taritsyn/AutoprefixerHost</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>Autoprefixer;CSS</PackageTags>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+	</PropertyGroup>
+
+	<Import Project="../../build/common.props" />
+	<Import Project="../../build/net40-client-target.props" />
+	<Import Project="../../build/nuget-common.props" />
+
+	<ItemGroup>
+		<PackageReference Include="AdvancedStringBuilder" Version="0.1.0" />
+		<PackageReference Include="BuildBundlerMinifier" Version="2.9.406" PrivateAssets="All" />
+		<PackageReference Include="JavaScriptEngineSwitcher.Core" Version="3.1.0" />
+		<PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+		<PackageReference Include="ResxToCs.MSBuild" Version="1.0.0-alpha6" PrivateAssets="All" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Resources/autoprefixer-combined.min.js" />
+		<EmbeddedResource Include="Resources/autoprefixerHelper.min.js" />
+		<EmbeddedResource Include="Resources/CountryStatistics/*.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="readme.txt">
+			<PackagePath>readme.txt</PackagePath>
+			<Pack>true</Pack>
+		</Content>
+		<Content Include="../../LICENSE.txt">
+			<PackagePath>$(PackageLicenseFile)</PackagePath>
+			<Pack>true</Pack>
+			<Visible>false</Visible>
+		</Content>
+		<Content Include="../../licenses/advanced-string-builder-license.txt">
+			<PackagePath>advanced-string-builder-license.txt</PackagePath>
+			<Pack>true</Pack>
+			<Visible>false</Visible>
+		</Content>
+		<Content Include="../../licenses/autoprefixer-license.txt">
+			<PackagePath>autoprefixer-license.txt</PackagePath>
+			<Pack>true</Pack>
+			<Visible>false</Visible>
+		</Content>
+		<Content Include="../../licenses/js-engine-switcher-license.txt">
+			<PackagePath>js-engine-switcher-license.txt</PackagePath>
+			<Pack>true</Pack>
+			<Visible>false</Visible>
+		</Content>
+		<Content Include="../../licenses/newtonsoft-json-license.txt">
+			<PackagePath>newtonsoft-json-license.txt</PackagePath>
+			<Pack>true</Pack>
+			<Visible>false</Visible>
+		</Content>
+	</ItemGroup>
+
+	<Target Name="СonvertResxToCs" BeforeTargets="BeforeCompile">
+		<ResxToCsTask InputDirectory="./Resources/" Namespace="$(RootNamespace).Resources" InternalAccessModifier="true" />
+	</Target>
+
+</Project>

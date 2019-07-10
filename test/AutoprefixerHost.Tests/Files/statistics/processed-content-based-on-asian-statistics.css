@@ -1,0 +1,26 @@
+.shadowed-box {
+    box-shadow: 0 0 20px #555;
+}
+
+.three-column-box {
+    column-count: 3;
+    column-width: 250px;
+
+    -moz-column-gap: 25px;
+    -moz-column-rule: 1px dashed #000;
+
+    -webkit-column-gap: 25px;
+    -webkit-column-rule: 1px dashed #000;
+
+    column-gap: 25px;
+    column-rule: 1px dashed #000;
+}
+
+.transitioned-box {
+    transition: all 0.8s ease;
+    transform: scale(1);
+}
+
+.transitioned-box:hover {
+    transform: scale(0.65);
+}

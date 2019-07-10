@@ -1,0 +1,13 @@
+body {
+  font: 100% Helvetica, sans-serif;
+  color: #333;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none; }
+
+.rounded-box {
+  border-radius: 5px;
+  border: 1px solid #73AD21;
+  padding: 10px; }
+/*# sourceMappingURL=style.out.css.map */
