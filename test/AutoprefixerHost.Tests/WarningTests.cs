@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 using NUnit.Framework;
 
@@ -93,10 +94,13 @@ namespace AutoprefixerHost.Tests
 			Assert.AreEqual("/build/app.css", warnings[0].File);
 			Assert.AreEqual(6, warnings[0].LineNumber);
 			Assert.AreEqual(5, warnings[0].ColumnNumber);
-			Assert.AreEqual(@"Line 5:             box-shadow: 0 0 20px #555;
-Line 6:     /* autoprefixer: on */
-------------^
-Line 7:     mask: none;", warnings[0].SourceFragment);
+			Assert.AreEqual(
+				"Line 5:             box-shadow: 0 0 20px #555;" + Environment.NewLine +
+				"Line 6:     /* autoprefixer: on */" + Environment.NewLine +
+				"------------^" + Environment.NewLine +
+				"Line 7:     mask: none;",
+				warnings[0].SourceFragment
+			);
 
 			Assert.AreEqual(
 				"autoprefixer: /build/app.css:13:5: " +
@@ -107,10 +111,13 @@ Line 7:     mask: none;", warnings[0].SourceFragment);
 			Assert.AreEqual("/build/app.css", warnings[1].File);
 			Assert.AreEqual(13, warnings[1].LineNumber);
 			Assert.AreEqual(5, warnings[1].ColumnNumber);
-			Assert.AreEqual(@"Line 12:     grid-gap: 10px;
-Line 13:     grid-template:
--------------^
-Line 14:         ""g   g"" 100px", warnings[1].SourceFragment);
+			Assert.AreEqual(
+				"Line 12:     grid-gap: 10px;" + Environment.NewLine +
+				"Line 13:     grid-template:" + Environment.NewLine +
+				"-------------^" + Environment.NewLine +
+				"Line 14:         \"g   g\" 100px",
+				warnings[1].SourceFragment
+			);
 		}
 	}
 }

@@ -26,8 +26,7 @@ namespace AutoprefixerHost.Tests
 				Browsers = new List<string> { "> 5% in my stats" },
 				Stats = @"{
   ""ie"": {
-
-	""6"": 0.01,
+    ""6"": 0.01,
     ""7"": 0.4,
     ""8"": 1.5
   },
@@ -133,10 +132,13 @@ namespace AutoprefixerHost.Tests
 			Assert.AreEqual("/build/app.css", exception.File);
 			Assert.AreEqual(3, exception.LineNumber);
 			Assert.AreEqual(21, exception.ColumnNumber);
-			Assert.AreEqual(@"Line 2:     display: grid;
-Line 3:     transition: all .5s
-----------------------------^
-Line 4:     user-select: none;", exception.SourceFragment);
+			Assert.AreEqual(
+				"Line 2:     display: grid;" + Environment.NewLine +
+				"Line 3:     transition: all .5s" + Environment.NewLine +
+				"----------------------------^" + Environment.NewLine +
+				"Line 4:     user-select: none;",
+				exception.SourceFragment
+			);
 		}
 
 		[Test]
