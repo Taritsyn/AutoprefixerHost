@@ -2,17 +2,17 @@
 
 namespace AutoprefixerHost.Utilities
 {
-	public struct InterlockedStatedFlag
+	internal struct InterlockedStatedFlag
 	{
 		private int _counter;
 
 
-		public bool IsSet()
+		internal bool IsSet()
 		{
 			return _counter != 0;
 		}
 
-		public bool Set()
+		internal bool Set()
 		{
 			return Interlocked.Exchange(ref _counter, 1) == 0;
 		}

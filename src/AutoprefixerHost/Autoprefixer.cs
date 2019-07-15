@@ -227,12 +227,13 @@ namespace AutoprefixerHost
 			string serializedInputPath = JsonConvert.SerializeObject(inputPath);
 			string serializedOutputPath = JsonConvert.SerializeObject(outputPath);
 			string serializedSourceMapPath = JsonConvert.SerializeObject(sourceMapPath);
+			string serializedInputSourceMapContent = JsonConvert.SerializeObject(inputSourceMapContent);
 
 			try
 			{
 				serializedResult = _jsEngine.Evaluate<string>("autoprefixerHelper.process(" +
 					serializedContent + ", " + serializedInputPath + ", " + serializedOutputPath + ", " +
-					serializedSourceMapPath + ", " + inputSourceMapContent + ");");
+					serializedSourceMapPath + ", " + serializedInputSourceMapContent + ");");
 			}
 			catch (JsException e)
 			{

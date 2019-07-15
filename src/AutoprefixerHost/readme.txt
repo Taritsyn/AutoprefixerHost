@@ -27,6 +27,11 @@
    After installing the packages, you will need to register the default JS engine
    (https://github.com/Taritsyn/JavaScriptEngineSwitcher/wiki/Registration-of-JS-engines).
 
+   =============
+   RELEASE NOTES
+   =============
+   Fixed a error that occurs when specifying an empty input source map content.
+
    ============
    PROJECT SITE
    ============

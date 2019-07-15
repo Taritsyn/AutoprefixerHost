@@ -29,6 +29,7 @@ After installing the packages, you will need to register the default JS engine (
 		<RepositoryUrl>https://github.com/Taritsyn/AutoprefixerHost</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Autoprefixer;CSS</PackageTags>
+		<PackageReleaseNotes>Fixed a error that occurs when specifying an empty input source map content.</PackageReleaseNotes>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
 		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
