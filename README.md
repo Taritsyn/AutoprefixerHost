@@ -345,3 +345,8 @@ body {
 
 In principle, this code does not need comments.
 The only thing worth noting is that we pass to the `Process` method a CSS code and source map, which were obtained as a result of the compilation of SCSS code.
+
+## Who's Using Autoprefixer Host for .NET
+If you use the Autoprefixer Host for .NET in some project, please send me a message so I can include it in this list:
+
+ * [Bundle Transformer](https://github.com/Taritsyn/BundleTransformer) by Andrey Taritsyn
