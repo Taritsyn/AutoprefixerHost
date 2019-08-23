@@ -86,12 +86,12 @@ namespace AutoprefixerHost.Tests
 			Assert.AreEqual(
 				"During loading of the Autoprefixer error has occurred. " +
 				"See the original error message: \"ReferenceError: Uint8Array is not defined" + Environment.NewLine +
-				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:36:9781\".",
+				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:36:9932\".",
 				exception.Message
 			);
 			Assert.AreEqual(
 				"ReferenceError: Uint8Array is not defined" + Environment.NewLine +
-				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:36:9781",
+				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:36:9932",
 				exception.Description
 			);
 		}
