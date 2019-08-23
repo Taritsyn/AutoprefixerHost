@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<Product>Autoprefixer Host for .NET</Product>
-		<VersionPrefix>1.0.1</VersionPrefix>
+		<VersionPrefix>1.0.2</VersionPrefix>
 		<TargetFrameworks>net40-client;net45;netstandard1.3;netstandard2.0</TargetFrameworks>
 		<OutputType>Library</OutputType>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -17,7 +17,7 @@
 
 Since the original library is written in JavaScript, you will need a JS engine to run it. As a JS engine is used the JavaScript Engine Switcher library (https://github.com/Taritsyn/JavaScriptEngineSwitcher). For correct working, you need to install one of the following NuGet packages:
 
- * JavaScriptEngineSwitcher.ChakraCore (while it is recommended to use version 3.1.1)
+ * JavaScriptEngineSwitcher.ChakraCore
  * JavaScriptEngineSwitcher.V8
  * JavaScriptEngineSwitcher.Msie (only in the Chakra JsRT modes)
 

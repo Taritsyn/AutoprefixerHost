@@ -1,6 +1,9 @@
 Change log
 ==========
 
+## v1.0.2 - August 23, 2019
+ * Added support of the Autoprefixer version 9.6.1.1
+
 ## v1.0.1 - July 15, 2019
  * Fixed a error that occurs when specifying an empty input source map content
 

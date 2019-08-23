@@ -1,7 +1,7 @@
 ﻿
 
    --------------------------------------------------------------------------------
-                   README file for Autoprefixer Host for .NET v1.0.1
+                   README file for Autoprefixer Host for .NET v1.0.2
 
    --------------------------------------------------------------------------------
 
@@ -19,8 +19,7 @@
    (https://github.com/Taritsyn/JavaScriptEngineSwitcher). For correct working, you
    need to install one of the following NuGet packages:
 
-    * JavaScriptEngineSwitcher.ChakraCore (while it is recommended to use version
-      3.1.1)
+    * JavaScriptEngineSwitcher.ChakraCore
     * JavaScriptEngineSwitcher.V8
     * JavaScriptEngineSwitcher.Msie (only in the Chakra JsRT modes)
 
