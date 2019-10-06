@@ -70,7 +70,7 @@ namespace AutoprefixerHost
 		/// <summary>
 		/// Gets a version of the Autoprefixer library
 		/// </summary>
-		public static string Version => "9.6.1.1";
+		public static string Version => "9.6.4";
 
 
 		/// <summary>
