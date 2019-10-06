@@ -25,7 +25,7 @@ After installing the packages, you will need to register the default JS engine (
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 		<PackageProjectUrl>https://github.com/Taritsyn/AutoprefixerHost</PackageProjectUrl>
-		<PackageIconUrl>https://raw.githubusercontent.com/Taritsyn/AutoprefixerHost/master/images/AutoprefixerHost_Logo_128x128.png?token=AAB5PUZENQB4ZN65YYBLCHS5EYJY6</PackageIconUrl>
+		<PackageIcon>icon.png</PackageIcon>
 		<RepositoryUrl>https://github.com/Taritsyn/AutoprefixerHost</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Autoprefixer;CSS</PackageTags>
@@ -41,7 +41,7 @@ After installing the packages, you will need to register the default JS engine (
 
 	<ItemGroup>
 		<PackageReference Include="AdvancedStringBuilder" Version="0.1.0" />
-		<PackageReference Include="BuildBundlerMinifier" Version="2.9.406" PrivateAssets="All" />
+		<PackageReference Include="BuildBundlerMinifier" Version="3.0.415" PrivateAssets="All" />
 		<PackageReference Include="JavaScriptEngineSwitcher.Core" Version="3.1.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
 		<PackageReference Include="ResxToCs.MSBuild" Version="1.0.0-alpha6" PrivateAssets="All" />
@@ -54,34 +54,40 @@ After installing the packages, you will need to register the default JS engine (
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Include="readme.txt">
-			<PackagePath>readme.txt</PackagePath>
+		<None Include="../../images/AutoprefixerHost_Logo_128x128.png">
+			<PackagePath>$(PackageIcon)</PackagePath>
 			<Pack>true</Pack>
-		</Content>
-		<Content Include="../../LICENSE.txt">
+			<Visible>false</Visible>
+		</None>
+		<None Include="../../LICENSE.txt">
 			<PackagePath>$(PackageLicenseFile)</PackagePath>
 			<Pack>true</Pack>
 			<Visible>false</Visible>
-		</Content>
-		<Content Include="../../licenses/advanced-string-builder-license.txt">
+		</None>
+		<None Include="../../licenses/advanced-string-builder-license.txt">
 			<PackagePath>advanced-string-builder-license.txt</PackagePath>
 			<Pack>true</Pack>
 			<Visible>false</Visible>
-		</Content>
-		<Content Include="../../licenses/autoprefixer-license.txt">
+		</None>
+		<None Include="../../licenses/autoprefixer-license.txt">
 			<PackagePath>autoprefixer-license.txt</PackagePath>
 			<Pack>true</Pack>
 			<Visible>false</Visible>
-		</Content>
-		<Content Include="../../licenses/js-engine-switcher-license.txt">
+		</None>
+		<None Include="../../licenses/js-engine-switcher-license.txt">
 			<PackagePath>js-engine-switcher-license.txt</PackagePath>
 			<Pack>true</Pack>
 			<Visible>false</Visible>
-		</Content>
-		<Content Include="../../licenses/newtonsoft-json-license.txt">
+		</None>
+		<None Include="../../licenses/newtonsoft-json-license.txt">
 			<PackagePath>newtonsoft-json-license.txt</PackagePath>
 			<Pack>true</Pack>
 			<Visible>false</Visible>
+		</None>
+
+		<Content Include="readme.txt">
+			<PackagePath>readme.txt</PackagePath>
+			<Pack>true</Pack>
 		</Content>
 	</ItemGroup>
 

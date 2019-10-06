@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<Product>Autoprefixer Host for .NET: Tests</Product>
 		<VersionPrefix>1.0.2</VersionPrefix>
-		<TargetFrameworks>net40;net451;netcoreapp1.0;netcoreapp2.0</TargetFrameworks>
+		<TargetFrameworks>net40;net451;netcoreapp1.0;netcoreapp2.1;netcoreapp3.0</TargetFrameworks>
 		<OutputType>Library</OutputType>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<IsTestProject>true</IsTestProject>
@@ -13,16 +13,16 @@
 	<Import Project="../../build/common.props" />
 
 	<ItemGroup>
-		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore" Version="3.1.7" />
-		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.linux-x64" Version="3.1.7" />
-		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.osx-x64" Version="3.1.7" />
-		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.win-arm" Version="3.1.7" />
-		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.win-x64" Version="3.1.7" />
-		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.win-x86" Version="3.1.7" />
+		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore" Version="3.1.8" />
+		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.linux-x64" Version="3.1.8" />
+		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.osx-x64" Version="3.1.8" />
+		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.win-arm" Version="3.1.8" />
+		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.win-x64" Version="3.1.8" />
+		<PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.win-x86" Version="3.1.8" />
 		<PackageReference Include="JavaScriptEngineSwitcher.Jint" Version="3.1.0" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
 		<PackageReference Include="NUnit" Version="3.12.0" />
-		<PackageReference Include="NUnit3TestAdapter" Version="3.14.0" />
+		<PackageReference Include="NUnit3TestAdapter" Version="3.15.1" />
 
 		<ProjectReference Include="../../src/AutoprefixerHost/AutoprefixerHost.csproj" />
 	</ItemGroup>
