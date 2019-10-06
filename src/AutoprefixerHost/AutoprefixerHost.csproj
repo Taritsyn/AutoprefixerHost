@@ -28,8 +28,11 @@ After installing the packages, you will need to register the default JS engine (
 		<PackageIcon>icon.png</PackageIcon>
 		<RepositoryUrl>https://github.com/Taritsyn/AutoprefixerHost</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageTags>Autoprefixer;CSS</PackageTags>
-		<PackageReleaseNotes>Added support of the Autoprefixer version 9.6.1.1.</PackageReleaseNotes>
+		<PackageReleaseNotes>Enabled a SourceLink in NuGet package.</PackageReleaseNotes>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
 		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
@@ -43,6 +46,7 @@ After installing the packages, you will need to register the default JS engine (
 		<PackageReference Include="AdvancedStringBuilder" Version="0.1.0" />
 		<PackageReference Include="BuildBundlerMinifier" Version="3.0.415" PrivateAssets="All" />
 		<PackageReference Include="JavaScriptEngineSwitcher.Core" Version="3.1.0" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19367-01" PrivateAssets="All" />
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
 		<PackageReference Include="ResxToCs.MSBuild" Version="1.0.0-alpha6" PrivateAssets="All" />
 	</ItemGroup>

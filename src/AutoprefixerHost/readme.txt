@@ -29,7 +29,7 @@
    =============
    RELEASE NOTES
    =============
-   Added support of the Autoprefixer version 9.6.1.1.
+   Enabled a SourceLink in NuGet package.
 
    ============
    PROJECT SITE
