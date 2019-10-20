@@ -1,6 +1,9 @@
 Change log
 ==========
 
+## v1.0.4 - October 20, 2019
+ * Added support of the Autoprefixer version 9.6.5
+
 ## v1.0.3 - October 6, 2019
  * Added support of the Autoprefixer version 9.6.4
  * Enabled a SourceLink in NuGet package
