@@ -108,6 +108,9 @@ namespace AutoprefixerHost
 				throw new ArgumentNullException(nameof(createJsEngineInstance));
 			}
 
+			_options = options ?? _defaultOptions;
+			_serializedOptions = SerializeProcessingOptions(_options);
+
 			try
 			{
 				_jsEngine = createJsEngineInstance();
@@ -120,9 +123,6 @@ namespace AutoprefixerHost
 			{
 				throw AutoprefixerErrorHelpers.WrapAutoprefixerLoadException(e, true);
 			}
-
-			_options = options ?? _defaultOptions;
-			_serializedOptions = SerializeProcessingOptions(_options);
 		}
 
 		/// <summary>
@@ -145,6 +145,9 @@ namespace AutoprefixerHost
 				throw new ArgumentNullException(nameof(jsEngineFactory));
 			}
 
+			_options = options ?? _defaultOptions;
+			_serializedOptions = SerializeProcessingOptions(_options);
+
 			try
 			{
 				_jsEngine = jsEngineFactory.CreateEngine();
@@ -157,9 +160,6 @@ namespace AutoprefixerHost
 			{
 				throw AutoprefixerErrorHelpers.WrapAutoprefixerLoadException(e, true);
 			}
-
-			_options = options ?? _defaultOptions;
-			_serializedOptions = SerializeProcessingOptions(_options);
 		}
 
 

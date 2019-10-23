@@ -29,7 +29,7 @@
    =============
    RELEASE NOTES
    =============
-   Added support of the Autoprefixer version 9.6.5.
+   Fixed a error leading to incorrect disposal.
 
    ============
    PROJECT SITE

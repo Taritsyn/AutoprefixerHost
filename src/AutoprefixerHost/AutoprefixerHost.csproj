@@ -32,7 +32,7 @@ After installing the packages, you will need to register the default JS engine (
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageTags>Autoprefixer;CSS</PackageTags>
-		<PackageReleaseNotes>Added support of the Autoprefixer version 9.6.5.</PackageReleaseNotes>
+		<PackageReleaseNotes>Fixed a error leading to incorrect disposal.</PackageReleaseNotes>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
 		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
