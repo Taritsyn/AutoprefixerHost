@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<Product>Autoprefixer Host for .NET: Tests</Product>
-		<VersionPrefix>1.0.4</VersionPrefix>
+		<VersionPrefix>1.1.0</VersionPrefix>
 		<TargetFrameworks>net40;net451;netcoreapp1.0;netcoreapp2.1;netcoreapp3.0</TargetFrameworks>
 		<OutputType>Library</OutputType>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>

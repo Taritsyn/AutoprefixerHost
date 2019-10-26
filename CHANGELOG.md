@@ -1,6 +1,10 @@
 Change log
 ==========
 
+## v1.1.0 - October 26, 2019
+ * Added support of the Autoprefixer version 9.7
+ * Fixed a error leading to incorrect disposal
+
 ## v1.0.4 - October 20, 2019
  * Added support of the Autoprefixer version 9.6.5
 
