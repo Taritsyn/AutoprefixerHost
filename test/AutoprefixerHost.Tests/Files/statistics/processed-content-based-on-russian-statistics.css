@@ -22,10 +22,12 @@
     -webkit-transition: all 0.8s ease;
     transition: all 0.8s ease;
     -webkit-transform: scale(1);
+    -ms-transform: scale(1);
     transform: scale(1);
 }
 
 .transitioned-box:hover {
     -webkit-transform: scale(0.65);
+    -ms-transform: scale(0.65);
     transform: scale(0.65);
 }

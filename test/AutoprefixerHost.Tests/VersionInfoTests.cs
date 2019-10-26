@@ -12,7 +12,7 @@ namespace AutoprefixerHost.Tests
 		/// Regular expression for working with the version of the LibSass library
 		/// </summary>
 		private static readonly Regex _versionRegex = new Regex(@"^(?<major>\d+)\.(?<minor>\d+)" +
-			@"(?:\.(?<patch>\d+)(?:\.(?<build>\d+)?)?)$");
+			@"(?:\.(?<patch>\d+)(?:\.(?<build>\d+))?)?$");
 
 
 		[Test]
