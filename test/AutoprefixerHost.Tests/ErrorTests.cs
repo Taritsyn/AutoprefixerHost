@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 
 using JavaScriptEngineSwitcher.Core;
-using JavaScriptEngineSwitcher.Jint;
+using JavaScriptEngineSwitcher.NiL;
 
 using NUnit.Framework;
 
@@ -60,7 +60,7 @@ namespace AutoprefixerHost.Tests
 		public void MappingJavaScriptError()
 		{
 			// Arrange
-			IJsEngineFactory jsEngineFactory = new JintJsEngineFactory();
+			IJsEngineFactory jsEngineFactory = new NiLJsEngineFactory();
 			const string input = @".some-class {
     border-image: linear-gradient(black, white) 20% fill stretch stretch;
 }";
@@ -85,13 +85,11 @@ namespace AutoprefixerHost.Tests
 			Assert.NotNull(exception);
 			Assert.AreEqual(
 				"During loading of the Autoprefixer error has occurred. " +
-				"See the original error message: \"ReferenceError: Uint8Array is not defined" + Environment.NewLine +
-				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:46:9905\".",
+				"See the original error message: \"TypeError: Object.setPrototypeOf is not a function\".",
 				exception.Message
 			);
 			Assert.AreEqual(
-				"ReferenceError: Uint8Array is not defined" + Environment.NewLine +
-				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:46:9905",
+				"TypeError: Object.setPrototypeOf is not a function",
 				exception.Description
 			);
 		}
