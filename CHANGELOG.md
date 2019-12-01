@@ -1,6 +1,9 @@
 Change log
 ==========
 
+## v1.1.3 - December 1, 2019
+ * Added support of the Autoprefixer version 9.7.3
+
 ## v1.1.2 - November 19, 2019
  * Added support of the Autoprefixer version 9.7.2
 
