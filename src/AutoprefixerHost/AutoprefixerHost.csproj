@@ -13,7 +13,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Title>$(Product)</Title>
 		<Authors>Andrey Taritsyn</Authors>
-		<Description>.NET wrapper around the Andrey Sitnik's Autoprefixer (https://github.com/postcss/autoprefixer) version 9.7.3.
+		<Description>.NET wrapper around the Andrey Sitnik's Autoprefixer (https://github.com/postcss/autoprefixer) version 9.7.4.
 
 Since the original library is written in JavaScript, you will need a JS engine to run it. As a JS engine is used the JavaScript Engine Switcher library (https://github.com/Taritsyn/JavaScriptEngineSwitcher). For correct working, you need to install one of the following NuGet packages:
 
@@ -32,7 +32,7 @@ After installing the packages, you will need to register the default JS engine (
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageTags>Autoprefixer;CSS</PackageTags>
-		<PackageReleaseNotes>Added support of the Autoprefixer version 9.7.3.</PackageReleaseNotes>
+		<PackageReleaseNotes>Added support of the Autoprefixer version 9.7.4.</PackageReleaseNotes>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
 		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
@@ -44,10 +44,10 @@ After installing the packages, you will need to register the default JS engine (
 
 	<ItemGroup>
 		<PackageReference Include="AdvancedStringBuilder" Version="0.1.0" />
-		<PackageReference Include="BuildBundlerMinifier" Version="3.0.415" PrivateAssets="All" />
+		<PackageReference Include="BuildBundlerMinifier" Version="3.2.435" PrivateAssets="All" />
 		<PackageReference Include="JavaScriptEngineSwitcher.Core" Version="3.1.0" />
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19367-01" PrivateAssets="All" />
-		<PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
 		<PackageReference Include="ResxToCs.MSBuild" Version="1.0.0-alpha6" PrivateAssets="All" />
 	</ItemGroup>
 
