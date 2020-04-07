@@ -12,7 +12,7 @@
    DESCRIPTION
    ===========
    .NET wrapper around the Andrey Sitnik's Autoprefixer
-   (https://github.com/postcss/autoprefixer) version 9.7.5.
+   (https://github.com/postcss/autoprefixer) version 9.7.6.
 
    Since the original library is written in JavaScript, you will need a JS engine
    to run it. As a JS engine is used the JavaScript Engine Switcher library
@@ -29,7 +29,7 @@
    =============
    RELEASE NOTES
    =============
-   Added support of the Autoprefixer version 9.7.5.
+   Added support of the Autoprefixer version 9.7.6.
 
    ============
    PROJECT SITE

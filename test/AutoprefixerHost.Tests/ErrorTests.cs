@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 
 using JavaScriptEngineSwitcher.Core;
-using JavaScriptEngineSwitcher.NiL;
+#if NET461 || NETCOREAPP2_1 || NETCOREAPP3_1
+using JavaScriptEngineSwitcher.Jint;
+#endif
 
 using NUnit.Framework;
 
@@ -55,12 +57,13 @@ namespace AutoprefixerHost.Tests
 			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", exception.Message);
 			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", exception.Description);
 		}
+#if NET461 || NETCOREAPP2_1 || NETCOREAPP3_1
 
 		[Test]
 		public void MappingJavaScriptError()
 		{
 			// Arrange
-			IJsEngineFactory jsEngineFactory = new NiLJsEngineFactory();
+			IJsEngineFactory jsEngineFactory = new JintJsEngineFactory();
 			const string input = @".some-class {
     border-image: linear-gradient(black, white) 20% fill stretch stretch;
 }";
@@ -85,14 +88,17 @@ namespace AutoprefixerHost.Tests
 			Assert.NotNull(exception);
 			Assert.AreEqual(
 				"During loading of the Autoprefixer error has occurred. " +
-				"See the original error message: \"TypeError: Object.setPrototypeOf is not a function\".",
+				"See the original error message: \"ReferenceError: Uint8Array is not defined" + Environment.NewLine +
+				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:46:9781\".",
 				exception.Message
 			);
 			Assert.AreEqual(
-				"TypeError: Object.setPrototypeOf is not a function",
+				"ReferenceError: Uint8Array is not defined" + Environment.NewLine +
+				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:46:9781",
 				exception.Description
 			);
 		}
+#endif
 
 		[Test]
 		public void MappingPostCssError()
