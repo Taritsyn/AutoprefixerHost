@@ -1,11 +1,11 @@
 ﻿
 
    --------------------------------------------------------------------------------
-                   README file for Autoprefixer Host for .NET v1.1.6
+                   README file for Autoprefixer Host for .NET v1.1.7
 
    --------------------------------------------------------------------------------
 
-              Copyright (c) 2020 Andrey Taritsyn - http://www.taritsyn.ru
+           Copyright (c) 2019-2020 Andrey Taritsyn - http://www.taritsyn.ru
 
 
    ===========
