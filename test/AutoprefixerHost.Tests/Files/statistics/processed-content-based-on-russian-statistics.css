@@ -19,7 +19,6 @@
 }
 
 .transitioned-box {
-    -webkit-transition: all 0.8s ease;
     transition: all 0.8s ease;
     -webkit-transform: scale(1);
     transform: scale(1);
