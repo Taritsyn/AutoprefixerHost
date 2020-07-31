@@ -13,7 +13,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Title>$(Product)</Title>
 		<Authors>Andrey Taritsyn</Authors>
-		<Description>.NET wrapper around the Andrey Sitnik's Autoprefixer (https://github.com/postcss/autoprefixer) version 9.8.5.
+		<Description>.NET wrapper around the Andrey Sitnik's Autoprefixer (https://github.com/postcss/autoprefixer) version 9.8.6.
 
 Since the original library is written in JavaScript, you will need a JS engine to run it. As a JS engine is used the JavaScript Engine Switcher library (https://github.com/Taritsyn/JavaScriptEngineSwitcher). For correct working, you need to install one of the following NuGet packages:
 
@@ -32,7 +32,7 @@ After installing the packages, you will need to register the default JS engine (
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageTags>Autoprefixer;CSS</PackageTags>
-		<PackageReleaseNotes>Added support of the Autoprefixer version 9.8.5.</PackageReleaseNotes>
+		<PackageReleaseNotes>Added support of the Autoprefixer version 9.8.6.</PackageReleaseNotes>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
 		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
@@ -104,19 +104,13 @@ After installing the packages, you will need to register the default JS engine (
 			ConsoleToMsBuild="true" />
 	</Target>
 
-	<Target Name="Es6Translation" AfterTargets="NodePackageInstallation">
-		<Exec Command='babel --out-file "$(ProjectDir)Resources/autoprefixer-combined.js" --presets es2015 --compact false "$(ProjectDir)Resources/autoprefixer-combined.es6"'
-			WorkingDirectory="$(ProjectDir)node_modules/.bin/"
-			ConsoleToMsBuild="true" />
-	</Target>
-
-	<Target Name="JsMinification" AfterTargets="Es6Translation">
+	<Target Name="JsMinification" AfterTargets="NodePackageInstallation">
 		<Exec
-			Command='uglifyjs "$(ProjectDir)Resources/autoprefixer-combined.js" --output "$(ProjectDir)Resources/autoprefixer-combined.min.js" --comments "/^!/"'
+			Command='terser "$(ProjectDir)Resources/autoprefixer-combined.js" --output "$(ProjectDir)Resources/autoprefixer-combined.min.js" --comments "/^!/"'
 			WorkingDirectory="$(ProjectDir)node_modules/.bin/"
 			ConsoleToMsBuild="true" />
 		<Exec
-			Command='uglifyjs "$(ProjectDir)Resources/autoprefixerHelper.js" --output "$(ProjectDir)Resources/autoprefixerHelper.min.js" --comments "/^!/"'
+			Command='terser "$(ProjectDir)Resources/autoprefixerHelper.js" --output "$(ProjectDir)Resources/autoprefixerHelper.min.js" --comments "/^!/"'
 			WorkingDirectory="$(ProjectDir)node_modules/.bin/"
 			ConsoleToMsBuild="true" />
 	</Target>
