@@ -11,9 +11,10 @@
 		<PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
 		<NoWarn>$(NoWarn);CS1591;NU1605</NoWarn>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<DisableDefaultResxToCsConversionTarget>true</DisableDefaultResxToCsConversionTarget>
 		<Title>$(Product)</Title>
 		<Authors>Andrey Taritsyn</Authors>
-		<Description>.NET wrapper around the Andrey Sitnik's Autoprefixer (https://github.com/postcss/autoprefixer) version 9.8.6.
+		<Description>.NET wrapper around the Andrey Sitnik's Autoprefixer (https://github.com/postcss/autoprefixer) version 10.0.0.2.
 
 Since the original library is written in JavaScript, you will need a JS engine to run it. As a JS engine is used the JavaScript Engine Switcher library (https://github.com/Taritsyn/JavaScriptEngineSwitcher). For correct working, you need to install one of the following NuGet packages:
 
@@ -32,7 +33,7 @@ After installing the packages, you will need to register the default JS engine (
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageTags>Autoprefixer;CSS</PackageTags>
-		<PackageReleaseNotes>Added support of the Autoprefixer version 9.8.6.</PackageReleaseNotes>
+		<PackageReleaseNotes>Added support of the Autoprefixer version 10.0.0.2.</PackageReleaseNotes>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
 		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
@@ -51,6 +52,7 @@ After installing the packages, you will need to register the default JS engine (
 	</ItemGroup>
 
 	<ItemGroup>
+		<EmbeddedResource Include="Resources/es6-polyfills.min.js" />
 		<EmbeddedResource Include="Resources/autoprefixer-combined.min.js" />
 		<EmbeddedResource Include="Resources/autoprefixerHelper.min.js" />
 		<EmbeddedResource Include="Resources/CountryStatistics/*.js" />
@@ -98,19 +100,29 @@ After installing the packages, you will need to register the default JS engine (
 		<ResxToCsTask InputDirectory="./Resources/" Namespace="$(RootNamespace).Resources" InternalAccessModifier="true" />
 	</Target>
 
-	<Target Name="NodePackageInstallation" AfterTargets="BeforeBuild">
+	<Target Name="NodePackageInstallation" BeforeTargets="BeforeBuild">
 		<Exec Command='npm install'
 			WorkingDirectory="$(ProjectDir)"
 			ConsoleToMsBuild="true" />
 	</Target>
 
-	<Target Name="JsMinification" AfterTargets="NodePackageInstallation">
+	<Target Name="Es6Translation" AfterTargets="NodePackageInstallation">
+		<Exec Command='babel --out-file "$(ProjectDir)Resources/autoprefixer-combined.js" --config-file "$(ProjectDir).babelrc" "$(ProjectDir)Resources/autoprefixer-combined.es6"'
+			WorkingDirectory="$(ProjectDir)node_modules/.bin/"
+			ConsoleToMsBuild="true" />
+	</Target>
+
+	<Target Name="JsMinification" AfterTargets="Es6Translation">
 		<Exec
-			Command='terser "$(ProjectDir)Resources/autoprefixer-combined.js" --output "$(ProjectDir)Resources/autoprefixer-combined.min.js" --comments "/^!/"'
+			Command='uglifyjs "$(ProjectDir)Resources/es6-polyfills.js" --output "$(ProjectDir)Resources/es6-polyfills.min.js" --comments "/^!/"'
 			WorkingDirectory="$(ProjectDir)node_modules/.bin/"
 			ConsoleToMsBuild="true" />
 		<Exec
-			Command='terser "$(ProjectDir)Resources/autoprefixerHelper.js" --output "$(ProjectDir)Resources/autoprefixerHelper.min.js" --comments "/^!/"'
+			Command='uglifyjs "$(ProjectDir)Resources/autoprefixer-combined.js" --output "$(ProjectDir)Resources/autoprefixer-combined.min.js" --comments "/^!/"'
+			WorkingDirectory="$(ProjectDir)node_modules/.bin/"
+			ConsoleToMsBuild="true" />
+		<Exec
+			Command='uglifyjs "$(ProjectDir)Resources/autoprefixerHelper.js" --output "$(ProjectDir)Resources/autoprefixerHelper.min.js" --comments "/^!/"'
 			WorkingDirectory="$(ProjectDir)node_modules/.bin/"
 			ConsoleToMsBuild="true" />
 	</Target>

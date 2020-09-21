@@ -88,13 +88,13 @@ namespace AutoprefixerHost.Tests
 			Assert.NotNull(exception);
 			Assert.AreEqual(
 				"During loading of the Autoprefixer error has occurred. " +
-				"See the original error message: \"ReferenceError: Uint8Array is not defined" + Environment.NewLine +
-				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:40:2881\".",
+				"See the original error message: \"SyntaxError: Invalid regular expression" + Environment.NewLine +
+				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:16:89647\".",
 				exception.Message
 			);
 			Assert.AreEqual(
-				"ReferenceError: Uint8Array is not defined" + Environment.NewLine +
-				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:40:2881",
+				"SyntaxError: Invalid regular expression" + Environment.NewLine +
+				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:16:89647",
 				exception.Description
 			);
 		}

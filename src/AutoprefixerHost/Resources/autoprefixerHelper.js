@@ -87,19 +87,15 @@ var AutoprefixerHelper = (function (autoprefixer, undefined) {
 			autoprefixerResult = autoprefixer.process(content, postCssOptions, autoprefixerOptions);
 			processedContent = autoprefixerResult.css || '';
 			sourceMap = autoprefixerResult.map ? autoprefixerResult.map.toString() : '';
-			warnings = autoprefixerResult.messages.reduce(function (accumulator, currentValue) {
-				if (currentValue.type === 'warning') {
-					accumulator.push({
-						'message': currentValue.toString(),
-						'description': currentValue.text || '',
-						'file': currentValue.node.source.input.file || '',
-						'lineNumber': currentValue.line || 0,
-						'columnNumber': currentValue.column || 0
-					});
-				}
-
-				return accumulator;
-			}, []);
+			autoprefixerResult.warnings.forEach(function(currentValue) {
+				warnings.push({
+					'message': currentValue.toString(),
+					'description': currentValue.text || '',
+					'file': currentValue.node.source.input.file || '',
+					'lineNumber': currentValue.line || 0,
+					'columnNumber': currentValue.column || 0
+				});
+			});
 		}
 		catch (e) {
 			if (e.autoprefixer || e.browserslist || e.name === 'CssSyntaxError') {
@@ -133,4 +129,4 @@ var AutoprefixerHelper = (function (autoprefixer, undefined) {
 	//#endregion
 
 	return AutoprefixerHelper;
-} (Autoprefixer));
+} (autoprefixer));

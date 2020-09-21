@@ -16,7 +16,7 @@ namespace AutoprefixerHost.Resources
 	/// <summary>
 	/// A strongly-typed resource class, for looking up localized strings, etc.
 	/// </summary>
-	public class Strings
+	internal class Strings
 	{
 		private static Lazy<ResourceManager> _resourceManager =
 			new Lazy<ResourceManager>(() => new ResourceManager(
@@ -33,7 +33,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Returns a cached ResourceManager instance used by this class
 		/// </summary>
-		public static ResourceManager ResourceManager
+		internal static ResourceManager ResourceManager
 		{
 			get
 			{
@@ -45,7 +45,7 @@ namespace AutoprefixerHost.Resources
 		/// Overrides a current thread's CurrentUICulture property for all
 		/// resource lookups using this strongly typed resource class
 		/// </summary>
-		public static CultureInfo Culture
+		internal static CultureInfo Culture
 		{
 			get
 			{
@@ -60,7 +60,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "Can't find string code that corresponding to the value '{0}' of enumeration type `{1}`."
 		/// </summary>
-		public static string Common_EnumValueToCodeConversionFailed
+		internal static string Common_EnumValueToCodeConversionFailed
 		{
 			get { return GetString("Common_EnumValueToCodeConversionFailed"); }
 		}
@@ -68,7 +68,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "See the original error message: &quot;{0}&quot;."
 		/// </summary>
-		public static string Common_SeeOriginalErrorMessage
+		internal static string Common_SeeOriginalErrorMessage
 		{
 			get { return GetString("Common_SeeOriginalErrorMessage"); }
 		}
@@ -76,7 +76,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "Column number"
 		/// </summary>
-		public static string ErrorDetails_ColumnNumber
+		internal static string ErrorDetails_ColumnNumber
 		{
 			get { return GetString("ErrorDetails_ColumnNumber"); }
 		}
@@ -84,7 +84,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "Description"
 		/// </summary>
-		public static string ErrorDetails_Description
+		internal static string ErrorDetails_Description
 		{
 			get { return GetString("ErrorDetails_Description"); }
 		}
@@ -92,7 +92,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "File"
 		/// </summary>
-		public static string ErrorDetails_File
+		internal static string ErrorDetails_File
 		{
 			get { return GetString("ErrorDetails_File"); }
 		}
@@ -100,7 +100,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "Line number"
 		/// </summary>
-		public static string ErrorDetails_LineNumber
+		internal static string ErrorDetails_LineNumber
 		{
 			get { return GetString("ErrorDetails_LineNumber"); }
 		}
@@ -108,7 +108,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "Message"
 		/// </summary>
-		public static string ErrorDetails_Message
+		internal static string ErrorDetails_Message
 		{
 			get { return GetString("ErrorDetails_Message"); }
 		}
@@ -116,7 +116,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "Source fragment"
 		/// </summary>
-		public static string ErrorDetails_SourceFragment
+		internal static string ErrorDetails_SourceFragment
 		{
 			get { return GetString("ErrorDetails_SourceFragment"); }
 		}
@@ -124,7 +124,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "Type"
 		/// </summary>
-		public static string ErrorDetails_Type
+		internal static string ErrorDetails_Type
 		{
 			get { return GetString("ErrorDetails_Type"); }
 		}
@@ -132,7 +132,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "During loading of the Autoprefixer error has occurred."
 		/// </summary>
-		public static string Processor_AutoprefixerNotLoaded
+		internal static string Processor_AutoprefixerNotLoaded
 		{
 			get { return GetString("Processor_AutoprefixerNotLoaded"); }
 		}
@@ -140,7 +140,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "Could not find the statistics for country code '{0}'."
 		/// </summary>
-		public static string Processor_CountryStatisticsNotFound
+		internal static string Processor_CountryStatisticsNotFound
 		{
 			get { return GetString("Processor_CountryStatisticsNotFound"); }
 		}
@@ -148,7 +148,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "During processing of CSS code by using the Autoprefixer a JavaScript error has occurred: {0}"
 		/// </summary>
-		public static string Processor_JsErrorDuringProcessing
+		internal static string Processor_JsErrorDuringProcessing
 		{
 			get { return GetString("Processor_JsErrorDuringProcessing"); }
 		}
@@ -156,7 +156,7 @@ namespace AutoprefixerHost.Resources
 		/// <summary>
 		/// Looks up a localized string similar to "The value of 'Stats' property has an incorrect format."
 		/// </summary>
-		public static string Processor_StatsPropertyHasIncorrectFormat
+		internal static string Processor_StatsPropertyHasIncorrectFormat
 		{
 			get { return GetString("Processor_StatsPropertyHasIncorrectFormat"); }
 		}

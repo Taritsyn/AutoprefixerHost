@@ -1,7 +1,10 @@
 {
-	"name": "AutoprefixerHost",
-	"version": "1.1.11",
-	"devDependencies": {
-		"terser": "^4.8.0"
-	}
+  "name": "AutoprefixerHost",
+  "version": "1.1.11",
+  "devDependencies": {
+    "@babel/cli": "^7.11.6",
+    "@babel/core": "^7.11.6",
+    "@babel/preset-env": "^7.11.5",
+    "uglify-js": "^3.10.4"
+  }
 }

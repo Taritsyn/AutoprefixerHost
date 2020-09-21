@@ -18,6 +18,11 @@ namespace AutoprefixerHost
 	public sealed class Autoprefixer : IDisposable
 	{
 		/// <summary>
+		/// Name of file, which contains a ECMAScript 6+ polyfills
+		/// </summary>
+		private const string ES6_POLYFILLS_FILE_NAME = "es6-polyfills.min.js";
+
+		/// <summary>
 		/// Name of file, which contains a Autoprefixer library
 		/// </summary>
 		private const string AUTOPREFIXER_LIBRARY_FILE_NAME = "autoprefixer-combined.min.js";
@@ -70,7 +75,7 @@ namespace AutoprefixerHost
 		/// <summary>
 		/// Gets a version of the Autoprefixer library
 		/// </summary>
-		public static string Version => "9.8.6";
+		public static string Version => "10.0.0.2";
 
 
 		/// <summary>
@@ -192,6 +197,8 @@ namespace AutoprefixerHost
 						.Assembly
 						;
 
+					_jsEngine.ExecuteResource(ResourceHelpers.GetResourceName(ES6_POLYFILLS_FILE_NAME),
+						assembly);
 					_jsEngine.ExecuteResource(ResourceHelpers.GetResourceName(AUTOPREFIXER_LIBRARY_FILE_NAME),
 						assembly);
 					_jsEngine.ExecuteResource(ResourceHelpers.GetResourceName(AUTOPREFIXER_HELPER_FILE_NAME),
