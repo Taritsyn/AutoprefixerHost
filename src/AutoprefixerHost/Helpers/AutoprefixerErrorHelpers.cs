@@ -52,6 +52,76 @@ namespace AutoprefixerHost.Helpers
 			return message;
 		}
 
+		/// <summary>
+		/// Generates a processing error message
+		/// </summary>
+		/// <param name="type">Type of the processing error</param>
+		/// <param name="description">Description of error</param>
+		/// <param name="documentName">Document name</param>
+		/// <param name="lineNumber">Line number</param>
+		/// <param name="columnNumber">Column number</param>
+		/// <param name="sourceFragment">Source fragment</param>
+		/// <returns>Processing error message</returns>
+		internal static string GenerateProcessingErrorMessage(string type, string description, string documentName,
+			int lineNumber, int columnNumber, string sourceFragment)
+		{
+			if (description == null)
+			{
+				throw new ArgumentNullException(nameof(description));
+			}
+
+			if (string.IsNullOrWhiteSpace(description))
+			{
+				throw new ArgumentException(
+					string.Format(Strings.Common_ArgumentIsEmpty, nameof(description)),
+					nameof(description)
+				);
+			}
+
+			var stringBuilderPool = StringBuilderPool.Shared;
+			StringBuilder messageBuilder = stringBuilderPool.Rent();
+			if (!string.IsNullOrWhiteSpace(type))
+			{
+				messageBuilder.Append(type);
+				messageBuilder.Append(": ");
+			}
+			messageBuilder.Append(description);
+
+			bool documentNameNotEmpty = !string.IsNullOrWhiteSpace(documentName);
+			if (documentNameNotEmpty || lineNumber > 0)
+			{
+				messageBuilder.AppendLine();
+				messageBuilder.Append("   at ");
+				if (documentNameNotEmpty)
+				{
+					messageBuilder.Append(documentName);
+				}
+				if (lineNumber > 0)
+				{
+					if (documentNameNotEmpty)
+					{
+						messageBuilder.Append(":");
+					}
+					messageBuilder.Append(lineNumber);
+					if (columnNumber > 0)
+					{
+						messageBuilder.Append(":");
+						messageBuilder.Append(columnNumber);
+					}
+				}
+				if (!string.IsNullOrWhiteSpace(sourceFragment))
+				{
+					messageBuilder.Append(" -> ");
+					messageBuilder.Append(sourceFragment);
+				}
+			}
+
+			string errorMessage = messageBuilder.ToString();
+			stringBuilderPool.Return(messageBuilder);
+
+			return errorMessage;
+		}
+
 		#endregion
 
 		#region Generation of error details

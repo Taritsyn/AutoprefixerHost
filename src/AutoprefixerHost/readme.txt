@@ -29,7 +29,8 @@
    =============
    RELEASE NOTES
    =============
-   Added support of the Autoprefixer version 10.0.0.2.
+   1. Added support of the Autoprefixer version 10.0.0.2;
+   2. Changed a format of error messages and warnings.
 
    ============
    PROJECT SITE

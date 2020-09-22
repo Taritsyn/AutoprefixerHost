@@ -58,6 +58,14 @@ namespace AutoprefixerHost.Resources
 		}
 
 		/// <summary>
+		/// Looks up a localized string similar to "The parameter '{0}' must be a non-empty string."
+		/// </summary>
+		internal static string Common_ArgumentIsEmpty
+		{
+			get { return GetString("Common_ArgumentIsEmpty"); }
+		}
+
+		/// <summary>
 		/// Looks up a localized string similar to "Can't find string code that corresponding to the value '{0}' of enumeration type `{1}`."
 		/// </summary>
 		internal static string Common_EnumValueToCodeConversionFailed

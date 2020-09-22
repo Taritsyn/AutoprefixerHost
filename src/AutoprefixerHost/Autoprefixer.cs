@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 
 using JavaScriptEngineSwitcher.Core;
@@ -257,10 +258,10 @@ namespace AutoprefixerHost
 
 			if (errorsJson != null && errorsJson.Count > 0)
 			{
-				throw CreateProcessingExceptionFromJson(errorsJson[0], content, inputPath);
+				throw CreateProcessingExceptionFromJson(errorsJson[0]);
 			}
 
-			ProcessingResult processingResult = CreateProcessingResultFromJson(resultJson, content, inputPath);
+			ProcessingResult processingResult = CreateProcessingResultFromJson(resultJson);
 
 			return processingResult;
 		}
@@ -366,29 +367,20 @@ namespace AutoprefixerHost
 			return value;
 		}
 
-		private AutoprefixerProcessingException CreateProcessingExceptionFromJson(JToken error,
-			string content, string inputPath)
+		private AutoprefixerProcessingException CreateProcessingExceptionFromJson(JToken error)
 		{
-			var message = error.Value<string>("message");
-			string description = error.Value<string>("description");
-			if (string.IsNullOrWhiteSpace(description))
-			{
-				description = message;
-			}
-			string type = error.Value<string>("type");
-			string file = error.Value<string>("file");
-			if (string.IsNullOrWhiteSpace(file) && !string.IsNullOrWhiteSpace(inputPath))
-			{
-				file = inputPath;
-			}
+			var description = error.Value<string>("description");
+			var type = error.Value<string>("type");
+			var file = error.Value<string>("file");
+			string documentName = Path.GetFileName(file);
 			var lineNumber = error.Value<int>("lineNumber");
 			var columnNumber = error.Value<int>("columnNumber");
-			string sourceFragment = string.Empty;
-			if (file == inputPath)
-			{
-				sourceFragment = SourceCodeNavigator.GetSourceFragment(content,
-					new SourceCodeNodeCoordinates(lineNumber, columnNumber));
-			}
+			var content = error.Value<string>("source");
+			string sourceFragment = SourceCodeNavigator.GetSourceFragment(content,
+				new SourceCodeNodeCoordinates(lineNumber, columnNumber));
+			string sourceLineFragment = TextHelpers.GetTextFragment(content, lineNumber, columnNumber);
+			var message = AutoprefixerErrorHelpers.GenerateProcessingErrorMessage(type, description, documentName,
+				lineNumber, columnNumber, sourceLineFragment);
 
 			var processingException = new AutoprefixerProcessingException(message)
 			{
@@ -403,8 +395,7 @@ namespace AutoprefixerHost
 			return processingException;
 		}
 
-		private ProcessingResult CreateProcessingResultFromJson(JObject resultJson, string content,
-			string inputPath)
+		private ProcessingResult CreateProcessingResultFromJson(JObject resultJson)
 		{
 			string processedContent = resultJson.Value<string>("processedContent");
 			string sourceMap = resultJson.Value<string>("sourceMap");
@@ -419,17 +410,18 @@ namespace AutoprefixerHost
 			{
 				foreach (JObject warningJson in warningsJson)
 				{
-					var message = warningJson.Value<string>("message");
-					string description = warningJson.Value<string>("description");
-					string file = warningJson.Value<string>("file");
+					var description = warningJson.Value<string>("description");
+					string type = string.Empty;
+					var file = warningJson.Value<string>("file");
+					string documentName = Path.GetFileName(file);
 					var lineNumber = warningJson.Value<int>("lineNumber");
 					var columnNumber = warningJson.Value<int>("columnNumber");
-					string sourceFragment = string.Empty;
-					if (file == inputPath)
-					{
-						sourceFragment = SourceCodeNavigator.GetSourceFragment(content,
-							new SourceCodeNodeCoordinates(lineNumber, columnNumber));
-					}
+					var content = warningJson.Value<string>("source");
+					string sourceFragment = SourceCodeNavigator.GetSourceFragment(content,
+						new SourceCodeNodeCoordinates(lineNumber, columnNumber));
+					string sourceLineFragment = TextHelpers.GetTextFragment(content, lineNumber, columnNumber);
+					var message = AutoprefixerErrorHelpers.GenerateProcessingErrorMessage(type, description,
+						documentName, lineNumber, columnNumber, sourceLineFragment);
 
 					warnings.Add(new ProblemInfo
 					{

@@ -86,14 +86,17 @@ var AutoprefixerHelper = (function (autoprefixer, undefined) {
 		try {
 			autoprefixerResult = autoprefixer.process(content, postCssOptions, autoprefixerOptions);
 			processedContent = autoprefixerResult.css || '';
-			sourceMap = autoprefixerResult.map ? autoprefixerResult.map.toString() : '';
+			sourceMap = autoprefixerResult.map || '';
 			autoprefixerResult.warnings.forEach(function(currentValue) {
+				var input = currentValue.node.source.input;
+
 				warnings.push({
 					'message': currentValue.toString(),
 					'description': currentValue.text || '',
-					'file': currentValue.node.source.input.file || '',
+					'file': input.file || '',
 					'lineNumber': currentValue.line || 0,
-					'columnNumber': currentValue.column || 0
+					'columnNumber': currentValue.column || 0,
+					'source': input.css || ''
 				});
 			});
 		}
@@ -101,11 +104,12 @@ var AutoprefixerHelper = (function (autoprefixer, undefined) {
 			if (e.autoprefixer || e.browserslist || e.name === 'CssSyntaxError') {
 				errors.push({
 					'message': e.message,
-					'description': e.reason || '',
+					'description': e.description || e.message,
 					'type': e.name || '',
 					'file': e.file || '',
 					'lineNumber': e.line || 0,
-					'columnNumber': e.column || 0
+					'columnNumber': e.column || 0,
+					'source': e.source || ''
 				});
 			}
 			else {

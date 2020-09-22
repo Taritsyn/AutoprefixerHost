@@ -130,7 +130,11 @@ namespace AutoprefixerHost.Tests
 
 			// Assert
 			Assert.NotNull(exception);
-			Assert.AreEqual("/build/app.css:3:21: Missed semicolon", exception.Message);
+			Assert.AreEqual(
+				"CssSyntaxError: Missed semicolon" + Environment.NewLine +
+				"   at app.css:3:21 ->     transition: all .5s",
+				exception.Message
+			);
 			Assert.AreEqual("Missed semicolon", exception.Description);
 			Assert.AreEqual("CssSyntaxError", exception.Type);
 			Assert.AreEqual("/build/app.css", exception.File);
@@ -178,10 +182,10 @@ namespace AutoprefixerHost.Tests
 
 			// Assert
 			Assert.NotNull(exception);
-			Assert.AreEqual("Could not find the statistics for country code 'XX'.", exception.Message);
+			Assert.AreEqual("BrowserslistError: Could not find the statistics for country code 'XX'.", exception.Message);
 			Assert.AreEqual("Could not find the statistics for country code 'XX'.", exception.Description);
 			Assert.AreEqual("BrowserslistError", exception.Type);
-			Assert.AreEqual("/build/app.css", exception.File);
+			Assert.IsEmpty(exception.File);
 			Assert.AreEqual(0, exception.LineNumber);
 			Assert.AreEqual(0, exception.ColumnNumber);
 			Assert.IsEmpty(exception.SourceFragment);
@@ -242,10 +246,10 @@ namespace AutoprefixerHost.Tests
 			// Assert
 			Assert.AreEqual(targetOutput1, output1);
 			Assert.NotNull(exception1);
-			Assert.AreEqual("Unknown version 38 of IE", exception1.Message);
+			Assert.AreEqual("BrowserslistError: Unknown version 38 of IE", exception1.Message);
 			Assert.AreEqual("Unknown version 38 of IE", exception1.Description);
 			Assert.AreEqual("BrowserslistError", exception1.Type);
-			Assert.AreEqual("/build/app.css", exception1.File);
+			Assert.IsEmpty(exception1.File);
 			Assert.AreEqual(0, exception1.LineNumber);
 			Assert.AreEqual(0, exception1.ColumnNumber);
 			Assert.IsEmpty(exception1.SourceFragment);

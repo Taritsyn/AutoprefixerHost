@@ -81,9 +81,10 @@ namespace AutoprefixerHost.Tests
 			Assert.AreEqual(2, warnings.Count);
 
 			Assert.AreEqual(
-				"/build/app.css:6:5: " +
 				"Second Autoprefixer control comment was ignored. " +
-				"Autoprefixer applies control comment to whole block, not to next rules.",
+				"Autoprefixer applies control comment to whole block, not to next rules." + Environment.NewLine +
+				"   at app.css:6:5 ->     /* autoprefixer: on */"
+				,
 				warnings[0].Message
 			);
 			Assert.AreEqual(
@@ -103,8 +104,8 @@ namespace AutoprefixerHost.Tests
 			);
 
 			Assert.AreEqual(
-				"/build/app.css:13:5: " +
-				"Can not find grid areas: g, h",
+				"Can not find grid areas: g, h" + Environment.NewLine +
+				"   at app.css:13:5 ->     grid-template:",
 				warnings[1].Message
 			);
 			Assert.AreEqual("Can not find grid areas: g, h", warnings[1].Description);
