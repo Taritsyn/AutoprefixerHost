@@ -1,6 +1,11 @@
 Change log
 ==========
 
+## v2.0.0 - September 23, 2020
+ * Added support of the Autoprefixer version 10.0.0.2
+ * Changed a format of error messages and warnings
+ * The `Version` static property has been converted to an instance property
+
 ## v1.1.11 - July 31, 2020
  * Added support of the Autoprefixer version 9.8.6
 

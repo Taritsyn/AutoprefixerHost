@@ -1,7 +1,7 @@
 ﻿
 
    --------------------------------------------------------------------------------
-                   README file for Autoprefixer Host for .NET v1.1.11
+                   README file for Autoprefixer Host for .NET v2.0.0
 
    --------------------------------------------------------------------------------
 
@@ -21,7 +21,7 @@
 
     * JavaScriptEngineSwitcher.ChakraCore
     * JavaScriptEngineSwitcher.V8
-    * JavaScriptEngineSwitcher.Msie (only in the Chakra “Edge” JsRT mode)
+    * JavaScriptEngineSwitcher.Msie (only in the Chakra JsRT modes)
 
    After installing the packages, you will need to register the default JS engine
    (https://github.com/Taritsyn/JavaScriptEngineSwitcher/wiki/Registration-of-JS-engines).
