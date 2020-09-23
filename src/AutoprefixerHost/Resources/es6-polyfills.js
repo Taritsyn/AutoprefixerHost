@@ -1,6 +1,13 @@
 (function () {
   'use strict';
 
+  /*!
+   * core-js v3.6.5
+   * https://github.com/zloirock/core-js
+   *
+   * Copyright (c) 2014-2020 Denis Pushkarev
+   * Released under the terms of MIT license
+   */
   var check = function (it) {
     return it && it.Math == Math && it;
   };
@@ -7261,11 +7268,12 @@
   });
 
   var runtime_1 = createCommonjsModule(function (module) {
-  /**
+  /*!
+   * regenerator-runtime v0.13.7
+   * https://github.com/facebook/regenerator/tree/master/packages/regenerator-runtime
+   * 
    * Copyright (c) 2014-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
+   * Released under the terms of MIT license
    */
 
   var runtime = (function (exports) {

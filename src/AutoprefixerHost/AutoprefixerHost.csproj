@@ -80,6 +80,11 @@ After installing the packages, you will need to register the default JS engine (
 			<Pack>true</Pack>
 			<Visible>false</Visible>
 		</None>
+		<None Include="../../licenses/core-js-license.txt">
+			<PackagePath>core-js-license.txt</PackagePath>
+			<Pack>true</Pack>
+			<Visible>false</Visible>
+		</None>
 		<None Include="../../licenses/js-engine-switcher-license.txt">
 			<PackagePath>js-engine-switcher-license.txt</PackagePath>
 			<Pack>true</Pack>
@@ -87,6 +92,11 @@ After installing the packages, you will need to register the default JS engine (
 		</None>
 		<None Include="../../licenses/newtonsoft-json-license.txt">
 			<PackagePath>newtonsoft-json-license.txt</PackagePath>
+			<Pack>true</Pack>
+			<Visible>false</Visible>
+		</None>
+		<None Include="../../licenses/regenerator-runtime-license.txt">
+			<PackagePath>regenerator-runtime-license.txt</PackagePath>
 			<Pack>true</Pack>
 			<Visible>false</Visible>
 		</None>
