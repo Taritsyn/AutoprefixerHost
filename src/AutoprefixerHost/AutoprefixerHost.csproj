@@ -1,20 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<Product>Autoprefixer Host for .NET</Product>
-		<VersionPrefix>1.1.11</VersionPrefix>
-		<TargetFrameworks>net40-client;net45;netstandard1.3;netstandard2.0</TargetFrameworks>
-		<OutputType>Library</OutputType>
-		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-		<AssemblyOriginatorKeyFile>../../build/Key.snk</AssemblyOriginatorKeyFile>
-		<SignAssembly>true</SignAssembly>
-		<PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
-		<NoWarn>$(NoWarn);CS1591;NU1605</NoWarn>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<DisableDefaultResxToCsConversionTarget>true</DisableDefaultResxToCsConversionTarget>
-		<Title>$(Product)</Title>
-		<Authors>Andrey Taritsyn</Authors>
-		<Description>.NET wrapper around the Andrey Sitnik's Autoprefixer (https://github.com/postcss/autoprefixer) version 10.0.0.2.
+  <PropertyGroup>
+    <Product>Autoprefixer Host for .NET</Product>
+    <VersionPrefix>1.1.11</VersionPrefix>
+    <TargetFrameworks>net40-client;net45;netstandard1.3;netstandard2.0</TargetFrameworks>
+    <OutputType>Library</OutputType>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyOriginatorKeyFile>../../build/Key.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+    <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
+    <NoWarn>$(NoWarn);CS1591;NU1605</NoWarn>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DisableDefaultResxToCsConversionTarget>true</DisableDefaultResxToCsConversionTarget>
+    <Title>$(Product)</Title>
+    <Authors>Andrey Taritsyn</Authors>
+    <Description>.NET wrapper around the Andrey Sitnik's Autoprefixer (https://github.com/postcss/autoprefixer) version 10.0.0.2.
 
 Since the original library is written in JavaScript, you will need a JS engine to run it. As a JS engine is used the JavaScript Engine Switcher library (https://github.com/Taritsyn/JavaScriptEngineSwitcher). For correct working, you need to install one of the following NuGet packages:
 
@@ -23,120 +23,120 @@ Since the original library is written in JavaScript, you will need a JS engine t
  * JavaScriptEngineSwitcher.Msie (only in the Chakra “Edge” JsRT mode)
 
 After installing the packages, you will need to register the default JS engine (https://github.com/Taritsyn/JavaScriptEngineSwitcher/wiki/Registration-of-JS-engines).</Description>
-		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-		<PackageProjectUrl>https://github.com/Taritsyn/AutoprefixerHost</PackageProjectUrl>
-		<PackageIcon>icon.png</PackageIcon>
-		<RepositoryUrl>https://github.com/Taritsyn/AutoprefixerHost</RepositoryUrl>
-		<RepositoryType>git</RepositoryType>
-		<PublishRepositoryUrl>true</PublishRepositoryUrl>
-		<IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-		<PackageTags>Autoprefixer;CSS</PackageTags>
-		<PackageReleaseNotes>1. Added support of the Autoprefixer version 10.0.0.2;
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageProjectUrl>https://github.com/Taritsyn/AutoprefixerHost</PackageProjectUrl>
+    <PackageIcon>icon.png</PackageIcon>
+    <RepositoryUrl>https://github.com/Taritsyn/AutoprefixerHost</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageTags>Autoprefixer;CSS</PackageTags>
+    <PackageReleaseNotes>1. Added support of the Autoprefixer version 10.0.0.2;
 2. Changed a format of error messages and warnings;
 3. The `Version` static property has been converted to an instance property.</PackageReleaseNotes>
-		<NeutralLanguage>en-US</NeutralLanguage>
-		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-	</PropertyGroup>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+  </PropertyGroup>
 
-	<Import Project="../../build/common.props" />
-	<Import Project="../../build/net40-client-target.props" />
-	<Import Project="../../build/nuget-common.props" />
+  <Import Project="../../build/common.props" />
+  <Import Project="../../build/net40-client-target.props" />
+  <Import Project="../../build/nuget-common.props" />
 
-	<ItemGroup>
-		<PackageReference Include="AdvancedStringBuilder" Version="0.1.0" />
-		<PackageReference Include="JavaScriptEngineSwitcher.Core" Version="3.1.0" />
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
-		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-		<PackageReference Include="ResxToCs.MSBuild" Version="1.0.0-alpha6" PrivateAssets="All" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AdvancedStringBuilder" Version="0.1.0" />
+    <PackageReference Include="JavaScriptEngineSwitcher.Core" Version="3.1.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="ResxToCs.MSBuild" Version="1.0.0-alpha6" PrivateAssets="All" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<EmbeddedResource Include="Resources/es6-polyfills.min.js" />
-		<EmbeddedResource Include="Resources/autoprefixer-combined.min.js" />
-		<EmbeddedResource Include="Resources/autoprefixerHelper.min.js" />
-		<EmbeddedResource Include="Resources/CountryStatistics/*.js" />
-	</ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources/es6-polyfills.min.js" />
+    <EmbeddedResource Include="Resources/autoprefixer-combined.min.js" />
+    <EmbeddedResource Include="Resources/autoprefixerHelper.min.js" />
+    <EmbeddedResource Include="Resources/CountryStatistics/*.js" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<None Include="../../images/AutoprefixerHost_Logo_128x128.png">
-			<PackagePath>$(PackageIcon)</PackagePath>
-			<Pack>true</Pack>
-			<Visible>false</Visible>
-		</None>
-		<None Include="../../LICENSE.txt">
-			<PackagePath>$(PackageLicenseFile)</PackagePath>
-			<Pack>true</Pack>
-			<Visible>false</Visible>
-		</None>
-		<None Include="../../licenses/advanced-string-builder-license.txt">
-			<PackagePath>advanced-string-builder-license.txt</PackagePath>
-			<Pack>true</Pack>
-			<Visible>false</Visible>
-		</None>
-		<None Include="../../licenses/autoprefixer-license.txt">
-			<PackagePath>autoprefixer-license.txt</PackagePath>
-			<Pack>true</Pack>
-			<Visible>false</Visible>
-		</None>
-		<None Include="../../licenses/core-js-license.txt">
-			<PackagePath>core-js-license.txt</PackagePath>
-			<Pack>true</Pack>
-			<Visible>false</Visible>
-		</None>
-		<None Include="../../licenses/js-engine-switcher-license.txt">
-			<PackagePath>js-engine-switcher-license.txt</PackagePath>
-			<Pack>true</Pack>
-			<Visible>false</Visible>
-		</None>
-		<None Include="../../licenses/newtonsoft-json-license.txt">
-			<PackagePath>newtonsoft-json-license.txt</PackagePath>
-			<Pack>true</Pack>
-			<Visible>false</Visible>
-		</None>
-		<None Include="../../licenses/regenerator-runtime-license.txt">
-			<PackagePath>regenerator-runtime-license.txt</PackagePath>
-			<Pack>true</Pack>
-			<Visible>false</Visible>
-		</None>
+  <ItemGroup>
+    <None Include="../../images/AutoprefixerHost_Logo_128x128.png">
+      <PackagePath>$(PackageIcon)</PackagePath>
+      <Pack>true</Pack>
+      <Visible>false</Visible>
+    </None>
+    <None Include="../../LICENSE.txt">
+      <PackagePath>$(PackageLicenseFile)</PackagePath>
+      <Pack>true</Pack>
+      <Visible>false</Visible>
+    </None>
+    <None Include="../../licenses/advanced-string-builder-license.txt">
+      <PackagePath>advanced-string-builder-license.txt</PackagePath>
+      <Pack>true</Pack>
+      <Visible>false</Visible>
+    </None>
+    <None Include="../../licenses/autoprefixer-license.txt">
+      <PackagePath>autoprefixer-license.txt</PackagePath>
+      <Pack>true</Pack>
+      <Visible>false</Visible>
+    </None>
+    <None Include="../../licenses/core-js-license.txt">
+      <PackagePath>core-js-license.txt</PackagePath>
+      <Pack>true</Pack>
+      <Visible>false</Visible>
+    </None>
+    <None Include="../../licenses/js-engine-switcher-license.txt">
+      <PackagePath>js-engine-switcher-license.txt</PackagePath>
+      <Pack>true</Pack>
+      <Visible>false</Visible>
+    </None>
+    <None Include="../../licenses/newtonsoft-json-license.txt">
+      <PackagePath>newtonsoft-json-license.txt</PackagePath>
+      <Pack>true</Pack>
+      <Visible>false</Visible>
+    </None>
+    <None Include="../../licenses/regenerator-runtime-license.txt">
+      <PackagePath>regenerator-runtime-license.txt</PackagePath>
+      <Pack>true</Pack>
+      <Visible>false</Visible>
+    </None>
 
-		<Content Include="readme.txt">
-			<PackagePath>readme.txt</PackagePath>
-			<Pack>true</Pack>
-		</Content>
-	</ItemGroup>
+    <Content Include="readme.txt">
+      <PackagePath>readme.txt</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
 
-	<Target Name="СonvertResxToCs" BeforeTargets="BeforeCompile">
-		<ResxToCsTask InputDirectory="./Resources/" Namespace="$(RootNamespace).Resources" InternalAccessModifier="true" />
-	</Target>
+  <Target Name="СonvertResxToCs" BeforeTargets="BeforeCompile">
+    <ResxToCsTask InputDirectory="./Resources/" Namespace="$(RootNamespace).Resources" InternalAccessModifier="true" />
+  </Target>
 
-	<Target Name="NodePackageInstallation" BeforeTargets="BeforeBuild">
-		<Exec Command='npm install'
-			WorkingDirectory="$(ProjectDir)"
-			ConsoleToMsBuild="true" />
-	</Target>
+  <Target Name="NodePackageInstallation" BeforeTargets="BeforeBuild">
+    <Exec Command='npm install'
+      WorkingDirectory="$(ProjectDir)"
+      ConsoleToMsBuild="true" />
+  </Target>
 
-	<Target Name="Es6Translation" AfterTargets="NodePackageInstallation">
-		<Exec Command='babel --out-file "$(ProjectDir)Resources/autoprefixer-combined.js" --config-file "$(ProjectDir).babelrc" "$(ProjectDir)Resources/autoprefixer-combined.es6"'
-			WorkingDirectory="$(ProjectDir)node_modules/.bin/"
-			ConsoleToMsBuild="true" />
-	</Target>
+  <Target Name="Es6Translation" AfterTargets="NodePackageInstallation">
+    <Exec Command='babel --out-file "$(ProjectDir)Resources/autoprefixer-combined.js" --config-file "$(ProjectDir).babelrc" "$(ProjectDir)Resources/autoprefixer-combined.es6"'
+      WorkingDirectory="$(ProjectDir)node_modules/.bin/"
+      ConsoleToMsBuild="true" />
+  </Target>
 
-	<Target Name="JsMinification" AfterTargets="Es6Translation">
-		<Exec
-			Command='uglifyjs "$(ProjectDir)Resources/es6-polyfills.js" --output "$(ProjectDir)Resources/es6-polyfills.min.js" --comments "/^!/"'
-			WorkingDirectory="$(ProjectDir)node_modules/.bin/"
-			ConsoleToMsBuild="true" />
-		<Exec
-			Command='uglifyjs "$(ProjectDir)Resources/autoprefixer-combined.js" --output "$(ProjectDir)Resources/autoprefixer-combined.min.js" --comments "/^!/"'
-			WorkingDirectory="$(ProjectDir)node_modules/.bin/"
-			ConsoleToMsBuild="true" />
-		<Exec
-			Command='uglifyjs "$(ProjectDir)Resources/autoprefixerHelper.js" --output "$(ProjectDir)Resources/autoprefixerHelper.min.js" --comments "/^!/"'
-			WorkingDirectory="$(ProjectDir)node_modules/.bin/"
-			ConsoleToMsBuild="true" />
-	</Target>
+  <Target Name="JsMinification" AfterTargets="Es6Translation">
+    <Exec
+      Command='uglifyjs "$(ProjectDir)Resources/es6-polyfills.js" --output "$(ProjectDir)Resources/es6-polyfills.min.js" --comments "/^!/"'
+      WorkingDirectory="$(ProjectDir)node_modules/.bin/"
+      ConsoleToMsBuild="true" />
+    <Exec
+      Command='uglifyjs "$(ProjectDir)Resources/autoprefixer-combined.js" --output "$(ProjectDir)Resources/autoprefixer-combined.min.js" --comments "/^!/"'
+      WorkingDirectory="$(ProjectDir)node_modules/.bin/"
+      ConsoleToMsBuild="true" />
+    <Exec
+      Command='uglifyjs "$(ProjectDir)Resources/autoprefixerHelper.js" --output "$(ProjectDir)Resources/autoprefixerHelper.min.js" --comments "/^!/"'
+      WorkingDirectory="$(ProjectDir)node_modules/.bin/"
+      ConsoleToMsBuild="true" />
+  </Target>
 
 </Project>
