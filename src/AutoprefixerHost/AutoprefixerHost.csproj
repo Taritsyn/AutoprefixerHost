@@ -34,7 +34,8 @@ After installing the packages, you will need to register the default JS engine (
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageTags>Autoprefixer;CSS</PackageTags>
 		<PackageReleaseNotes>1. Added support of the Autoprefixer version 10.0.0.2;
-2. Changed a format of error messages and warnings.</PackageReleaseNotes>
+2. Changed a format of error messages and warnings;
+3. The `Version` static property has been converted to an instance property.</PackageReleaseNotes>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
 		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>

@@ -26,7 +26,13 @@ namespace AutoprefixerHost.Tests
 			int build = -1;
 
 			// Act
-			string version = Autoprefixer.Version;
+			string version;
+
+			using (var autoprefixer = new Autoprefixer())
+			{
+				version = autoprefixer.Version;
+			}
+
 			Match match = _versionRegex.Match(version);
 
 			if (match.Success)
