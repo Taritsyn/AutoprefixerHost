@@ -49,7 +49,7 @@
   } : nativePropertyIsEnumerable;
 
   var objectPropertyIsEnumerable = {
-  	f: f
+    f: f
   };
 
   var createPropertyDescriptor = function (bitmap, value) {
@@ -145,7 +145,7 @@
   };
 
   var objectGetOwnPropertyDescriptor = {
-  	f: f$1
+    f: f$1
   };
 
   var anObject = function (it) {
@@ -171,7 +171,7 @@
   };
 
   var objectDefineProperty = {
-  	f: f$2
+    f: f$2
   };
 
   var createNonEnumerableProperty = descriptors ? function (object, key, value) {
@@ -182,17 +182,17 @@
   };
 
   function createCommonjsModule(fn, basedir, module) {
-  	return module = {
-  	  path: basedir,
-  	  exports: {},
-  	  require: function (path, base) {
+    return module = {
+      path: basedir,
+      exports: {},
+      require: function (path, base) {
         return commonjsRequire(path, (base === undefined || base === null) ? module.path : base);
       }
-  	}, fn(module, module.exports), module.exports;
+    }, fn(module, module.exports), module.exports;
   }
 
   function commonjsRequire () {
-  	throw new Error('Dynamic requires are not currently supported by @rollup/plugin-commonjs');
+    throw new Error('Dynamic requires are not currently supported by @rollup/plugin-commonjs');
   }
 
   var setGlobal = function (key, value) {
@@ -438,13 +438,13 @@
   };
 
   var objectGetOwnPropertyNames = {
-  	f: f$3
+    f: f$3
   };
 
   var f$4 = Object.getOwnPropertySymbols;
 
   var objectGetOwnPropertySymbols = {
-  	f: f$4
+    f: f$4
   };
 
   // all object keys, includes non-enumerable and symbols
@@ -676,7 +676,7 @@
   };
 
   var objectGetOwnPropertyNamesExternal = {
-  	f: f$5
+    f: f$5
   };
 
   var WellKnownSymbolsStore = shared('wks');
@@ -693,7 +693,7 @@
   var f$6 = wellKnownSymbol;
 
   var wellKnownSymbolWrapped = {
-  	f: f$6
+    f: f$6
   };
 
   var defineProperty = objectDefineProperty.f;
@@ -3556,7 +3556,7 @@
   };
 
   var newPromiseCapability = {
-  	f: f$7
+    f: f$7
   };
 
   var promiseResolve = function (C, x) {
@@ -4072,8 +4072,8 @@
   });
 
   var regexpStickyHelpers = {
-  	UNSUPPORTED_Y: UNSUPPORTED_Y,
-  	BROKEN_CARET: BROKEN_CARET
+    UNSUPPORTED_Y: UNSUPPORTED_Y,
+    BROKEN_CARET: BROKEN_CARET
   };
 
   var defineProperty$a = objectDefineProperty.f;
@@ -4264,6 +4264,12 @@
       return '/' + p + '/' + f;
     }, { unsafe: true });
   }
+
+  // `Set` constructor
+  // https://tc39.github.io/ecma262/#sec-set-objects
+  var es_set = collection('Set', function (init) {
+    return function Set() { return init(this, arguments.length ? arguments[0] : undefined); };
+  }, collectionStrong);
 
   var notARegexp = function (it) {
     if (isRegexp(it)) {
@@ -7275,7 +7281,6 @@
    * Copyright (c) 2014-present, Facebook, Inc.
    * Released under the terms of MIT license
    */
-
   var runtime = (function (exports) {
 
     var Op = Object.prototype;
