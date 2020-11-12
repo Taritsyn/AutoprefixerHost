@@ -2,7 +2,7 @@
   'use strict';
 
   /*!
-   * core-js v3.6.5
+   * core-js v3.7.0
    * https://github.com/zloirock/core-js
    *
    * Copyright (c) 2014-2020 Denis Pushkarev
@@ -20,7 +20,7 @@
     check(typeof self == 'object' && self) ||
     check(typeof global == 'object' && global) ||
     // eslint-disable-next-line no-new-func
-    Function('return this')();
+    (function () { return this; })() || Function('return this')();
 
   var fails = function (exec) {
     try {
@@ -229,7 +229,7 @@
   (module.exports = function (key, value) {
     return sharedStore[key] || (sharedStore[key] = value !== undefined ? value : {});
   })('versions', []).push({
-    version: '3.6.5',
+    version: '3.7.0',
     mode:  'global',
     copyright: '© 2020 Denis Pushkarev (zloirock.ru)'
   });
@@ -267,11 +267,12 @@
   };
 
   if (nativeWeakMap) {
-    var store$1 = new WeakMap$1();
+    var store$1 = sharedStore.state || (sharedStore.state = new WeakMap$1());
     var wmget = store$1.get;
     var wmhas = store$1.has;
     var wmset = store$1.set;
     set = function (it, metadata) {
+      metadata.facade = it;
       wmset.call(store$1, it, metadata);
       return metadata;
     };
@@ -285,6 +286,7 @@
     var STATE = sharedKey('state');
     hiddenKeys[STATE] = true;
     set = function (it, metadata) {
+      metadata.facade = it;
       createNonEnumerableProperty(it, STATE, metadata);
       return metadata;
     };
@@ -313,9 +315,15 @@
     var unsafe = options ? !!options.unsafe : false;
     var simple = options ? !!options.enumerable : false;
     var noTargetGet = options ? !!options.noTargetGet : false;
+    var state;
     if (typeof value == 'function') {
-      if (typeof key == 'string' && !has(value, 'name')) createNonEnumerableProperty(value, 'name', key);
-      enforceInternalState(value).source = TEMPLATE.join(typeof key == 'string' ? key : '');
+      if (typeof key == 'string' && !has(value, 'name')) {
+        createNonEnumerableProperty(value, 'name', key);
+      }
+      state = enforceInternalState(value);
+      if (!state.source) {
+        state.source = TEMPLATE.join(typeof key == 'string' ? key : '');
+      }
     }
     if (O === global_1) {
       if (simple) O[key] = value;
@@ -1381,14 +1389,20 @@
     forEach: arrayForEach
   });
 
+  var iteratorClose = function (iterator) {
+    var returnMethod = iterator['return'];
+    if (returnMethod !== undefined) {
+      return anObject(returnMethod.call(iterator)).value;
+    }
+  };
+
   // call something on iterator step with safe closing on error
   var callWithSafeIterationClosing = function (iterator, fn, value, ENTRIES) {
     try {
       return ENTRIES ? fn(anObject(value)[0], value[1]) : fn(value);
     // 7.4.6 IteratorClose(iterator, completion)
     } catch (error) {
-      var returnMethod = iterator['return'];
-      if (returnMethod !== undefined) anObject(returnMethod.call(iterator));
+      iteratorClose(iterator);
       throw error;
     }
   };
@@ -1871,16 +1885,23 @@
     right: createMethod$2(true)
   };
 
+  var engineIsNode = classofRaw(global_1.process) == 'process';
+
   var $reduce = arrayReduce.left;
+
+
 
 
 
   var STRICT_METHOD$5 = arrayMethodIsStrict('reduce');
   var USES_TO_LENGTH$8 = arrayMethodUsesToLength('reduce', { 1: 0 });
+  // Chrome 80-82 has a critical bug
+  // https://bugs.chromium.org/p/chromium/issues/detail?id=1049982
+  var CHROME_BUG = !engineIsNode && engineV8Version > 79 && engineV8Version < 83;
 
   // `Array.prototype.reduce` method
   // https://tc39.github.io/ecma262/#sec-array.prototype.reduce
-  _export({ target: 'Array', proto: true, forced: !STRICT_METHOD$5 || !USES_TO_LENGTH$8 }, {
+  _export({ target: 'Array', proto: true, forced: !STRICT_METHOD$5 || !USES_TO_LENGTH$8 || CHROME_BUG }, {
     reduce: function reduce(callbackfn /* , initialValue */) {
       return $reduce(this, callbackfn, arguments.length, arguments.length > 1 ? arguments[1] : undefined);
     }
@@ -2631,15 +2652,30 @@
   hiddenKeys[METADATA] = true;
   });
 
-  var iterate_1 = createCommonjsModule(function (module) {
   var Result = function (stopped, result) {
     this.stopped = stopped;
     this.result = result;
   };
 
-  var iterate = module.exports = function (iterable, fn, that, AS_ENTRIES, IS_ITERATOR) {
-    var boundFunction = functionBindContext(fn, that, AS_ENTRIES ? 2 : 1);
+  var iterate = function (iterable, unboundFunction, options) {
+    var that = options && options.that;
+    var AS_ENTRIES = !!(options && options.AS_ENTRIES);
+    var IS_ITERATOR = !!(options && options.IS_ITERATOR);
+    var INTERRUPTED = !!(options && options.INTERRUPTED);
+    var fn = functionBindContext(unboundFunction, that, 1 + AS_ENTRIES + INTERRUPTED);
     var iterator, iterFn, index, length, result, next, step;
+
+    var stop = function (condition) {
+      if (iterator) iteratorClose(iterator);
+      return new Result(true, condition);
+    };
+
+    var callFn = function (value) {
+      if (AS_ENTRIES) {
+        anObject(value);
+        return INTERRUPTED ? fn(value[0], value[1], stop) : fn(value[0], value[1]);
+      } return INTERRUPTED ? fn(value, stop) : fn(value);
+    };
 
     if (IS_ITERATOR) {
       iterator = iterable;
@@ -2649,9 +2685,7 @@
       // optimisation for array iterators
       if (isArrayIteratorMethod(iterFn)) {
         for (index = 0, length = toLength(iterable.length); length > index; index++) {
-          result = AS_ENTRIES
-            ? boundFunction(anObject(step = iterable[index])[0], step[1])
-            : boundFunction(iterable[index]);
+          result = callFn(iterable[index]);
           if (result && result instanceof Result) return result;
         } return new Result(false);
       }
@@ -2660,15 +2694,15 @@
 
     next = iterator.next;
     while (!(step = next.call(iterator)).done) {
-      result = callWithSafeIterationClosing(iterator, boundFunction, step.value, AS_ENTRIES);
+      try {
+        result = callFn(step.value);
+      } catch (error) {
+        iteratorClose(iterator);
+        throw error;
+      }
       if (typeof result == 'object' && result && result instanceof Result) return result;
     } return new Result(false);
   };
-
-  iterate.stop = function (result) {
-    return new Result(true, result);
-  };
-  });
 
   // makes subclassing work correct for wrapped built-ins
   var inheritIfRequired = function ($this, dummy, Wrapper) {
@@ -2742,7 +2776,7 @@
         Constructor = wrapper(function (dummy, iterable) {
           anInstance(dummy, Constructor, CONSTRUCTOR_NAME);
           var that = inheritIfRequired(new NativeConstructor(), dummy, Constructor);
-          if (iterable != undefined) iterate_1(iterable, that[ADDER], that, IS_MAP);
+          if (iterable != undefined) iterate(iterable, that[ADDER], { that: that, AS_ENTRIES: IS_MAP });
           return that;
         });
         Constructor.prototype = NativePrototype;
@@ -2798,7 +2832,7 @@
           size: 0
         });
         if (!descriptors) that.size = 0;
-        if (iterable != undefined) iterate_1(iterable, that[ADDER], that, IS_MAP);
+        if (iterable != undefined) iterate(iterable, that[ADDER], { that: that, AS_ENTRIES: IS_MAP });
       });
 
       var getInternalState = internalStateGetterFor(CONSTRUCTOR_NAME);
@@ -3413,7 +3447,7 @@
       delete queue[id];
     };
     // Node.js 0.8-
-    if (classofRaw(process$1) == 'process') {
+    if (engineIsNode) {
       defer = function (id) {
         process$1.nextTick(runner(id));
       };
@@ -3435,8 +3469,8 @@
       global_1.addEventListener &&
       typeof postMessage == 'function' &&
       !global_1.importScripts &&
-      !fails(post) &&
-      location.protocol !== 'file:'
+      location && location.protocol !== 'file:' &&
+      !fails(post)
     ) {
       defer = post;
       global_1.addEventListener('message', listener, false);
@@ -3462,14 +3496,14 @@
   };
 
   var getOwnPropertyDescriptor$3 = objectGetOwnPropertyDescriptor.f;
-
   var macrotask = task.set;
 
 
+
   var MutationObserver = global_1.MutationObserver || global_1.WebKitMutationObserver;
+  var document$2 = global_1.document;
   var process$2 = global_1.process;
   var Promise$1 = global_1.Promise;
-  var IS_NODE = classofRaw(process$2) == 'process';
   // Node.js 11 shows ExperimentalWarning on getting `queueMicrotask`
   var queueMicrotaskDescriptor = getOwnPropertyDescriptor$3(global_1, 'queueMicrotask');
   var queueMicrotask = queueMicrotaskDescriptor && queueMicrotaskDescriptor.value;
@@ -3480,7 +3514,7 @@
   if (!queueMicrotask) {
     flush = function () {
       var parent, fn;
-      if (IS_NODE && (parent = process$2.domain)) parent.exit();
+      if (engineIsNode && (parent = process$2.domain)) parent.exit();
       while (head) {
         fn = head.fn;
         head = head.next;
@@ -3495,15 +3529,10 @@
       if (parent) parent.enter();
     };
 
-    // Node.js
-    if (IS_NODE) {
-      notify = function () {
-        process$2.nextTick(flush);
-      };
     // browsers with MutationObserver, except iOS - https://github.com/zloirock/core-js/issues/339
-    } else if (MutationObserver && !engineIsIos) {
+    if (!engineIsIos && !engineIsNode && MutationObserver && document$2) {
       toggle = true;
-      node = document.createTextNode('');
+      node = document$2.createTextNode('');
       new MutationObserver(flush).observe(node, { characterData: true });
       notify = function () {
         node.data = toggle = !toggle;
@@ -3515,6 +3544,11 @@
       then = promise.then;
       notify = function () {
         then.call(promise, flush);
+      };
+    // Node.js without promises
+    } else if (engineIsNode) {
+      notify = function () {
+        process$2.nextTick(flush);
       };
     // for other environments - macrotask based on:
     // - setImmediate
@@ -3594,6 +3628,7 @@
 
 
 
+
   var SPECIES$5 = wellKnownSymbol('species');
   var PROMISE = 'Promise';
   var getInternalState$3 = internalState.get;
@@ -3601,13 +3636,13 @@
   var getInternalPromiseState = internalState.getterFor(PROMISE);
   var PromiseConstructor = nativePromiseConstructor;
   var TypeError$1 = global_1.TypeError;
-  var document$2 = global_1.document;
+  var document$3 = global_1.document;
   var process$3 = global_1.process;
   var $fetch = getBuiltIn('fetch');
   var newPromiseCapability$1 = newPromiseCapability.f;
   var newGenericPromiseCapability = newPromiseCapability$1;
-  var IS_NODE$1 = classofRaw(process$3) == 'process';
-  var DISPATCH_EVENT = !!(document$2 && document$2.createEvent && global_1.dispatchEvent);
+  var DISPATCH_EVENT = !!(document$3 && document$3.createEvent && global_1.dispatchEvent);
+  var NATIVE_REJECTION_EVENT = typeof PromiseRejectionEvent == 'function';
   var UNHANDLED_REJECTION = 'unhandledrejection';
   var REJECTION_HANDLED = 'rejectionhandled';
   var PENDING = 0;
@@ -3625,7 +3660,7 @@
       // We can't detect it synchronously, so just check versions
       if (engineV8Version === 66) return true;
       // Unhandled rejections tracking support, NodeJS Promise without it fails @@species test
-      if (!IS_NODE$1 && typeof PromiseRejectionEvent != 'function') return true;
+      if (!engineIsNode && !NATIVE_REJECTION_EVENT) return true;
     }
     // We can't use @@species feature detection in V8 since it causes
     // deoptimization and performance degradation
@@ -3651,7 +3686,7 @@
     return isObject(it) && typeof (then = it.then) == 'function' ? then : false;
   };
 
-  var notify$1 = function (promise, state, isReject) {
+  var notify$1 = function (state, isReject) {
     if (state.notified) return;
     state.notified = true;
     var chain = state.reactions;
@@ -3670,7 +3705,7 @@
         try {
           if (handler) {
             if (!ok) {
-              if (state.rejection === UNHANDLED) onHandleUnhandled(promise, state);
+              if (state.rejection === UNHANDLED) onHandleUnhandled(state);
               state.rejection = HANDLED;
             }
             if (handler === true) result = value;
@@ -3695,36 +3730,37 @@
       }
       state.reactions = [];
       state.notified = false;
-      if (isReject && !state.rejection) onUnhandled(promise, state);
+      if (isReject && !state.rejection) onUnhandled(state);
     });
   };
 
   var dispatchEvent = function (name, promise, reason) {
     var event, handler;
     if (DISPATCH_EVENT) {
-      event = document$2.createEvent('Event');
+      event = document$3.createEvent('Event');
       event.promise = promise;
       event.reason = reason;
       event.initEvent(name, false, true);
       global_1.dispatchEvent(event);
     } else event = { promise: promise, reason: reason };
-    if (handler = global_1['on' + name]) handler(event);
+    if (!NATIVE_REJECTION_EVENT && (handler = global_1['on' + name])) handler(event);
     else if (name === UNHANDLED_REJECTION) hostReportErrors('Unhandled promise rejection', reason);
   };
 
-  var onUnhandled = function (promise, state) {
+  var onUnhandled = function (state) {
     task$1.call(global_1, function () {
+      var promise = state.facade;
       var value = state.value;
       var IS_UNHANDLED = isUnhandled(state);
       var result;
       if (IS_UNHANDLED) {
         result = perform(function () {
-          if (IS_NODE$1) {
+          if (engineIsNode) {
             process$3.emit('unhandledRejection', value, promise);
           } else dispatchEvent(UNHANDLED_REJECTION, promise, value);
         });
         // Browsers should not trigger `rejectionHandled` event if it was handled here, NodeJS - should
-        state.rejection = IS_NODE$1 || isUnhandled(state) ? UNHANDLED : HANDLED;
+        state.rejection = engineIsNode || isUnhandled(state) ? UNHANDLED : HANDLED;
         if (result.error) throw result.value;
       }
     });
@@ -3734,55 +3770,56 @@
     return state.rejection !== HANDLED && !state.parent;
   };
 
-  var onHandleUnhandled = function (promise, state) {
+  var onHandleUnhandled = function (state) {
     task$1.call(global_1, function () {
-      if (IS_NODE$1) {
+      var promise = state.facade;
+      if (engineIsNode) {
         process$3.emit('rejectionHandled', promise);
       } else dispatchEvent(REJECTION_HANDLED, promise, state.value);
     });
   };
 
-  var bind = function (fn, promise, state, unwrap) {
+  var bind = function (fn, state, unwrap) {
     return function (value) {
-      fn(promise, state, value, unwrap);
+      fn(state, value, unwrap);
     };
   };
 
-  var internalReject = function (promise, state, value, unwrap) {
+  var internalReject = function (state, value, unwrap) {
     if (state.done) return;
     state.done = true;
     if (unwrap) state = unwrap;
     state.value = value;
     state.state = REJECTED;
-    notify$1(promise, state, true);
+    notify$1(state, true);
   };
 
-  var internalResolve = function (promise, state, value, unwrap) {
+  var internalResolve = function (state, value, unwrap) {
     if (state.done) return;
     state.done = true;
     if (unwrap) state = unwrap;
     try {
-      if (promise === value) throw TypeError$1("Promise can't be resolved itself");
+      if (state.facade === value) throw TypeError$1("Promise can't be resolved itself");
       var then = isThenable(value);
       if (then) {
         microtask(function () {
           var wrapper = { done: false };
           try {
             then.call(value,
-              bind(internalResolve, promise, wrapper, state),
-              bind(internalReject, promise, wrapper, state)
+              bind(internalResolve, wrapper, state),
+              bind(internalReject, wrapper, state)
             );
           } catch (error) {
-            internalReject(promise, wrapper, error, state);
+            internalReject(wrapper, error, state);
           }
         });
       } else {
         state.value = value;
         state.state = FULFILLED;
-        notify$1(promise, state, false);
+        notify$1(state, false);
       }
     } catch (error) {
-      internalReject(promise, { done: false }, error, state);
+      internalReject({ done: false }, error, state);
     }
   };
 
@@ -3795,9 +3832,9 @@
       Internal.call(this);
       var state = getInternalState$3(this);
       try {
-        executor(bind(internalResolve, this, state), bind(internalReject, this, state));
+        executor(bind(internalResolve, state), bind(internalReject, state));
       } catch (error) {
-        internalReject(this, state, error);
+        internalReject(state, error);
       }
     };
     // eslint-disable-next-line no-unused-vars
@@ -3821,10 +3858,10 @@
         var reaction = newPromiseCapability$1(speciesConstructor(this, PromiseConstructor));
         reaction.ok = typeof onFulfilled == 'function' ? onFulfilled : true;
         reaction.fail = typeof onRejected == 'function' && onRejected;
-        reaction.domain = IS_NODE$1 ? process$3.domain : undefined;
+        reaction.domain = engineIsNode ? process$3.domain : undefined;
         state.parent = true;
         state.reactions.push(reaction);
-        if (state.state != PENDING) notify$1(this, state, false);
+        if (state.state != PENDING) notify$1(state, false);
         return reaction.promise;
       },
       // `Promise.prototype.catch` method
@@ -3837,8 +3874,8 @@
       var promise = new Internal();
       var state = getInternalState$3(promise);
       this.promise = promise;
-      this.resolve = bind(internalResolve, promise, state);
-      this.reject = bind(internalReject, promise, state);
+      this.resolve = bind(internalResolve, state);
+      this.reject = bind(internalReject, state);
     };
     newPromiseCapability.f = newPromiseCapability$1 = function (C) {
       return C === PromiseConstructor || C === PromiseWrapper
@@ -3909,7 +3946,7 @@
         var values = [];
         var counter = 0;
         var remaining = 1;
-        iterate_1(iterable, function (promise) {
+        iterate(iterable, function (promise) {
           var index = counter++;
           var alreadyCalled = false;
           values.push(undefined);
@@ -3934,7 +3971,7 @@
       var reject = capability.reject;
       var result = perform(function () {
         var $promiseResolve = aFunction$1(C.resolve);
-        iterate_1(iterable, function (promise) {
+        iterate(iterable, function (promise) {
           $promiseResolve.call(C, promise).then(capability.resolve, reject);
         });
       });
@@ -4283,11 +4320,11 @@
     var regexp = /./;
     try {
       '/./'[METHOD_NAME](regexp);
-    } catch (e) {
+    } catch (error1) {
       try {
         regexp[MATCH$2] = false;
         return '/./'[METHOD_NAME](regexp);
-      } catch (f) { /* empty */ }
+      } catch (error2) { /* empty */ }
     } return false;
   };
 
@@ -6074,7 +6111,7 @@
   var URLSearchParamsPrototype = URLSearchParamsConstructor.prototype;
 
   redefineAll(URLSearchParamsPrototype, {
-    // `URLSearchParams.prototype.appent` method
+    // `URLSearchParams.prototype.append` method
     // https://url.spec.whatwg.org/#dom-urlsearchparams-append
     append: function append(name, value) {
       validateArgumentsLength(arguments.length, 2);

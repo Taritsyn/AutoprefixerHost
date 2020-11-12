@@ -138,7 +138,6 @@ namespace AutoprefixerHost.Tests
 			const string targetOutput2 = @".enable {
     -webkit-user-select: all;
        -moz-user-select: all;
-        -ms-user-select: all;
             user-select: all;
 }";
 
