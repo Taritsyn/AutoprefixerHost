@@ -46,12 +46,12 @@ namespace AutoprefixerHost
 		/// <summary>
 		/// Processing options
 		/// </summary>
-		private readonly ProcessingOptions _options;
+		private ProcessingOptions _options;
 
 		/// <summary>
-		/// Processing options in JSON format
+		/// Delegate that creates an instance of JS engine
 		/// </summary>
-		private readonly string _serializedOptions;
+		private Func<IJsEngine> _createJsEngineInstance;
 
 		/// <summary>
 		/// JS engine
@@ -76,7 +76,7 @@ namespace AutoprefixerHost
 		/// <summary>
 		/// Gets a version of the Autoprefixer library
 		/// </summary>
-		public string Version => "10.0.1.0";
+		public string Version => "10.0.2.0";
 
 
 		/// <summary>
@@ -114,21 +114,8 @@ namespace AutoprefixerHost
 				throw new ArgumentNullException(nameof(createJsEngineInstance));
 			}
 
+			_createJsEngineInstance = createJsEngineInstance;
 			_options = options ?? _defaultOptions;
-			_serializedOptions = SerializeProcessingOptions(_options);
-
-			try
-			{
-				_jsEngine = createJsEngineInstance();
-			}
-			catch (JsEngineLoadException e)
-			{
-				throw AutoprefixerErrorHelpers.WrapAutoprefixerLoadException(e);
-			}
-			catch (Exception e)
-			{
-				throw AutoprefixerErrorHelpers.WrapAutoprefixerLoadException(e, true);
-			}
 		}
 
 		/// <summary>
@@ -151,21 +138,8 @@ namespace AutoprefixerHost
 				throw new ArgumentNullException(nameof(jsEngineFactory));
 			}
 
+			_createJsEngineInstance = jsEngineFactory.CreateEngine;
 			_options = options ?? _defaultOptions;
-			_serializedOptions = SerializeProcessingOptions(_options);
-
-			try
-			{
-				_jsEngine = jsEngineFactory.CreateEngine();
-			}
-			catch (JsEngineLoadException e)
-			{
-				throw AutoprefixerErrorHelpers.WrapAutoprefixerLoadException(e);
-			}
-			catch (Exception e)
-			{
-				throw AutoprefixerErrorHelpers.WrapAutoprefixerLoadException(e, true);
-			}
 		}
 
 
@@ -186,8 +160,23 @@ namespace AutoprefixerHost
 					return;
 				}
 
+				string serializedOptions;
+
 				try
 				{
+					serializedOptions = SerializeProcessingOptions(_options);
+				}
+				catch (CustomUsageStatisticsFormatException e)
+				{
+					throw new AutoprefixerLoadException(e.Message, e.InnerException)
+					{
+						Description = e.Message
+					};
+				}
+
+				try
+				{
+					_jsEngine = _createJsEngineInstance();
 					_jsEngine.EmbedHostObject(COUNTRY_STATISTICS_SERVICE_VARIABLE_NAME,
 						CountryStatisticsService.Instance);
 
@@ -204,9 +193,13 @@ namespace AutoprefixerHost
 						assembly);
 					_jsEngine.ExecuteResource(ResourceHelpers.GetResourceName(AUTOPREFIXER_HELPER_FILE_NAME),
 						assembly);
-					_jsEngine.Execute($"var autoprefixerHelper = new AutoprefixerHelper({_serializedOptions});");
+					_jsEngine.Execute($"var autoprefixerHelper = new AutoprefixerHelper({serializedOptions});");
 				}
-				catch (JsException e)
+				catch (JsEngineLoadException e)
+				{
+					throw AutoprefixerErrorHelpers.WrapAutoprefixerLoadException(e);
+				}
+				catch (Exception e)
 				{
 					throw AutoprefixerErrorHelpers.WrapAutoprefixerLoadException(e, true);
 				}
@@ -219,14 +212,80 @@ namespace AutoprefixerHost
 		/// Actualizes a vendor prefixes in CSS code by using Andrey Sitnik's Autoprefixer
 		/// </summary>
 		/// <param name="content">CSS code</param>
+		/// <param name="options">Processing options</param>
+		/// <returns>Processing result</returns>
+		public ProcessingResult Process(string content, ProcessingOptions options = null)
+		{
+			if (content == null)
+			{
+				throw new ArgumentNullException(
+					nameof(content),
+					string.Format(Strings.Common_ArgumentIsNull, nameof(content))
+				);
+			}
+
+			if (string.IsNullOrWhiteSpace(content))
+			{
+				throw new ArgumentException(
+					string.Format(Strings.Common_ArgumentIsEmpty, nameof(content)),
+					nameof(content)
+				);
+			}
+
+			return InnerProcess(content, null, null, null, null, options);
+		}
+
+		/// <summary>
+		/// Actualizes a vendor prefixes in CSS code by using Andrey Sitnik's Autoprefixer
+		/// </summary>
+		/// <param name="content">CSS code</param>
 		/// <param name="inputPath">Path to input file</param>
 		/// <param name="outputPath">Path to output file</param>
 		/// <param name="sourceMapPath">Path to source map file</param>
 		/// <param name="inputSourceMapContent">Content of an input source map from an previous
 		/// processing step (for example, Sass compilation)</param>
+		/// <param name="options">Processing options</param>
 		/// <returns>Processing result</returns>
-		public ProcessingResult Process(string content, string inputPath = null, string outputPath = null,
-			string sourceMapPath = null, string inputSourceMapContent = null)
+		public ProcessingResult Process(string content, string inputPath, string outputPath = null,
+			string sourceMapPath = null, string inputSourceMapContent = null, ProcessingOptions options = null)
+		{
+			if (content == null)
+			{
+				throw new ArgumentNullException(
+					nameof(content),
+					string.Format(Strings.Common_ArgumentIsNull, nameof(content))
+				);
+			}
+
+			if (inputPath == null)
+			{
+				throw new ArgumentNullException(
+					nameof(inputPath),
+					string.Format(Strings.Common_ArgumentIsNull, nameof(inputPath))
+				);
+			}
+
+			if (string.IsNullOrWhiteSpace(content))
+			{
+				throw new ArgumentException(
+					string.Format(Strings.Common_ArgumentIsEmpty, nameof(content)),
+					nameof(content)
+				);
+			}
+
+			if (string.IsNullOrWhiteSpace(inputPath))
+			{
+				throw new ArgumentException(
+					string.Format(Strings.Common_ArgumentIsEmpty, nameof(inputPath)),
+					nameof(inputPath)
+				);
+			}
+
+			return InnerProcess(content, inputPath, outputPath, sourceMapPath, inputSourceMapContent, options);
+		}
+
+		private ProcessingResult InnerProcess(string content, string inputPath, string outputPath,
+			string sourceMapPath, string inputSourceMapContent, ProcessingOptions options)
 		{
 			Initialize();
 
@@ -236,12 +295,29 @@ namespace AutoprefixerHost
 			string serializedOutputPath = JsonConvert.SerializeObject(outputPath);
 			string serializedSourceMapPath = JsonConvert.SerializeObject(sourceMapPath);
 			string serializedInputSourceMapContent = JsonConvert.SerializeObject(inputSourceMapContent);
+			string serializedOptions = "null";
+
+			if (options != null)
+			{
+				try
+				{
+					serializedOptions = SerializeProcessingOptions(options);
+				}
+				catch (CustomUsageStatisticsFormatException e)
+				{
+					throw new AutoprefixerProcessingException(e.Message, e.InnerException)
+					{
+						Description = e.Message
+					};
+				}
+			}
 
 			try
 			{
 				serializedResult = _jsEngine.Evaluate<string>("autoprefixerHelper.process(" +
 					serializedContent + ", " + serializedInputPath + ", " + serializedOutputPath + ", " +
-					serializedSourceMapPath + ", " + serializedInputSourceMapContent + ");");
+					serializedSourceMapPath + ", " + serializedInputSourceMapContent + ", " +
+					serializedOptions + ");");
 			}
 			catch (JsException e)
 			{
@@ -283,12 +359,8 @@ namespace AutoprefixerHost
 				}
 				catch (JsonReaderException e)
 				{
-					string description = Strings.Processor_StatsPropertyHasIncorrectFormat;
-
-					throw new AutoprefixerLoadException(description, e)
-					{
-						Description = description
-					};
+					throw new CustomUsageStatisticsFormatException(
+						Strings.Processor_StatsPropertyHasIncorrectFormat, e);
 				}
 			}
 
@@ -367,7 +439,7 @@ namespace AutoprefixerHost
 			return value;
 		}
 
-		private AutoprefixerProcessingException CreateProcessingExceptionFromJson(JToken error)
+		private static AutoprefixerProcessingException CreateProcessingExceptionFromJson(JToken error)
 		{
 			var description = error.Value<string>("description");
 			var type = error.Value<string>("type");
@@ -395,11 +467,11 @@ namespace AutoprefixerHost
 			return processingException;
 		}
 
-		private ProcessingResult CreateProcessingResultFromJson(JObject resultJson)
+		private static ProcessingResult CreateProcessingResultFromJson(JObject resultJson)
 		{
 			string processedContent = resultJson.Value<string>("processedContent");
 			string sourceMap = resultJson.Value<string>("sourceMap");
-			if (_options.SourceMap && string.IsNullOrWhiteSpace(sourceMap))
+			if (string.IsNullOrWhiteSpace(sourceMap))
 			{
 				sourceMap = SourceMapExtractor.ExtractSourceMap(processedContent);
 			}
@@ -454,6 +526,9 @@ namespace AutoprefixerHost
 					_jsEngine.Dispose();
 					_jsEngine = null;
 				}
+
+				_options = null;
+				_createJsEngineInstance = null;
 			}
 		}
 	}

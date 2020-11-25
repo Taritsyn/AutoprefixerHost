@@ -23,6 +23,10 @@ namespace AutoprefixerHost.Tests
 		public void MappingJsonError()
 		{
 			// Arrange
+			const string input = @"body {
+  color: rebeccapurple;
+  font-family: 'Comic Sans MS';
+}";
 			var options = new ProcessingOptions
 			{
 				Browsers = new List<string> { "> 5% in my stats" },
@@ -40,22 +44,41 @@ namespace AutoprefixerHost.Tests
 			};
 
 			// Act
-			AutoprefixerLoadException exception = null;
+			AutoprefixerLoadException loadException = null;
+			AutoprefixerProcessingException processingException = null;
 
 			try
 			{
-				using (var autoprefixer = new Autoprefixer(options))
-				{ }
+				using (var autoprefixerWithOptions = new Autoprefixer(options))
+				{
+					autoprefixerWithOptions.Process(input);
+				}
 			}
 			catch (AutoprefixerLoadException e)
 			{
-				exception = e;
+				loadException = e;
+			}
+
+			try
+			{
+				using (var autoprefixerWithoutOptions = new Autoprefixer())
+				{
+					autoprefixerWithoutOptions.Process(input, options);
+				}
+			}
+			catch (AutoprefixerProcessingException e)
+			{
+				processingException = e;
 			}
 
 			// Assert
-			Assert.NotNull(exception);
-			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", exception.Message);
-			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", exception.Description);
+			Assert.NotNull(loadException);
+			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", loadException.Message);
+			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", loadException.Description);
+
+			Assert.NotNull(processingException);
+			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", processingException.Message);
+			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", processingException.Description);
 		}
 #if NET461 || NETCOREAPP2_1 || NETCOREAPP3_1
 
@@ -226,21 +249,18 @@ namespace AutoprefixerHost.Tests
 			AutoprefixerProcessingException exception1 = null;
 			string output2;
 
-			using (var noIgnoreErrorsAutoprefixer = new Autoprefixer(noIgnoreErrorsOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
 				try
 				{
-					output1 = noIgnoreErrorsAutoprefixer.Process(input, inputPath).ProcessedContent;
+					output1 = autoprefixer.Process(input, inputPath, options: noIgnoreErrorsOptions).ProcessedContent;
 				}
 				catch (AutoprefixerProcessingException e)
 				{
 					exception1 = e;
 				}
-			}
 
-			using (var ignoreErrorsAutoprefixer = new Autoprefixer(ignoreErrorsOptions))
-			{
-				output2 = ignoreErrorsAutoprefixer.Process(input, inputPath).ProcessedContent;
+				output2 = autoprefixer.Process(input, inputPath, options: ignoreErrorsOptions).ProcessedContent;
 			}
 
 			// Assert

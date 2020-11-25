@@ -59,24 +59,12 @@ namespace AutoprefixerHost.Tests
 			string output3;
 			string output4;
 
-			using (var defaultBrowsersAutoprefixer = new Autoprefixer(defaultBrowsersOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				output1 = defaultBrowsersAutoprefixer.Process(input).ProcessedContent;
-			}
-
-			using (var nullBrowsersAutoprefixer = new Autoprefixer(nullBrowsersOptions))
-			{
-				output2 = nullBrowsersAutoprefixer.Process(input).ProcessedContent;
-			}
-
-			using (var emptyBrowsersAutoprefixer = new Autoprefixer(emptyBrowsersOptions))
-			{
-				output3 = emptyBrowsersAutoprefixer.Process(input).ProcessedContent;
-			}
-
-			using (var customBrowsersAutoprefixer = new Autoprefixer(customBrowsersOptions))
-			{
-				output4 = customBrowsersAutoprefixer.Process(input).ProcessedContent;
+				output1 = autoprefixer.Process(input, defaultBrowsersOptions).ProcessedContent;
+				output2 = autoprefixer.Process(input, nullBrowsersOptions).ProcessedContent;
+				output3 = autoprefixer.Process(input, emptyBrowsersOptions).ProcessedContent;
+				output4 = autoprefixer.Process(input, customBrowsersOptions).ProcessedContent;
 			}
 
 			// Assert
@@ -109,14 +97,10 @@ namespace AutoprefixerHost.Tests
 			string output1;
 			string output2;
 
-			using (var cascadeDisabledAutoprefixer = new Autoprefixer(cascadeDisabledOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				output1 = cascadeDisabledAutoprefixer.Process(input).ProcessedContent;
-			}
-
-			using (var cascadeEnabledAutoprefixer = new Autoprefixer(cascadeEnabledOptions))
-			{
-				output2 = cascadeEnabledAutoprefixer.Process(input).ProcessedContent;
+				output1 = autoprefixer.Process(input, cascadeDisabledOptions).ProcessedContent;
+				output2 = autoprefixer.Process(input, cascadeEnabledOptions).ProcessedContent;
 			}
 
 			// Assert
@@ -145,14 +129,10 @@ namespace AutoprefixerHost.Tests
 			string output1;
 			string output2;
 
-			using (var addDisabledAutoprefixer = new Autoprefixer(addDisabledOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				output1 = addDisabledAutoprefixer.Process(input).ProcessedContent;
-			}
-
-			using (var addEnabledAutoprefixer = new Autoprefixer(addEnabledOptions))
-			{
-				output2 = addEnabledAutoprefixer.Process(input).ProcessedContent;
+				output1 = autoprefixer.Process(input, addDisabledOptions).ProcessedContent;
+				output2 = autoprefixer.Process(input, addEnabledOptions).ProcessedContent;
 			}
 
 			// Assert
@@ -185,14 +165,10 @@ namespace AutoprefixerHost.Tests
 			string output1;
 			string output2;
 
-			using (var removeDisabledAutoprefixer = new Autoprefixer(removeDisabledOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				output1 = removeDisabledAutoprefixer.Process(input).ProcessedContent;
-			}
-
-			using (var removeEnabledAutoprefixer = new Autoprefixer(removeEnabledOptions))
-			{
-				output2 = removeEnabledAutoprefixer.Process(input).ProcessedContent;
+				output1 = autoprefixer.Process(input, removeDisabledOptions).ProcessedContent;
+				output2 = autoprefixer.Process(input, removeEnabledOptions).ProcessedContent;
 			}
 
 			// Assert
@@ -232,14 +208,10 @@ namespace AutoprefixerHost.Tests
 			string output1;
 			string output2;
 
-			using (var supportsDisabledAutoprefixer = new Autoprefixer(supportsDisabledOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				output1 = supportsDisabledAutoprefixer.Process(input).ProcessedContent;
-			}
-
-			using (var supportsEnabledAutoprefixer = new Autoprefixer(supportsEnabledOptions))
-			{
-				output2 = supportsEnabledAutoprefixer.Process(input).ProcessedContent;
+				output1 = autoprefixer.Process(input, supportsDisabledOptions).ProcessedContent;
+				output2 = autoprefixer.Process(input, supportsEnabledOptions).ProcessedContent;
 			}
 
 			// Assert
@@ -300,19 +272,11 @@ namespace AutoprefixerHost.Tests
 			string output2;
 			string output3;
 
-			using (var flexboxNoneAutoprefixer = new Autoprefixer(flexboxNoneOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				output1 = flexboxNoneAutoprefixer.Process(input).ProcessedContent;
-			}
-
-			using (var flexboxAllAutoprefixer = new Autoprefixer(flexboxAllOptions))
-			{
-				output2 = flexboxAllAutoprefixer.Process(input).ProcessedContent;
-			}
-
-			using (var flexboxNo2009Autoprefixer = new Autoprefixer(flexboxNo2009Options))
-			{
-				output3 = flexboxNo2009Autoprefixer.Process(input).ProcessedContent;
+				output1 = autoprefixer.Process(input, flexboxNoneOptions).ProcessedContent;
+				output2 = autoprefixer.Process(input, flexboxAllOptions).ProcessedContent;
+				output3 = autoprefixer.Process(input, flexboxNo2009Options).ProcessedContent;
 			}
 
 			// Assert
@@ -411,19 +375,11 @@ namespace AutoprefixerHost.Tests
 			string output2;
 			string output3;
 
-			using (var gridNoneAutoprefixer = new Autoprefixer(gridNoneOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				output1 = gridNoneAutoprefixer.Process(input).ProcessedContent;
-			}
-
-			using (var gridAutoplaceAutoprefixer = new Autoprefixer(gridAutoplaceOptions))
-			{
-				output2 = gridAutoplaceAutoprefixer.Process(input).ProcessedContent;
-			}
-
-			using (var gridNoAutoplaceAutoprefixer = new Autoprefixer(gridNoAutoplaceOptions))
-			{
-				output3 = gridNoAutoplaceAutoprefixer.Process(input).ProcessedContent;
+				output1 = autoprefixer.Process(input, gridNoneOptions).ProcessedContent;
+				output2 = autoprefixer.Process(input, gridAutoplaceOptions).ProcessedContent;
+				output3 = autoprefixer.Process(input, gridNoAutoplaceOptions).ProcessedContent;
 			}
 
 			// Assert

@@ -47,14 +47,10 @@ namespace AutoprefixerHost.Tests
 			ProcessingResult result1;
 			ProcessingResult result2;
 
-			using (var sourceMapDisabledAutoprefixer = new Autoprefixer(sourceMapDisabledOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				result1 = sourceMapDisabledAutoprefixer.Process(content, inputPath, outputPath);
-			}
-
-			using (var sourceMapEnabledAutoprefixer = new Autoprefixer(sourceMapEnabledOptions))
-			{
-				result2 = sourceMapEnabledAutoprefixer.Process(content, inputPath, outputPath);
+				result1 = autoprefixer.Process(content, inputPath, outputPath, options: sourceMapDisabledOptions);
+				result2 = autoprefixer.Process(content, inputPath, outputPath, options: sourceMapEnabledOptions);
 			}
 
 			// Assert
@@ -96,14 +92,12 @@ namespace AutoprefixerHost.Tests
 			ProcessingResult result1;
 			ProcessingResult result2;
 
-			using (var sourceMapWithoutContentsAutoprefixer = new Autoprefixer(sourceMapWithoutContentsOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				result1 = sourceMapWithoutContentsAutoprefixer.Process(content, inputPath, outputPath);
-			}
-
-			using (var sourceMapWithContentsAutoprefixer = new Autoprefixer(sourceMapWithContentsOptions))
-			{
-				result2 = sourceMapWithContentsAutoprefixer.Process(content, inputPath, outputPath);
+				result1 = autoprefixer.Process(content, inputPath, outputPath,
+					options: sourceMapWithoutContentsOptions);
+				result2 = autoprefixer.Process(content, inputPath, outputPath,
+					options: sourceMapWithContentsOptions);
 			}
 
 			// Assert
@@ -144,14 +138,10 @@ namespace AutoprefixerHost.Tests
 			ProcessingResult result1;
 			ProcessingResult result2;
 
-			using (var sourceMapUrlIncludedAutoprefixer = new Autoprefixer(sourceMapUrlIncludedOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				result1 = sourceMapUrlIncludedAutoprefixer.Process(content, inputPath, outputPath);
-			}
-
-			using (var sourceMapUrlOmittedAutoprefixer = new Autoprefixer(sourceMapUrlOmittedOptions))
-			{
-				result2 = sourceMapUrlOmittedAutoprefixer.Process(content, inputPath, outputPath);
+				result1 = autoprefixer.Process(content, inputPath, outputPath, options: sourceMapUrlIncludedOptions);
+				result2 = autoprefixer.Process(content, inputPath, outputPath, options: sourceMapUrlOmittedOptions);
 			}
 
 			// Assert
@@ -224,14 +214,12 @@ namespace AutoprefixerHost.Tests
 			ProcessingResult result1;
 			ProcessingResult result2;
 
-			using (var inlineSourceMapDisabledAutoprefixer = new Autoprefixer(inlineSourceMapDisabledOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				result1 = inlineSourceMapDisabledAutoprefixer.Process(content, inputPath, outputPath);
-			}
-
-			using (var inlineSourceMapEnabledAutoprefixer = new Autoprefixer(inlineSourceMapEnabledOptions))
-			{
-				result2 = inlineSourceMapEnabledAutoprefixer.Process(content, inputPath, outputPath);
+				result1 = autoprefixer.Process(content, inputPath, outputPath,
+					options: inlineSourceMapDisabledOptions);
+				result2 = autoprefixer.Process(content, inputPath, outputPath,
+					options: inlineSourceMapEnabledOptions);
 			}
 
 			// Assert
@@ -275,14 +263,12 @@ namespace AutoprefixerHost.Tests
 			ProcessingResult result1;
 			ProcessingResult result2;
 
-			using (var inlineSourceMapWithoutContentsAutoprefixer = new Autoprefixer(inlineSourceMapWithoutContentsOptions))
+			using (var autoprefixer = new Autoprefixer())
 			{
-				result1 = inlineSourceMapWithoutContentsAutoprefixer.Process(content, inputPath, outputPath);
-			}
-
-			using (var inlineSourceMapWithContentsAutoprefixer = new Autoprefixer(inlineSourceMapWithContentsOptions))
-			{
-				result2 = inlineSourceMapWithContentsAutoprefixer.Process(content, inputPath, outputPath);
+				result1 = autoprefixer.Process(content, inputPath, outputPath,
+					options: inlineSourceMapWithoutContentsOptions);
+				result2 = autoprefixer.Process(content, inputPath, outputPath,
+					options: inlineSourceMapWithContentsOptions);
 			}
 
 			// Assert

@@ -29,7 +29,8 @@
    =============
    RELEASE NOTES
    =============
-   Added support of the Autoprefixer version 10.0.2.0.
+   Now the `Process` method can take the processing options as an optional
+   parameter.
 
    ============
    PROJECT SITE

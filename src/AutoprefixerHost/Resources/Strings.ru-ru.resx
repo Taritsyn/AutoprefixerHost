@@ -120,6 +120,9 @@
   <data name="Common_ArgumentIsEmpty" xml:space="preserve">
     <value>Параметр с именем "{0}" не должен содержать пустую строку!</value>
   </data>
+  <data name="Common_ArgumentIsNull" xml:space="preserve">
+    <value>Параметр с именем "{0}" не должен содержать значение равное null!</value>
+  </data>
   <data name="Common_EnumValueToCodeConversionFailed" xml:space="preserve">
     <value>Не удается найти строковый код, соответствующий значению "{0}" перечислимого типа `{1}`!</value>
   </data>

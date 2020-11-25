@@ -1,4 +1,4 @@
-﻿/*global Autoprefixer */
+﻿/*global autoprefixer */
 var AutoprefixerHelper = (function (autoprefixer, undefined) {
 	'use strict';
 
@@ -61,7 +61,7 @@ var AutoprefixerHelper = (function (autoprefixer, undefined) {
 	}
 
 	AutoprefixerHelper.prototype.process = function (content, inputPath, outputPath, sourceMapPath,
-		inputSourceMapContent) {
+		inputSourceMapContent, options) {
 		var result,
 			postCssOptions,
 			sourceMapOptions,
@@ -73,7 +73,8 @@ var AutoprefixerHelper = (function (autoprefixer, undefined) {
 			warnings = []
 			;
 
-		postCssOptions = mixDeep({ from: inputPath, to: outputPath }, this._postCssOptions);
+		postCssOptions = mixDeep({ from: inputPath, to: outputPath },
+			options ? createPostCssOptions(options) : this._postCssOptions);
 		sourceMapOptions = postCssOptions.map;
 		if (sourceMapOptions) {
 			if (sourceMapPath && sourceMapOptions.annotation) {
@@ -81,7 +82,7 @@ var AutoprefixerHelper = (function (autoprefixer, undefined) {
 			}
 			sourceMapOptions.prev = inputSourceMapContent;
 		}
-		autoprefixerOptions = this._autoprefixerOptions;
+		autoprefixerOptions = options ? createAutoprefixerOptions(options) : this._autoprefixerOptions;
 
 		try {
 			autoprefixerResult = autoprefixer.process(content, postCssOptions, autoprefixerOptions);
