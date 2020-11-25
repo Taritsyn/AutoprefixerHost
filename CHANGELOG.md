@@ -1,6 +1,9 @@
 Change log
 ==========
 
+## v3.0.0 - November 25, 2020
+ * Now the `Process` method can take the processing options as an optional parameter
+
 ## v2.0.3 - November 12, 2020
  * Added support of the Autoprefixer version 10.0.2.0
 
