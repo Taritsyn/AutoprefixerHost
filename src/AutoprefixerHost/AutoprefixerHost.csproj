@@ -33,7 +33,7 @@ After installing the packages, you will need to register the default JS engine (
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageTags>Autoprefixer;CSS</PackageTags>
-    <PackageReleaseNotes>Added support of the Autoprefixer version 10.0.3.0.</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed a compatibility error with the `ChakraIeJsRt` mode of JavaScriptEngineSwitcher.Msie.</PackageReleaseNotes>
     <NeutralLanguage>en-US</NeutralLanguage>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>

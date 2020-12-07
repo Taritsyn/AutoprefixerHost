@@ -29,7 +29,8 @@
    =============
    RELEASE NOTES
    =============
-   Added support of the Autoprefixer version 10.0.3.0.
+   Fixed a compatibility error with the `ChakraIeJsRt` mode of
+   JavaScriptEngineSwitcher.Msie.
 
    ============
    PROJECT SITE
