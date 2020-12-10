@@ -1,6 +1,9 @@
 Change log
 ==========
 
+## v3.0.3 - December 10, 2020
+ * Added support of the Autoprefixer version 10.1.0.0
+
 ## v3.0.2 - December 7, 2020
  * Fixed a compatibility error with the `ChakraIeJsRt` mode of JavaScriptEngineSwitcher.Msie
 
