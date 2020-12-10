@@ -873,6 +873,30 @@
     }
   });
 
+  var quot = /"/g;
+  // B.2.3.2.1 CreateHTML(string, tag, attribute, value)
+  var createHTML = function (string, tag, attribute, value) {
+    var S = String(_defined(string));
+    var p1 = '<' + tag;
+    if (attribute !== '') p1 += ' ' + attribute + '="' + String(value).replace(quot, '&quot;') + '"';
+    return p1 + '>' + S + '</' + tag + '>';
+  };
+  var _stringHtml = function (NAME, exec) {
+    var O = {};
+    O[NAME] = exec(createHTML);
+    _export(_export.P + _export.F * _fails(function () {
+      var test = ''[NAME]('"');
+      return test !== test.toLowerCase() || test.split('"').length > 3;
+    }), 'String', O);
+  };
+
+  // B.2.3.13 String.prototype.sub()
+  _stringHtml('sub', function (createHTML) {
+    return function sub() {
+      return createHTML(this, 'sub', '', '');
+    };
+  });
+
   var _redefineAll = function (target, src, safe) {
     for (var key in src) _redefine(target, key, src[key], safe);
     return target;
@@ -4564,23 +4588,6 @@
       }
     }
   });
-
-  var quot = /"/g;
-  // B.2.3.2.1 CreateHTML(string, tag, attribute, value)
-  var createHTML = function (string, tag, attribute, value) {
-    var S = String(_defined(string));
-    var p1 = '<' + tag;
-    if (attribute !== '') p1 += ' ' + attribute + '="' + String(value).replace(quot, '&quot;') + '"';
-    return p1 + '>' + S + '</' + tag + '>';
-  };
-  var _stringHtml = function (NAME, exec) {
-    var O = {};
-    O[NAME] = exec(createHTML);
-    _export(_export.P + _export.F * _fails(function () {
-      var test = ''[NAME]('"');
-      return test !== test.toLowerCase() || test.split('"').length > 3;
-    }), 'String', O);
-  };
 
   // B.2.3.5 String.prototype.bold()
   _stringHtml('bold', function (createHTML) {

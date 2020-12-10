@@ -112,12 +112,12 @@ namespace AutoprefixerHost.Tests
 			Assert.AreEqual(
 				"During loading of the Autoprefixer error has occurred. " +
 				"See the original error message: \"SyntaxError: Invalid regular expression" + Environment.NewLine +
-				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:16:89851\".",
+				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:16:90045\".",
 				exception.Message
 			);
 			Assert.AreEqual(
 				"SyntaxError: Invalid regular expression" + Environment.NewLine +
-				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:16:89851",
+				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:16:90045",
 				exception.Description
 			);
 		}

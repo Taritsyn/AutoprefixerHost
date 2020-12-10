@@ -3,11 +3,8 @@
 }
 
 .three-column-box {
-    -moz-column-count: 3;
     -webkit-column-count: 3;
     column-count: 3;
-
-    -moz-column-width: 250px;
     -webkit-column-width: 250px;
     column-width: 250px;
 
@@ -25,12 +22,10 @@
     -webkit-transition: all 0.8s ease;
     transition: all 0.8s ease;
     -webkit-transform: scale(1);
-    -ms-transform: scale(1);
     transform: scale(1);
 }
 
 .transitioned-box:hover {
     -webkit-transform: scale(0.65);
-    -ms-transform: scale(0.65);
     transform: scale(0.65);
 }
