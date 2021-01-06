@@ -2660,56 +2660,6 @@
     }
   });
 
-  // true  -> String#at
-  // false -> String#codePointAt
-  var _stringAt = function (TO_STRING) {
-    return function (that, pos) {
-      var s = String(_defined(that));
-      var i = _toInteger(pos);
-      var l = s.length;
-      var a, b;
-      if (i < 0 || i >= l) return TO_STRING ? '' : undefined;
-      a = s.charCodeAt(i);
-      return a < 0xd800 || a > 0xdbff || i + 1 === l || (b = s.charCodeAt(i + 1)) < 0xdc00 || b > 0xdfff
-        ? TO_STRING ? s.charAt(i) : a
-        : TO_STRING ? s.slice(i, i + 2) : (a - 0xd800 << 10) + (b - 0xdc00) + 0x10000;
-    };
-  };
-
-  var $at = _stringAt(true);
-
-  // 21.1.3.27 String.prototype[@@iterator]()
-  _iterDefine(String, 'String', function (iterated) {
-    this._t = String(iterated); // target
-    this._i = 0;                // next index
-  // 21.1.5.2.1 %StringIteratorPrototype%.next()
-  }, function () {
-    var O = this._t;
-    var index = this._i;
-    var point;
-    if (index >= O.length) return { value: undefined, done: true };
-    point = $at(O, index);
-    this._i += point.length;
-    return { value: point, done: false };
-  });
-
-  var MAP = 'Map';
-
-  // 23.1 Map Objects
-  var es6_map = _collection(MAP, function (get) {
-    return function Map() { return get(this, arguments.length > 0 ? arguments[0] : undefined); };
-  }, {
-    // 23.1.3.6 Map.prototype.get(key)
-    get: function get(key) {
-      var entry = _collectionStrong.getEntry(_validateCollection(this, MAP), key);
-      return entry && entry.v;
-    },
-    // 23.1.3.9 Map.prototype.set(key, value)
-    set: function set(key, value) {
-      return _collectionStrong.def(_validateCollection(this, MAP), key === 0 ? 0 : key, value);
-    }
-  }, _collectionStrong, true);
-
   // 19.1.2.1 Object.assign(target, source, ...)
 
 
@@ -3047,6 +2997,22 @@
     proto$1.constructor = $Number;
     _redefine(_global, NUMBER, $Number);
   }
+
+  // true  -> String#at
+  // false -> String#codePointAt
+  var _stringAt = function (TO_STRING) {
+    return function (that, pos) {
+      var s = String(_defined(that));
+      var i = _toInteger(pos);
+      var l = s.length;
+      var a, b;
+      if (i < 0 || i >= l) return TO_STRING ? '' : undefined;
+      a = s.charCodeAt(i);
+      return a < 0xd800 || a > 0xdbff || i + 1 === l || (b = s.charCodeAt(i + 1)) < 0xdc00 || b > 0xdfff
+        ? TO_STRING ? s.charAt(i) : a
+        : TO_STRING ? s.slice(i, i + 2) : (a - 0xd800 << 10) + (b - 0xdc00) + 0x10000;
+    };
+  };
 
   var at = _stringAt(true);
 
@@ -4014,6 +3980,40 @@
       return value === value ? $toString$1.call(this) : INVALID_DATE;
     });
   }
+
+  var $at = _stringAt(true);
+
+  // 21.1.3.27 String.prototype[@@iterator]()
+  _iterDefine(String, 'String', function (iterated) {
+    this._t = String(iterated); // target
+    this._i = 0;                // next index
+  // 21.1.5.2.1 %StringIteratorPrototype%.next()
+  }, function () {
+    var O = this._t;
+    var index = this._i;
+    var point;
+    if (index >= O.length) return { value: undefined, done: true };
+    point = $at(O, index);
+    this._i += point.length;
+    return { value: point, done: false };
+  });
+
+  var MAP = 'Map';
+
+  // 23.1 Map Objects
+  var es6_map = _collection(MAP, function (get) {
+    return function Map() { return get(this, arguments.length > 0 ? arguments[0] : undefined); };
+  }, {
+    // 23.1.3.6 Map.prototype.get(key)
+    get: function get(key) {
+      var entry = _collectionStrong.getEntry(_validateCollection(this, MAP), key);
+      return entry && entry.v;
+    },
+    // 23.1.3.9 Map.prototype.set(key, value)
+    set: function set(key, value) {
+      return _collectionStrong.def(_validateCollection(this, MAP), key === 0 ? 0 : key, value);
+    }
+  }, _collectionStrong, true);
 
   var f$6 = _wks;
 
