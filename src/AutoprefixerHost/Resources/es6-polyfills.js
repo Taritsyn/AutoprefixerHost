@@ -1338,7 +1338,7 @@
   var SET = 'Set';
 
   // 23.2 Set Objects
-  var es6_set = _collection(SET, function (get) {
+  _collection(SET, function (get) {
     return function Set() { return get(this, arguments.length > 0 ? arguments[0] : undefined); };
   }, {
     // 23.2.3.1 Set.prototype.add(value)
@@ -1354,7 +1354,7 @@
    * Copyright (c) 2014-present, Facebook, Inc.
    * Released under the terms of MIT license
    */
-  var runtime_1 = createCommonjsModule(function (module) {
+  createCommonjsModule(function (module) {
   var runtime = (function (exports) {
 
     var Op = Object.prototype;
@@ -4001,7 +4001,7 @@
   var MAP = 'Map';
 
   // 23.1 Map Objects
-  var es6_map = _collection(MAP, function (get) {
+  _collection(MAP, function (get) {
     return function Map() { return get(this, arguments.length > 0 ? arguments[0] : undefined); };
   }, {
     // 23.1.3.6 Map.prototype.get(key)
