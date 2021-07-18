@@ -124,15 +124,15 @@ After installing the packages, you will need to register the default JS engine (
 
   <Target Name="JsMinification" AfterTargets="Es6Translation">
     <Exec
-      Command='uglifyjs "$(ProjectDir)Resources/es6-polyfills.js" --output "$(ProjectDir)Resources/es6-polyfills.min.js" --comments "/^!/"'
+      Command='uglifyjs "$(ProjectDir)Resources/es6-polyfills.js" --output "$(ProjectDir)Resources/es6-polyfills.min.js" --config-file "$(ProjectDir).uglifyjsrc"'
       WorkingDirectory="$(ProjectDir)node_modules/.bin/"
       ConsoleToMsBuild="true" />
     <Exec
-      Command='uglifyjs "$(ProjectDir)Resources/autoprefixer-combined.js" --output "$(ProjectDir)Resources/autoprefixer-combined.min.js" --comments "/^!/"'
+      Command='uglifyjs "$(ProjectDir)Resources/autoprefixer-combined.js" --output "$(ProjectDir)Resources/autoprefixer-combined.min.js" --config-file "$(ProjectDir).uglifyjsrc"'
       WorkingDirectory="$(ProjectDir)node_modules/.bin/"
       ConsoleToMsBuild="true" />
     <Exec
-      Command='uglifyjs "$(ProjectDir)Resources/autoprefixerHelper.js" --output "$(ProjectDir)Resources/autoprefixerHelper.min.js" --comments "/^!/"'
+      Command='uglifyjs "$(ProjectDir)Resources/autoprefixerHelper.js" --output "$(ProjectDir)Resources/autoprefixerHelper.min.js" --config-file "$(ProjectDir).uglifyjsrc"'
       WorkingDirectory="$(ProjectDir)node_modules/.bin/"
       ConsoleToMsBuild="true" />
   </Target>
