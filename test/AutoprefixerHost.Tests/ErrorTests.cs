@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 
 using JavaScriptEngineSwitcher.Core;
-#if NET461 || NETCOREAPP2_1 || NETCOREAPP3_1
-using JavaScriptEngineSwitcher.Jint;
-#endif
+using JavaScriptEngineSwitcher.NiL;
 
 using NUnit.Framework;
 
@@ -80,13 +78,12 @@ namespace AutoprefixerHost.Tests
 			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", processingException.Message);
 			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", processingException.Description);
 		}
-#if NET461 || NETCOREAPP2_1 || NETCOREAPP3_1
 
 		[Test]
 		public void MappingJavaScriptError()
 		{
 			// Arrange
-			IJsEngineFactory jsEngineFactory = new JintJsEngineFactory();
+			IJsEngineFactory jsEngineFactory = new NiLJsEngineFactory();
 			const string input = @".some-class {
     border-image: linear-gradient(black, white) 20% fill stretch stretch;
 }";
@@ -111,17 +108,14 @@ namespace AutoprefixerHost.Tests
 			Assert.NotNull(exception);
 			Assert.AreEqual(
 				"During loading of the Autoprefixer error has occurred. " +
-				"See the original error message: \"SyntaxError: Invalid regular expression" + Environment.NewLine +
-				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:9:109194\".",
+				"See the original error message: \"Index was outside the bounds of the array.\".",
 				exception.Message
 			);
 			Assert.AreEqual(
-				"SyntaxError: Invalid regular expression" + Environment.NewLine +
-				"   at AutoprefixerHost.Resources.autoprefixer-combined.min.js:9:109194",
+				"Index was outside the bounds of the array.",
 				exception.Description
 			);
 		}
-#endif
 
 		[Test]
 		public void MappingPostCssError()
