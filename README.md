@@ -350,3 +350,6 @@ The only thing worth noting is that we pass to the `Process` method a CSS code a
 If you use the Autoprefixer Host for .NET in some project, please send me a message so I can include it in this list:
 
  * [Bundle Transformer](https://github.com/Taritsyn/BundleTransformer) by Andrey Taritsyn
+ * [Excubo.WebCompiler](https://github.com/excubo-ag/WebCompiler) by Stefan Lörwald
+ * [NBundle](https://github.com/philrawlings/NBundle) by Phil Rawlings
+ * [Smartstore](https://github.com/smartstore/Smartstore)
