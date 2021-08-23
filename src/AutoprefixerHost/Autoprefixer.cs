@@ -31,7 +31,7 @@ namespace AutoprefixerHost
 		/// <summary>
 		/// Name of file, which contains a Autoprefixer helper
 		/// </summary>
-		private const string AUTOPREFIXER_HELPER_FILE_NAME = "autoprefixerHelper.min.js";
+		private const string AUTOPREFIXER_HELPER_FILE_NAME = "autoprefixer-helper.min.js";
 
 		/// <summary>
 		/// Name of variable, which contains a country statistics service
@@ -76,7 +76,7 @@ namespace AutoprefixerHost
 		/// <summary>
 		/// Gets a version of the Autoprefixer library
 		/// </summary>
-		public string Version => "10.3.1.0";
+		public string Version => "10.3.2.0";
 
 
 		/// <summary>
