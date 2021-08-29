@@ -1,5 +1,5 @@
 /*!
- * Autoprefixer v10.3.2.0
+ * Autoprefixer v10.3.3.0
  * https://github.com/postcss/autoprefixer
  * https://github.com/ai/autoprefixer-rails
  *
@@ -13797,7 +13797,7 @@ var autoprefixer = (function (countryStatisticsService /*AH+*/) {
 
   var consoleTime={A:{A:{"1":"B","2":"J D E F A iB"},B:{"1":"C K L G M N O R S T U V W X Y Z a P b H"},C:{"1":"0 1 2 3 4 5 6 7 8 9 A B C K L G M N O d e f g h i j k l m n o p q r s t u v w x y z AB BB CB DB EB FB GB bB HB cB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB R S T kB U V W X Y Z a P b H dB","2":"jB aB I c J D E F lB mB"},D:{"1":"0 1 2 3 4 5 6 7 8 9 I c J D E F A B C K L G M N O d e f g h i j k l m n o p q r s t u v w x y z AB BB CB DB EB FB GB bB HB cB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB R S T U V W X Y Z a P b H dB nB oB"},E:{"1":"I c J D E F A B C K L G qB rB sB tB fB YB ZB uB vB wB","2":"pB eB"},F:{"1":"0 1 2 3 4 5 6 7 8 9 C G M N O d e f g h i j k l m n o p q r s t u v w x y z AB BB CB DB EB FB GB HB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB YB gB 1B ZB","2":"F xB yB zB 0B","16":"B"},G:{"1":"E eB 2B hB 3B 4B 5B 6B 7B 8B 9B AC BC CC DC EC FC GC HC IC JC KC"},H:{"1":"LC"},I:{"1":"aB I H MC NC OC PC hB QC RC"},J:{"1":"D A"},K:{"1":"Q","16":"A B C YB gB ZB"},L:{"1":"H"},M:{"1":"P"},N:{"1":"B","2":"A"},O:{"1":"SC"},P:{"1":"I TC UC VC WC XC fB YC ZC aC bC"},Q:{"1":"cC"},R:{"1":"dC"},S:{"1":"eC"}},B:1,C:"console.time and console.timeEnd"};
 
-  var _const={A:{A:{"2":"J D E F A iB","2052":"B"},B:{"1":"C K L G M N O R S T U V W X Y Z a P b H"},C:{"1":"0 1 2 3 4 5 6 7 8 9 u v w x y z AB BB CB DB EB FB GB bB HB cB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB R S T kB U V W X Y Z a P b H dB","132":"jB aB I c J D E F A B C lB mB","260":"K L G M N O d e f g h i j k l m n o p q r s t"},D:{"1":"7 8 9 AB BB CB DB EB FB GB bB HB cB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB R S T U V W X Y Z a P b H dB nB oB","260":"I c J D E F A B C K L G M N O d e","772":"f g h i j k l m n o p q r s t u v w x y","1028":"0 1 2 3 4 5 6 z"},E:{"1":"A B C K L G fB YB ZB uB vB wB","260":"I c pB eB","772":"J D E F qB rB sB tB"},F:{"1":"0 1 2 3 4 5 6 7 8 9 u v w x y z AB BB CB DB EB FB GB HB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB","2":"F xB","132":"B yB zB 0B YB gB","644":"C 1B ZB","772":"G M N O d e f g h i j k l","1028":"m n o p q r s t"},G:{"1":"9B AC BC CC DC EC FC GC HC IC JC KC","260":"eB 2B hB","772":"E 3B 4B 5B 6B 7B 8B"},H:{"644":"LC"},I:{"1":"H","16":"MC NC","260":"OC","772":"aB I PC hB QC RC"},J:{"772":"D A"},K:{"1":"Q","132":"A B YB gB","644":"C ZB"},L:{"1":"H"},M:{"1":"P"},N:{"1":"B","2":"A"},O:{"1":"SC"},P:{"1":"TC UC VC WC XC fB YC ZC aC bC","1028":"I"},Q:{"1":"cC"},R:{"1028":"dC"},S:{"1":"eC"}},B:6,C:"const"};
+  var _const={A:{A:{"2":"J D E F A iB","2052":"B"},B:{"1":"C K L G M N O R S T U V W X Y Z a P b H"},C:{"1":"0 1 2 3 4 5 6 7 8 9 u v w x y z AB BB CB DB EB FB GB bB HB cB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB R S T kB U V W X Y Z a P b H dB","132":"jB aB I c J D E F A B C lB mB","260":"K L G M N O d e f g h i j k l m n o p q r s t"},D:{"1":"7 8 9 AB BB CB DB EB FB GB bB HB cB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB R S T U V W X Y Z a P b H dB nB oB","260":"I c J D E F A B C K L G M N O d e","772":"f g h i j k l m n o p q r s t u v w x y","1028":"0 1 2 3 4 5 6 z"},E:{"1":"B C K L G YB ZB uB vB wB","260":"I c A pB eB fB","772":"J D E F qB rB sB tB"},F:{"1":"0 1 2 3 4 5 6 7 8 9 u v w x y z AB BB CB DB EB FB GB HB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB","2":"F xB","132":"B yB zB 0B YB gB","644":"C 1B ZB","772":"G M N O d e f g h i j k l","1028":"m n o p q r s t"},G:{"1":"BC CC DC EC FC GC HC IC JC KC","260":"eB 2B hB 9B AC","772":"E 3B 4B 5B 6B 7B 8B"},H:{"644":"LC"},I:{"1":"H","16":"MC NC","260":"OC","772":"aB I PC hB QC RC"},J:{"772":"D A"},K:{"1":"Q","132":"A B YB gB","644":"C ZB"},L:{"1":"H"},M:{"1":"P"},N:{"1":"B","2":"A"},O:{"1":"SC"},P:{"1":"TC UC VC WC XC fB YC ZC aC bC","1028":"I"},Q:{"1":"cC"},R:{"1028":"dC"},S:{"1":"eC"}},B:6,C:"const"};
 
   var constraintValidation={A:{A:{"2":"J D E F iB","900":"A B"},B:{"1":"N O R S T U V W X Y Z a P b H","388":"L G M","900":"C K"},C:{"1":"9 AB BB CB DB EB FB GB bB HB cB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB R S T kB U V W X Y Z a P b H dB","2":"jB aB lB mB","260":"7 8","388":"0 1 2 3 4 5 6 n o p q r s t u v w x y z","900":"I c J D E F A B C K L G M N O d e f g h i j k l m"},D:{"1":"0 1 2 3 4 5 6 7 8 9 y z AB BB CB DB EB FB GB bB HB cB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB R S T U V W X Y Z a P b H dB nB oB","16":"I c J D E F A B C K L","388":"j k l m n o p q r s t u v w x","900":"G M N O d e f g h i"},E:{"1":"A B C K L G fB YB ZB uB vB wB","16":"I c pB eB","388":"E F sB tB","900":"J D qB rB"},F:{"1":"0 1 2 3 4 5 6 7 8 9 l m n o p q r s t u v w x y z AB BB CB DB EB FB GB HB IB JB Q KB LB MB NB OB PB QB RB SB TB UB VB WB XB","16":"F B xB yB zB 0B YB gB","388":"G M N O d e f g h i j k","900":"C 1B ZB"},G:{"1":"9B AC BC CC DC EC FC GC HC IC JC KC","16":"eB 2B hB","388":"E 5B 6B 7B 8B","900":"3B 4B"},H:{"2":"LC"},I:{"1":"H","16":"aB MC NC OC","388":"QC RC","900":"I PC hB"},J:{"16":"D","388":"A"},K:{"1":"Q","16":"A B YB gB","900":"C ZB"},L:{"1":"H"},M:{"1":"P"},N:{"900":"A B"},O:{"1":"SC"},P:{"1":"I TC UC VC WC XC fB YC ZC aC bC"},Q:{"1":"cC"},R:{"1":"dC"},S:{"388":"eC"}},B:1,C:"Constraint Validation API"};
 
@@ -19836,6 +19836,18 @@ var autoprefixer = (function (countryStatisticsService /*AH+*/) {
   var placeholderShown = PlaceholderShown;
 
   class FileSelectorButton extends selector {
+    constructor(name, prefixes, all) {
+      super(name, prefixes, all);
+
+      if (this.prefixes) {
+        this.prefixes = utils.uniq(
+          this.prefixes.map(i => {
+            return '-webkit-'
+          })
+        );
+      }
+    }
+
     /**
      * Return different selectors depend on prefix
      */
