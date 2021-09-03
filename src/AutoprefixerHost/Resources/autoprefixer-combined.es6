@@ -1,5 +1,5 @@
 /*!
- * Autoprefixer v10.3.3.0
+ * Autoprefixer v10.3.4.0
  * https://github.com/postcss/autoprefixer
  * https://github.com/ai/autoprefixer-rails
  *
@@ -12318,10 +12318,13 @@ var autoprefixer = (function (countryStatisticsService /*AH+*/) {
   	"11.2": "87",
   	"11.3": "87",
   	"11.4": "87",
+  	"11.5": "87",
   	"12.0": "89",
+  	"12.1": "89",
   	"13.0": "91",
   	"13.1": "91",
   	"13.2": "91",
+  	"13.3": "91",
   	"14.0": "93",
   	"15.0": "94"
   };
@@ -23309,7 +23312,15 @@ var autoprefixer = (function (countryStatisticsService /*AH+*/) {
   );
 
   f(intrinsicWidth, { match: /x|\s#4/ }, browsers =>
-    prefix(['fill', 'fill-available', 'stretch'], {
+    prefix(['fill', 'fill-available'], {
+      props: sizeProps,
+      feature: 'intrinsic-width',
+      browsers
+    })
+  );
+
+  f(intrinsicWidth, { match: /x|\s#5/ }, browsers =>
+    prefix(['stretch'], {
       props: sizeProps,
       feature: 'intrinsic-width',
       browsers
