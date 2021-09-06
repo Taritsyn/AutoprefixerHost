@@ -6,5 +6,13 @@
     "@babel/core": "7.12.17",
     "@babel/preset-env": "7.12.17",
     "uglify-js": "3.14.1"
+  },
+  "scripts": {
+    "transpile-autoprefixer-combined-es6": "babel --out-dir ./Resources --config-file ./.babelrc ./Resources/autoprefixer-combined.es6",
+    "minify-es6-polyfills-js": "uglifyjs ./Resources/es6-polyfills.js --output ./Resources/es6-polyfills.min.js --config-file ./.uglifyjsrc",
+    "minify-autoprefixer-combined-js": "uglifyjs ./Resources/autoprefixer-combined.js --output ./Resources/autoprefixer-combined.min.js --config-file ./.uglifyjsrc",
+    "minify-autoprefixer-helper-js": "uglifyjs ./Resources/autoprefixer-helper.js --output ./Resources/autoprefixer-helper.min.js --config-file ./.uglifyjsrc",
+    "transpile-es6": "npm run -s transpile-autoprefixer-combined-es6",
+    "minify-js": "npm run -s minify-es6-polyfills-js && npm run -s minify-autoprefixer-combined-js && npm run -s minify-autoprefixer-helper-js"
   }
 }
