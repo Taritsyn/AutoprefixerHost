@@ -33,7 +33,7 @@ After installing the packages, you will need to register the default JS engine (
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageTags>Autoprefixer;CSS</PackageTags>
-    <PackageReleaseNotes>Added support of the Autoprefixer version 10.3.4.0.</PackageReleaseNotes>
+    <PackageReleaseNotes>Now, when reading a script code from the embedded resources, caching is performed.</PackageReleaseNotes>
     <NeutralLanguage>en-US</NeutralLanguage>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>

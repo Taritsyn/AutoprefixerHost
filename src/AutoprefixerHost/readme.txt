@@ -29,7 +29,8 @@
    =============
    RELEASE NOTES
    =============
-   Added support of the Autoprefixer version 10.3.4.0.
+   Now, when reading a script code from the embedded resources, caching is
+   performed.
 
    ============
    PROJECT SITE

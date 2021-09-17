@@ -7,6 +7,7 @@ using JavaScriptEngineSwitcher.Core;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
+using AutoprefixerHost.Extensions;
 using AutoprefixerHost.Helpers;
 using AutoprefixerHost.Resources;
 using AutoprefixerHost.Utilities;
@@ -188,11 +189,11 @@ namespace AutoprefixerHost
 						;
 
 					_jsEngine.ExecuteResource(ResourceHelpers.GetResourceName(ES6_POLYFILLS_FILE_NAME),
-						assembly);
+						assembly, true);
 					_jsEngine.ExecuteResource(ResourceHelpers.GetResourceName(AUTOPREFIXER_LIBRARY_FILE_NAME),
-						assembly);
+						assembly, true);
 					_jsEngine.ExecuteResource(ResourceHelpers.GetResourceName(AUTOPREFIXER_HELPER_FILE_NAME),
-						assembly);
+						assembly, true);
 					_jsEngine.Execute($"var autoprefixerHelper = new AutoprefixerHelper({serializedOptions});");
 				}
 				catch (JsEngineLoadException e)
