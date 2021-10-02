@@ -1,6 +1,6 @@
 {
   "name": "AutoprefixerHost",
-  "version": "3.0.12",
+  "version": "3.0.13",
   "devDependencies": {
     "@babel/cli": "7.12.17",
     "@babel/core": "7.12.17",

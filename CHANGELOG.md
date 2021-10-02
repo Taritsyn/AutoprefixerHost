@@ -1,6 +1,9 @@
 Change log
 ==========
 
+## v3.0.13 - October 2, 2021
+ * Added support of the Autoprefixer version 10.3.6.0
+
 ## v3.0.12 - September 24, 2021
  * Added support of the Autoprefixer version 10.3.5.0
  * Now, when reading a script code from the embedded resources, caching is performed
