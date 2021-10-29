@@ -1,7 +1,7 @@
 {
   "name": "autoprefixerhost.benchmarks",
   "private": true,
-  "version": "3.0.12",
+  "version": "3.0.15",
   "dependencies": {
     "normalize.css": "8.0.1",
     "reseter.css": "2.0.0",

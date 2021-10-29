@@ -1,6 +1,9 @@
 Change log
 ==========
 
+## v3.0.15 - October 29, 2021
+ * Added support of the Autoprefixer version 10.4.0.0
+
 ## v3.0.14 - October 8, 2021
  * Added support of the Autoprefixer version 10.3.7.0
 
