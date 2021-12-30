@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 
 using JavaScriptEngineSwitcher.Core;
+#if NET461 || NETCOREAPP2_1_OR_GREATER
 using JavaScriptEngineSwitcher.NiL;
+#endif
 
 using NUnit.Framework;
 
@@ -78,6 +80,7 @@ namespace AutoprefixerHost.Tests
 			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", processingException.Message);
 			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", processingException.Description);
 		}
+#if NET461 || NETCOREAPP2_1_OR_GREATER
 
 		[Test]
 		public void MappingJavaScriptError()
@@ -116,6 +119,7 @@ namespace AutoprefixerHost.Tests
 				exception.Description
 			);
 		}
+#endif
 
 		[Test]
 		public void MappingPostCssError()

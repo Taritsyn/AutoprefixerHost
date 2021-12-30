@@ -105,7 +105,7 @@ var AutoprefixerHelper = (function (autoprefixer, undefined) {
 			if (e.autoprefixer || e.browserslist || e.name === 'CssSyntaxError') {
 				errors.push({
 					'message': e.message,
-					'description': e.description || e.message,
+					'description': e.reason || e.description || e.message,
 					'type': e.name || '',
 					'file': e.file || '',
 					'lineNumber': e.line || 0,
