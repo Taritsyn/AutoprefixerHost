@@ -1,4 +1,6 @@
 .shadowed-box {
+    -moz-box-shadow: 0 0 20px #555;
+    -webkit-box-shadow: 0 0 20px #555;
     box-shadow: 0 0 20px #555;
 }
 
@@ -22,14 +24,21 @@
 }
 
 .transitioned-box {
+    -moz-transition: all 0.8s ease;
+    -o-transition: all 0.8s ease;
     -webkit-transition: all 0.8s ease;
     transition: all 0.8s ease;
+
+    -moz-transform: scale(1);
+    -o-transform: scale(1);
     -webkit-transform: scale(1);
     -ms-transform: scale(1);
     transform: scale(1);
 }
 
 .transitioned-box:hover {
+    -moz-transform: scale(0.65);
+    -o-transform: scale(0.65);
     -webkit-transform: scale(0.65);
     -ms-transform: scale(0.65);
     transform: scale(0.65);
