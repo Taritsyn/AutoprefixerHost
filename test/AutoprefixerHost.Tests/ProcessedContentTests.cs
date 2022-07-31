@@ -33,7 +33,6 @@ namespace AutoprefixerHost.Tests
     transition: all .5s;
     -webkit-user-select: none;
        -moz-user-select: none;
-        -ms-user-select: none;
             user-select: none;
     background: linear-gradient(to bottom, white, black);
 }";

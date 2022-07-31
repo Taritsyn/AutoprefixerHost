@@ -61,15 +61,15 @@
   };
 
   // 7.1.1 ToPrimitive(input [, PreferredType])
-  var isObject$g = _isObject;
+  var isObject$f = _isObject;
   // instead of the ES6 spec version, we didn't implement @@toPrimitive case
   // and the second argument - flag - preferred type is a string
   var _toPrimitive = function (it, S) {
-    if (!isObject$g(it)) return it;
+    if (!isObject$f(it)) return it;
     var fn, val;
-    if (S && typeof (fn = it.toString) == 'function' && !isObject$g(val = fn.call(it))) return val;
-    if (typeof (fn = it.valueOf) == 'function' && !isObject$g(val = fn.call(it))) return val;
-    if (!S && typeof (fn = it.toString) == 'function' && !isObject$g(val = fn.call(it))) return val;
+    if (S && typeof (fn = it.toString) == 'function' && !isObject$f(val = fn.call(it))) return val;
+    if (typeof (fn = it.valueOf) == 'function' && !isObject$f(val = fn.call(it))) return val;
+    if (!S && typeof (fn = it.toString) == 'function' && !isObject$f(val = fn.call(it))) return val;
     throw TypeError("Can't convert object to primitive value");
   };
 
@@ -100,16 +100,24 @@
     : Function('return this')();
   if (typeof __g == 'number') __g = global$e; // eslint-disable-line no-undef
 
-  var isObject$f = _isObject;
-  var document$2 = _global.exports.document;
-  // typeof document.createElement is 'object' in old IE
-  var is = isObject$f(document$2) && isObject$f(document$2.createElement);
-  var _domCreate = function (it) {
-    return is ? document$2.createElement(it) : {};
-  };
+  var _domCreate;
+  var hasRequired_domCreate;
+
+  function require_domCreate () {
+  	if (hasRequired_domCreate) return _domCreate;
+  	hasRequired_domCreate = 1;
+  	var isObject = _isObject;
+  	var document = _global.exports.document;
+  	// typeof document.createElement is 'object' in old IE
+  	var is = isObject(document) && isObject(document.createElement);
+  	_domCreate = function (it) {
+  	  return is ? document.createElement(it) : {};
+  	};
+  	return _domCreate;
+  }
 
   var _ie8DomDefine = !_descriptors && !_fails(function () {
-    return Object.defineProperty(_domCreate('div'), 'a', { get: function () { return 7; } }).a != 7;
+    return Object.defineProperty(require_domCreate()('div'), 'a', { get: function () { return 7; } }).a != 7;
   });
 
   var pIE$1 = require_objectPie();
@@ -513,7 +521,7 @@
   // Create object with fake `null` prototype: use iframe Object with cleared prototype
   var createDict = function () {
     // Thrash, waste and sodomy: IE GC bug
-    var iframe = _domCreate('iframe');
+    var iframe = require_domCreate()('iframe');
     var i = enumBugKeys.length;
     var lt = '<';
     var gt = '>';
@@ -2256,7 +2264,7 @@
   var ctx$2 = _ctx;
   var invoke = _invoke;
   var html$1 = _html;
-  var cel = _domCreate;
+  var cel = require_domCreate();
   var global$9 = _global.exports;
   var process$2 = global$9.process;
   var setTask = global$9.setImmediate;
