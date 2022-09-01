@@ -1,6 +1,9 @@
 Change log
 ==========
 
+## v3.0.22 - September 1, 2022
+ * Now a case-sensitive cultural postfixes are used in the names of `.resx` files
+
 ## v3.0.21 - July 31, 2022
  * Added support of the Autoprefixer version 10.4.8.0
 
