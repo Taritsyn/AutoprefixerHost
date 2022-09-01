@@ -29,7 +29,7 @@
    =============
    RELEASE NOTES
    =============
-   Added support of the Autoprefixer version 10.4.8.0.
+   Now a case-sensitive cultural postfixes are used in the names of `.resx` files.
 
    ============
    PROJECT SITE

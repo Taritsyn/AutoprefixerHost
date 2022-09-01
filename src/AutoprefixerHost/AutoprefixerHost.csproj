@@ -33,7 +33,7 @@ After installing the packages, you will need to register the default JS engine (
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageTags>Autoprefixer;CSS</PackageTags>
-    <PackageReleaseNotes>Added support of the Autoprefixer version 10.4.8.0.</PackageReleaseNotes>
+    <PackageReleaseNotes>Now a case-sensitive cultural postfixes are used in the names of `.resx` files.</PackageReleaseNotes>
     <NeutralLanguage>en-US</NeutralLanguage>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
