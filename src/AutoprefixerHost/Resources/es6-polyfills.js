@@ -1498,7 +1498,7 @@
   /*!
    * regenerator-runtime v0.13.9
    * https://github.com/facebook/regenerator/tree/master/packages/regenerator-runtime
-   * 
+   *
    * Copyright (c) 2014-present, Facebook, Inc.
    * Released under the terms of MIT license
    */
@@ -2227,7 +2227,7 @@
   	  // as the regeneratorRuntime namespace. Otherwise create a new empty
   	  // object. Either way, the resulting object will be used to initialize
   	  // the regeneratorRuntime variable at the top of this file.
-  	  module.exports 
+  	  module.exports
   	));
 
   	try {

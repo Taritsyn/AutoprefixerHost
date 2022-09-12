@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net461' Or '$(TargetFramework)' == 'netcoreapp3.1' Or '$(TargetFramework)' == 'net5.0' Or '$(TargetFramework)' == 'net6.0' ">
-    <PackageReference Include="JavaScriptEngineSwitcher.NiL" Version="3.20.0" />
+    <PackageReference Include="JavaScriptEngineSwitcher.NiL" Version="3.20.1" />
   </ItemGroup>
 
   <ItemGroup>

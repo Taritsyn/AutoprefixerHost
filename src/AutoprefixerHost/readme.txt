@@ -12,7 +12,7 @@
    DESCRIPTION
    ===========
    .NET wrapper around the Andrey Sitnik's Autoprefixer
-   (https://github.com/postcss/autoprefixer) version 10.4.8.0.
+   (https://github.com/postcss/autoprefixer) version 10.4.9.0.
 
    Since the original library is written in JavaScript, you will need a JS engine
    to run it. As a JS engine is used the JavaScript Engine Switcher library
@@ -29,7 +29,7 @@
    =============
    RELEASE NOTES
    =============
-   Now a case-sensitive cultural postfixes are used in the names of `.resx` files.
+   Added support of the Autoprefixer version 10.4.9.0.
 
    ============
    PROJECT SITE
