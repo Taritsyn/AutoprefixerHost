@@ -153,18 +153,18 @@ namespace AutoprefixerHost.Tests
 			Assert.NotNull(exception);
 			Assert.AreEqual(
 				"CssSyntaxError: Missed semicolon" + Environment.NewLine +
-				"   at app.css:3:21 ->     transition: all .5s",
+				"   at app.css:3:24 ->     transition: all .5s",
 				exception.Message
 			);
 			Assert.AreEqual("Missed semicolon", exception.Description);
 			Assert.AreEqual("CssSyntaxError", exception.Type);
 			Assert.AreEqual("/build/app.css", exception.File);
 			Assert.AreEqual(3, exception.LineNumber);
-			Assert.AreEqual(21, exception.ColumnNumber);
+			Assert.AreEqual(24, exception.ColumnNumber);
 			Assert.AreEqual(
 				"Line 2:     display: grid;" + Environment.NewLine +
 				"Line 3:     transition: all .5s" + Environment.NewLine +
-				"----------------------------^" + Environment.NewLine +
+				"-------------------------------^" + Environment.NewLine +
 				"Line 4:     user-select: none;",
 				exception.SourceFragment
 			);

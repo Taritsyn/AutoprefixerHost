@@ -179,7 +179,7 @@ namespace AutoprefixerHost.Tests
 		public void UsageOfSupportsProperty()
 		{
 			// Arrange
-			var targetBrowsers = new List<string> { "last 4 versions" };
+			var targetBrowsers = new List<string> { "Chrome 25", "Chrome 28" };
 			var supportsDisabledOptions = new ProcessingOptions
 			{
 				Browsers = targetBrowsers,
