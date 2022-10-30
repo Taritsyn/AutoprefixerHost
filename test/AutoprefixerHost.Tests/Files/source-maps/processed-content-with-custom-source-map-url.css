@@ -1,20 +1,12 @@
 ::-webkit-input-placeholder {
     color: gray;
-}
-
-::-moz-placeholder {
+}::-moz-placeholder {
     color: gray;
-}
-
-:-ms-input-placeholder {
+}:-ms-input-placeholder {
     color: gray;
-}
-
-::-ms-input-placeholder {
+}::-ms-input-placeholder {
     color: gray;
-}
-
-::placeholder {
+}::placeholder {
     color: gray;
 }
 
