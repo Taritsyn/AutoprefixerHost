@@ -5918,7 +5918,7 @@ var autoprefixer = (function (countryStatisticsService /*AH+*/) {
    * and an object is returned with the following properties:
    *
    *   - line: The line number in the generated source, or null.  The
-   *     line number is 1-based. 
+   *     line number is 1-based.
    *   - column: The column number in the generated source, or null.
    *     The column number is 0-based.
    */
@@ -13284,12 +13284,6 @@ var autoprefixer = (function (countryStatisticsService /*AH+*/) {
   var BrowserslistError$1 = error;
 
   function noop() {}
-
-  function fillUsage(result, name, data) { //AH+
-    for (var i in data) { //AH+
-      result[name + ' ' + i] = data[i]; //AH+
-    } //AH+
-  } //AH+
 
   var browser = {
     loadQueries: function loadQueries() {
