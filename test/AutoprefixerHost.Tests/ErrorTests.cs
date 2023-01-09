@@ -42,6 +42,7 @@ namespace AutoprefixerHost.Tests
   …
 }"
 			};
+			const string targetErrorDescription = "The value of 'Stats' property has an incorrect format.";
 
 			// Act
 			AutoprefixerLoadException loadException = null;
@@ -73,12 +74,12 @@ namespace AutoprefixerHost.Tests
 
 			// Assert
 			Assert.NotNull(loadException);
-			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", loadException.Message);
-			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", loadException.Description);
+			Assert.AreEqual(targetErrorDescription, loadException.Message);
+			Assert.AreEqual(targetErrorDescription, loadException.Description);
 
 			Assert.NotNull(processingException);
-			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", processingException.Message);
-			Assert.AreEqual("The value of 'Stats' property has an incorrect format.", processingException.Description);
+			Assert.AreEqual(targetErrorDescription, processingException.Message);
+			Assert.AreEqual(targetErrorDescription, processingException.Description);
 		}
 #if NET461 || NETCOREAPP3_1_OR_GREATER
 
@@ -90,6 +91,8 @@ namespace AutoprefixerHost.Tests
 			const string input = @".some-class {
     border-image: linear-gradient(black, white) 20% fill stretch stretch;
 }";
+			const string targetErrorDescription = "TypeError: Can not define property \"Symbol(Symbol.toPrimitive)\". " +
+				"Object immutable.";
 
 			// Act
 			string output;
@@ -111,11 +114,11 @@ namespace AutoprefixerHost.Tests
 			Assert.NotNull(exception);
 			Assert.AreEqual(
 				"During loading of the Autoprefixer error has occurred. " +
-				"See the original error message: \"Index was outside the bounds of the array.\".",
+				"See the original error message: \"" + targetErrorDescription + "\".",
 				exception.Message
 			);
 			Assert.AreEqual(
-				"Index was outside the bounds of the array.",
+				targetErrorDescription,
 				exception.Description
 			);
 		}
