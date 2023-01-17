@@ -1,6 +1,12 @@
 Change log
 ==========
 
+## v3.0.27 - January 17, 2023
+ * Updated a Can I Use data
+ * Updated a PostCSS to version 8.4.21
+ * For latest versions of .NET now uses the System.Text.Json library as JSON serializer
+ * Added a .NET Framework 4.6.1 and .NET 6 targets
+
 ## v3.0.26 - October 30, 2022
  * Added support of the Autoprefixer version 10.4.13.0
 

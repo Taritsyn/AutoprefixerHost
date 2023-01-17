@@ -1,11 +1,11 @@
 ﻿
 
    --------------------------------------------------------------------------------
-                   README file for Autoprefixer Host for .NET v3.0.26
+                   README file for Autoprefixer Host for .NET v3.0.27
 
    --------------------------------------------------------------------------------
 
-           Copyright (c) 2019-2022 Andrey Taritsyn - http://www.taritsyn.ru
+           Copyright (c) 2019-2023 Andrey Taritsyn - http://www.taritsyn.ru
 
 
    ===========
