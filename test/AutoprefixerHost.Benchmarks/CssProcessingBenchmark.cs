@@ -10,6 +10,7 @@ namespace AutoprefixerHost.Benchmarks
 	{
 		private static readonly Dictionary<string, Document> s_documents = new Dictionary<string, Document>
 		{
+			{ "bootstrap", new Document("bootstrap.css") },
 			{ "normalize", new Document("normalize.css") },
 			{ "reseter", new Document("reseter.css") },
 			{ "skeleton", new Document("skeleton.css") }

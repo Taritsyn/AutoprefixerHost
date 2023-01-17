@@ -29,7 +29,9 @@
    =============
    RELEASE NOTES
    =============
-   Added support of the Autoprefixer version 10.4.13.0.
+   1. For latest versions of .NET now uses the System.Text.Json library as JSON
+      serializer;
+   2. Added a .NET Framework 4.6.1 and .NET 6 targets.
 
    ============
    PROJECT SITE

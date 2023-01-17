@@ -40,16 +40,19 @@ var AutoprefixerHelper = (function (autoprefixer, undefined) {
 
 	function createAutoprefixerOptions(options) {
 		var autoprefixerOptions = {
-			cascade: options.cascade,
-			add: options.add,
-			remove: options.remove,
-			supports: options.supports,
-			flexbox: options.flexbox,
-			grid: options.grid,
-			ignoreUnknownVersions: options.ignoreUnknownVersions,
-			overrideBrowserslist: options.browsers,
-			stats: options.stats
-		};
+				cascade: options.cascade,
+				add: options.add,
+				remove: options.remove,
+				supports: options.supports,
+				flexbox: options.flexbox,
+				grid: options.grid,
+				ignoreUnknownVersions: options.ignoreUnknownVersions,
+				overrideBrowserslist: options.browsers
+			},
+			stats = options.stats
+			;
+
+		autoprefixerOptions.stats = typeof stats === 'string' ? JSON.parse(stats) : stats;
 
 		return autoprefixerOptions;
 	}

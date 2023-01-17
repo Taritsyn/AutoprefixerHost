@@ -1,6 +1,8 @@
 ﻿using System;
 #if !NETSTANDARD1_3
 using System.Runtime.Serialization;
+#endif
+#if !NETSTANDARD1_3 && !NET6_0
 using System.Security.Permissions;
 #endif
 
@@ -132,7 +134,9 @@ namespace AutoprefixerHost
 		/// </summary>
 		/// <param name="info">The <see cref="SerializationInfo"/> to populate with data</param>
 		/// <param name="context">The destination (see <see cref="StreamingContext"/>) for this serialization</param>
+#if !NET6_0
 		[SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
+#endif
 		public override void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			if (info == null)

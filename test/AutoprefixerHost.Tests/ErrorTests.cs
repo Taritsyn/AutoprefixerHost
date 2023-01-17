@@ -42,7 +42,16 @@ namespace AutoprefixerHost.Tests
   …
 }"
 			};
-			const string targetErrorDescription = "The value of 'Stats' property has an incorrect format.";
+
+			string targetErrorDescription = "The value of 'Stats' property has an incorrect format.";
+			string targetErrorMessage = targetErrorDescription + " See the original error message: “" +
+#if NET461 || NETCOREAPP2_1_OR_GREATER
+				"'0xE2' is an invalid start of a property name. Expected a '\"'. LineNumber: 7 | BytePositionInLine: 4." +
+#else
+				"Invalid property identifier character: …. Path 'chrome', line 8, position 4." +
+#endif
+				"”."
+				;
 
 			// Act
 			AutoprefixerLoadException loadException = null;
@@ -74,11 +83,11 @@ namespace AutoprefixerHost.Tests
 
 			// Assert
 			Assert.NotNull(loadException);
-			Assert.AreEqual(targetErrorDescription, loadException.Message);
+			Assert.AreEqual(targetErrorMessage, loadException.Message);
 			Assert.AreEqual(targetErrorDescription, loadException.Description);
 
 			Assert.NotNull(processingException);
-			Assert.AreEqual(targetErrorDescription, processingException.Message);
+			Assert.AreEqual(targetErrorMessage, processingException.Message);
 			Assert.AreEqual(targetErrorDescription, processingException.Description);
 		}
 #if NET461 || NETCOREAPP3_1_OR_GREATER
@@ -114,7 +123,7 @@ namespace AutoprefixerHost.Tests
 			Assert.NotNull(exception);
 			Assert.AreEqual(
 				"During loading of the Autoprefixer error has occurred. " +
-				"See the original error message: \"" + targetErrorDescription + "\".",
+				"See the original error message: “" + targetErrorDescription + "”.",
 				exception.Message
 			);
 			Assert.AreEqual(

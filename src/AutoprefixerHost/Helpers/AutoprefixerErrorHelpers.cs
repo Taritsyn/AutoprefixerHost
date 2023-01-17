@@ -122,6 +122,30 @@ namespace AutoprefixerHost.Helpers
 			return errorMessage;
 		}
 
+		/// <summary>
+		/// Generates a error message from the exception with the inner exception
+		/// </summary>
+		/// <param name="exception">Instance of the exception</param>
+		/// <returns>Error message with original error message</returns>
+		internal static string GenerateErrorMessageFromExceptionWithInnerException(Exception exception)
+		{
+			if (exception == null)
+			{
+				throw new ArgumentNullException(nameof(exception));
+			}
+
+			Exception innerException = exception.InnerException;
+			if (innerException == null)
+			{
+				return exception.Message;
+			}
+
+			string errorMessage = exception.Message + " " +
+				string.Format(Strings.Common_SeeOriginalErrorMessage, innerException.Message);
+
+			return errorMessage;
+		}
+
 		#endregion
 
 		#region Generation of error details

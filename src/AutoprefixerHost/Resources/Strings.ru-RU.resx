@@ -150,6 +150,33 @@
   <data name="ErrorDetails_Type" xml:space="preserve">
     <value>Тип</value>
   </data>
+  <data name="JsonReader_UnexpectedCharacterEncountered" xml:space="preserve">
+    <value>Обнаружен непредусмотренный символ, за исключением JSON-токена {0}.</value>
+  </data>
+  <data name="JsonSerializer_TypeIsNotPrimitive" xml:space="preserve">
+    <value>Тип `{0}` не является примитивным.</value>
+  </data>
+  <data name="JsonTokenTypeName_Boolean" xml:space="preserve">
+    <value>литерала true или false</value>
+  </data>
+  <data name="JsonTokenTypeName_EndArray" xml:space="preserve">
+    <value>конца массива (`]`)</value>
+  </data>
+  <data name="JsonTokenTypeName_EndObject" xml:space="preserve">
+    <value>конца объекта (`}`)</value>
+  </data>
+  <data name="JsonTokenTypeName_Number" xml:space="preserve">
+    <value>числа</value>
+  </data>
+  <data name="JsonTokenTypeName_StartArray" xml:space="preserve">
+    <value>начала массива (`[`)</value>
+  </data>
+  <data name="JsonTokenTypeName_StartObject" xml:space="preserve">
+    <value>начала объекта (`{`)</value>
+  </data>
+  <data name="JsonTokenTypeName_String" xml:space="preserve">
+    <value>строки</value>
+  </data>
   <data name="Processor_AutoprefixerNotLoaded" xml:space="preserve">
     <value>Во время загрузки Autoprefixer произошла ошибка.</value>
   </data>

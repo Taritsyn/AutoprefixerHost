@@ -28,6 +28,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="node_modules/bootstrap/dist/css/bootstrap.css">
+      <Link>Files/%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
     <None Include="node_modules/normalize.css/normalize.css">
       <Link>Files/%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -47,7 +52,7 @@
 
   <Target Name="EnsureNodePackagesInstalled" BeforeTargets="BeforeBuild">
     <Error
-      Condition=" !Exists('./node_modules/normalize.css/normalize.css') Or !Exists('./node_modules/reseter.css/css/reseter.css') Or !Exists('./node_modules/skeleton.css/skeleton.css') "
+      Condition=" !Exists('./node_modules/bootstrap/dist/css/bootstrap.css') Or !Exists('./node_modules/normalize.css/normalize.css') Or !Exists('./node_modules/reseter.css/css/reseter.css') Or !Exists('./node_modules/skeleton.css/skeleton.css') "
       Text="You need to install a Node.js packages. To do this, in the directory of $(MSBuildProjectName) project, run the following command: `npm install`." />
   </Target>
 

@@ -3,6 +3,7 @@
   "private": true,
   "version": "3.0.26",
   "dependencies": {
+    "bootstrap": "5.2.3",
     "normalize.css": "8.0.1",
     "reseter.css": "2.0.0",
     "skeleton.css": "2.0.4"

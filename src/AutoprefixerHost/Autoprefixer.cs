@@ -2,13 +2,18 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+#if MODERN_JSON_CONVERTER
+using System.Text.Json;
+#endif
 
 using JavaScriptEngineSwitcher.Core;
+#if !MODERN_JSON_CONVERTER
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+#endif
 
 using AutoprefixerHost.Extensions;
 using AutoprefixerHost.Helpers;
+using AutoprefixerHost.JsonConverters;
 using AutoprefixerHost.Resources;
 using AutoprefixerHost.Utilities;
 
@@ -58,6 +63,11 @@ namespace AutoprefixerHost
 		/// JS engine
 		/// </summary>
 		private IJsEngine _jsEngine;
+
+		/// <summary>
+		/// Unified JSON serializer
+		/// </summary>
+		private UnifiedJsonSerializer _jsonSerializer;
 
 		/// <summary>
 		/// Synchronizer of the Autoprefixer initialization
@@ -115,8 +125,7 @@ namespace AutoprefixerHost
 				throw new ArgumentNullException(nameof(createJsEngineInstance));
 			}
 
-			_createJsEngineInstance = createJsEngineInstance;
-			_options = options ?? _defaultOptions;
+			InitializeFields(createJsEngineInstance, options);
 		}
 
 		/// <summary>
@@ -139,10 +148,31 @@ namespace AutoprefixerHost
 				throw new ArgumentNullException(nameof(jsEngineFactory));
 			}
 
-			_createJsEngineInstance = jsEngineFactory.CreateEngine;
-			_options = options ?? _defaultOptions;
+			InitializeFields(jsEngineFactory.CreateEngine, options);
 		}
 
+
+		/// <summary>
+		/// Initialize a class fields
+		/// </summary>
+		/// <param name="createJsEngineInstance">Delegate that creates an instance of JS engine</param>
+		/// <param name="options">Processing options</param>
+		private void InitializeFields(Func<IJsEngine> createJsEngineInstance, ProcessingOptions options)
+		{
+			_createJsEngineInstance = createJsEngineInstance;
+			_options = options ?? _defaultOptions;
+
+#if MODERN_JSON_CONVERTER
+			var jsonSerializerOptions = new JsonSerializerOptions();
+#else
+			var jsonSerializerOptions = new JsonSerializerSettings();
+#endif
+			var converters = jsonSerializerOptions.Converters;
+			converters.Add(new ProcessingOptionsConverter());
+			converters.Add(new ProcessingResultConverter());
+
+			_jsonSerializer = new UnifiedJsonSerializer(jsonSerializerOptions);
+		}
 
 		/// <summary>
 		/// Initializes a Autoprefixer
@@ -165,13 +195,16 @@ namespace AutoprefixerHost
 
 				try
 				{
-					serializedOptions = SerializeProcessingOptions(_options);
+					serializedOptions = _jsonSerializer.SerializeObject(_options);
 				}
 				catch (CustomUsageStatisticsFormatException e)
 				{
-					throw new AutoprefixerLoadException(e.Message, e.InnerException)
+					string description = e.Message;
+					string message = AutoprefixerErrorHelpers.GenerateErrorMessageFromExceptionWithInnerException(e);
+
+					throw new AutoprefixerLoadException(message, e)
 					{
-						Description = e.Message
+						Description = description
 					};
 				}
 
@@ -290,35 +323,45 @@ namespace AutoprefixerHost
 		{
 			Initialize();
 
-			string serializedResult = string.Empty;
-			string serializedContent = JsonConvert.SerializeObject(content);
-			string serializedInputPath = JsonConvert.SerializeObject(inputPath);
-			string serializedOutputPath = JsonConvert.SerializeObject(outputPath);
-			string serializedSourceMapPath = JsonConvert.SerializeObject(sourceMapPath);
-			string serializedInputSourceMapContent = JsonConvert.SerializeObject(inputSourceMapContent);
+			string serializedContent = _jsonSerializer.SerializePrimitiveType(content);
+			string serializedInputPath = _jsonSerializer.SerializePrimitiveType(inputPath);
+			string serializedOutputPath = _jsonSerializer.SerializePrimitiveType(outputPath);
+			string serializedSourceMapPath = _jsonSerializer.SerializePrimitiveType(sourceMapPath);
+			string serializedInputSourceMapContent = _jsonSerializer.SerializePrimitiveType(inputSourceMapContent);
 			string serializedOptions = "null";
 
 			if (options != null)
 			{
 				try
 				{
-					serializedOptions = SerializeProcessingOptions(options);
+					serializedOptions = _jsonSerializer.SerializeObject(options);
 				}
 				catch (CustomUsageStatisticsFormatException e)
 				{
-					throw new AutoprefixerProcessingException(e.Message, e.InnerException)
+					string description = e.Message;
+					string message = AutoprefixerErrorHelpers.GenerateErrorMessageFromExceptionWithInnerException(e);
+
+					throw new AutoprefixerProcessingException(message, e)
 					{
-						Description = e.Message
+						Description = description
 					};
 				}
 			}
 
+			ProcessingResult processingResult;
+
 			try
 			{
-				serializedResult = _jsEngine.Evaluate<string>("autoprefixerHelper.process(" +
+				string serializedResult = _jsEngine.Evaluate<string>("autoprefixerHelper.process(" +
 					serializedContent + ", " + serializedInputPath + ", " + serializedOutputPath + ", " +
 					serializedSourceMapPath + ", " + serializedInputSourceMapContent + ", " +
 					serializedOptions + ");");
+
+				processingResult = _jsonSerializer.DeserializeObject<ProcessingResult>(serializedResult);
+			}
+			catch (AutoprefixerProcessingException)
+			{
+				throw;
 			}
 			catch (JsException e)
 			{
@@ -329,186 +372,6 @@ namespace AutoprefixerHost
 					File = inputPath ?? string.Empty
 				};
 			}
-
-			var resultJson = JObject.Parse(serializedResult);
-			var errorsJson = resultJson["errors"] as JArray;
-
-			if (errorsJson != null && errorsJson.Count > 0)
-			{
-				throw CreateProcessingExceptionFromJson(errorsJson[0]);
-			}
-
-			ProcessingResult processingResult = CreateProcessingResultFromJson(resultJson);
-
-			return processingResult;
-		}
-
-		/// <summary>
-		/// Serializes a processing options to JSON format
-		/// </summary>
-		/// <param name="options">Processing options</param>
-		/// <returns>Serialized processing options in JSON format</returns>
-		private string SerializeProcessingOptions(ProcessingOptions options)
-		{
-			JObject statsJson = null;
-
-			if (!string.IsNullOrWhiteSpace(options.Stats))
-			{
-				try
-				{
-					statsJson = JObject.Parse(options.Stats);
-				}
-				catch (JsonReaderException e)
-				{
-					throw new CustomUsageStatisticsFormatException(
-						Strings.Processor_StatsPropertyHasIncorrectFormat, e);
-				}
-			}
-
-			var optionsJson = new JObject(
-				new JProperty("browsers", options.Browsers != null ? new JArray(options.Browsers) : null),
-				new JProperty("cascade", options.Cascade),
-				new JProperty("add", options.Add),
-				new JProperty("remove", options.Remove),
-				new JProperty("supports", options.Supports),
-				new JProperty("flexbox", ConvertFlexboxModeEnumValueToJson(options.Flexbox)),
-				new JProperty("grid", ConvertGridModeEnumValueToJson(options.Grid)),
-				new JProperty("ignoreUnknownVersions", options.IgnoreUnknownVersions),
-				new JProperty("stats", statsJson),
-				new JProperty("sourceMap", options.SourceMap),
-				new JProperty("inlineSourceMap", options.InlineSourceMap),
-				new JProperty("sourceMapIncludeContents", options.SourceMapIncludeContents),
-				new JProperty("omitSourceMapUrl", options.OmitSourceMapUrl)
-			);
-
-			return optionsJson.ToString();
-		}
-
-		/// <summary>
-		/// Converts a flexbox mode enum value to JSON
-		/// </summary>
-		/// <param name="mode">Flexbox mode enum value</param>
-		/// <returns>Flexbox mode in JSON format</returns>
-		private static JValue ConvertFlexboxModeEnumValueToJson(FlexboxMode mode)
-		{
-			JValue value;
-
-			switch (mode)
-			{
-				case FlexboxMode.All:
-					value = new JValue(true);
-					break;
-				case FlexboxMode.None:
-					value = new JValue(false);
-					break;
-				case FlexboxMode.No2009:
-					value = new JValue("no-2009");
-					break;
-				default:
-					throw new InvalidCastException(string.Format(Strings.Common_EnumValueToCodeConversionFailed,
-						mode.ToString(), typeof(FlexboxMode)));
-			}
-
-			return value;
-		}
-
-		/// <summary>
-		/// Converts a grid mode enum value to JSON
-		/// </summary>
-		/// <param name="mode">Grid mode enum value</param>
-		/// <returns>Grid mode in JSON format</returns>
-		private static JValue ConvertGridModeEnumValueToJson(GridMode mode)
-		{
-			JValue value;
-
-			switch (mode)
-			{
-				case GridMode.None:
-					value = new JValue(false);
-					break;
-				case GridMode.Autoplace:
-					value = new JValue("autoplace");
-					break;
-				case GridMode.NoAutoplace:
-					value = new JValue("no-autoplace");
-					break;
-				default:
-					throw new InvalidCastException(string.Format(Strings.Common_EnumValueToCodeConversionFailed,
-						mode.ToString(), typeof(GridMode)));
-			}
-
-			return value;
-		}
-
-		private static AutoprefixerProcessingException CreateProcessingExceptionFromJson(JToken error)
-		{
-			var description = error.Value<string>("description");
-			var type = error.Value<string>("type");
-			var file = error.Value<string>("file");
-			string documentName = Path.GetFileName(file);
-			var lineNumber = error.Value<int>("lineNumber");
-			var columnNumber = error.Value<int>("columnNumber");
-			var content = error.Value<string>("source");
-			string sourceFragment = SourceCodeNavigator.GetSourceFragment(content,
-				new SourceCodeNodeCoordinates(lineNumber, columnNumber));
-			string sourceLineFragment = TextHelpers.GetTextFragment(content, lineNumber, columnNumber);
-			var message = AutoprefixerErrorHelpers.GenerateProcessingErrorMessage(type, description, documentName,
-				lineNumber, columnNumber, sourceLineFragment);
-
-			var processingException = new AutoprefixerProcessingException(message)
-			{
-				Description = description,
-				Type = type,
-				File = file,
-				LineNumber = lineNumber,
-				ColumnNumber = columnNumber,
-				SourceFragment = sourceFragment
-			};
-
-			return processingException;
-		}
-
-		private static ProcessingResult CreateProcessingResultFromJson(JObject resultJson)
-		{
-			string processedContent = resultJson.Value<string>("processedContent");
-			string sourceMap = resultJson.Value<string>("sourceMap");
-			if (string.IsNullOrWhiteSpace(sourceMap))
-			{
-				sourceMap = SourceMapExtractor.ExtractSourceMap(processedContent);
-			}
-			var warnings = new List<ProblemInfo>();
-
-			var warningsJson = resultJson["warnings"] as JArray;
-			if (warningsJson != null && warningsJson.Count > 0)
-			{
-				foreach (JObject warningJson in warningsJson)
-				{
-					var description = warningJson.Value<string>("description");
-					string type = string.Empty;
-					var file = warningJson.Value<string>("file");
-					string documentName = Path.GetFileName(file);
-					var lineNumber = warningJson.Value<int>("lineNumber");
-					var columnNumber = warningJson.Value<int>("columnNumber");
-					var content = warningJson.Value<string>("source");
-					string sourceFragment = SourceCodeNavigator.GetSourceFragment(content,
-						new SourceCodeNodeCoordinates(lineNumber, columnNumber));
-					string sourceLineFragment = TextHelpers.GetTextFragment(content, lineNumber, columnNumber);
-					var message = AutoprefixerErrorHelpers.GenerateProcessingErrorMessage(type, description,
-						documentName, lineNumber, columnNumber, sourceLineFragment);
-
-					warnings.Add(new ProblemInfo
-					{
-						Message = message,
-						Description = description,
-						File = file,
-						LineNumber = lineNumber,
-						ColumnNumber = columnNumber,
-						SourceFragment = sourceFragment
-					});
-				}
-			}
-
-			var processingResult = new ProcessingResult(processedContent, sourceMap, warnings);
 
 			return processingResult;
 		}
@@ -528,6 +391,7 @@ namespace AutoprefixerHost
 					_jsEngine = null;
 				}
 
+				_jsonSerializer = null;
 				_options = null;
 				_createJsEngineInstance = null;
 			}
