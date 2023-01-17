@@ -29,9 +29,11 @@
    =============
    RELEASE NOTES
    =============
-   1. For latest versions of .NET now uses the System.Text.Json library as JSON
+   1. Updated a Can I Use data;
+   2. Updated a PostCSS to version 8.4.21;
+   3. For latest versions of .NET now uses the System.Text.Json library as JSON
       serializer;
-   2. Added a .NET Framework 4.6.1 and .NET 6 targets.
+   4. Added a .NET Framework 4.6.1 and .NET 6 targets.
 
    ============
    PROJECT SITE
