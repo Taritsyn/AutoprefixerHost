@@ -14,7 +14,7 @@
     <DisableDefaultResxToCsConversionTarget>true</DisableDefaultResxToCsConversionTarget>
     <Title>$(Product)</Title>
     <Authors>Andrey Taritsyn</Authors>
-    <Description>.NET wrapper around the Andrey Sitnik's Autoprefixer (https://github.com/postcss/autoprefixer) version 10.4.13.0.
+    <Description>.NET wrapper around the Andrey Sitnik's Autoprefixer (https://github.com/postcss/autoprefixer) version 10.4.14.0.
 
 Since the original library is written in JavaScript, you will need a JS engine to run it. As a JS engine is used the JavaScript Engine Switcher library (https://github.com/Taritsyn/JavaScriptEngineSwitcher). For correct working, you need to install one of the following NuGet packages:
 
@@ -33,10 +33,7 @@ After installing the packages, you will need to register the default JS engine (
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageTags>Autoprefixer;CSS</PackageTags>
-    <PackageReleaseNotes>1. Updated a Can I Use data;
-2. Updated a PostCSS to version 8.4.21;
-3. For latest versions of .NET now uses the System.Text.Json library as JSON serializer;
-4. Added a .NET Framework 4.6.1 and .NET 6 targets.</PackageReleaseNotes>
+    <PackageReleaseNotes>Added support of the Autoprefixer version 10.4.14.0.</PackageReleaseNotes>
     <NeutralLanguage>en-US</NeutralLanguage>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
@@ -58,7 +55,7 @@ After installing the packages, you will need to register the default JS engine (
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net40-client' Or '$(TargetFramework)' == 'net45' Or '$(TargetFramework)' == 'netstandard1.3' ">
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net461' Or '$(TargetFramework)' == 'netstandard2.0' ">

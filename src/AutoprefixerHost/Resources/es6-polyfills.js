@@ -5,7 +5,7 @@
    * core-js v2.6.12
    * https://github.com/zloirock/core-js
    *
-   * Copyright (c) 2014-2022 Denis Pushkarev
+   * Copyright (c) 2014-2023 Denis Pushkarev
    * Released under the terms of MIT license
    */
   // 7.2.1 RequireObjectCoercible(argument)
