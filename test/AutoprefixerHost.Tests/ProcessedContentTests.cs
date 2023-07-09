@@ -41,14 +41,12 @@ namespace AutoprefixerHost.Tests
 			const string targetOutput4 = @".example {
     display: grid;
     -webkit-transition: all .5s;
-    -o-transition: all .5s;
     transition: all .5s;
     -webkit-user-select: none;
        -moz-user-select: none;
         -ms-user-select: none;
             user-select: none;
     background: -webkit-gradient(linear, left top, left bottom, from(white), to(black));
-    background: -o-linear-gradient(top, white, black);
     background: linear-gradient(to bottom, white, black);
 }";
 
