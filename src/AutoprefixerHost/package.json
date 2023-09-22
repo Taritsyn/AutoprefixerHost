@@ -2,9 +2,9 @@
   "name": "AutoprefixerHost",
   "version": "3.0.30",
   "devDependencies": {
-    "@babel/cli": "7.22.10",
-    "@babel/core": "7.22.10",
-    "@babel/preset-env": "7.22.10",
+    "@babel/cli": "7.22.15",
+    "@babel/core": "7.22.20",
+    "@babel/preset-env": "7.22.20",
     "uglify-js": "3.16.1"
   },
   "scripts": {
