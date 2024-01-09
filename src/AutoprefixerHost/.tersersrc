@@ -7,7 +7,6 @@
   },
   "mangle": {},
   "output": {
-    "ascii_only": true,
     "comments": "/^!/"
   }
 }

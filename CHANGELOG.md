@@ -1,6 +1,11 @@
 Change log
 ==========
 
+## v3.0.32 - January 9, 2024
+ * Updated a Can I Use data
+ * Updated a Browserslist to version 4.22.2
+ * Updated a PostCSS to version 8.4.33
+
 ## v3.0.31 - September 22, 2023
  * Added support for the Autoprefixer version 10.4.16.0
 
