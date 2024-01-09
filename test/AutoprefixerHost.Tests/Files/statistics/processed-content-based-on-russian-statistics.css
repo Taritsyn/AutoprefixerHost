@@ -1,10 +1,15 @@
 .shadowed-box {
+    -moz-box-shadow: 0 0 20px #555;
+    -webkit-box-shadow: 0 0 20px #555;
     box-shadow: 0 0 20px #555;
 }
 
 .three-column-box {
+    -moz-column-count: 3;
     -webkit-column-count: 3;
     column-count: 3;
+
+    -moz-column-width: 250px;
     -webkit-column-width: 250px;
     column-width: 250px;
 
@@ -19,12 +24,20 @@
 }
 
 .transitioned-box {
+    -moz-transition: all 0.8s ease;
+    -o-transition: all 0.8s ease;
+    -webkit-transition: all 0.8s ease;
     transition: all 0.8s ease;
+
+    -moz-transform: scale(1);
+    -o-transform: scale(1);
     -webkit-transform: scale(1);
     transform: scale(1);
 }
 
 .transitioned-box:hover {
+    -moz-transform: scale(0.65);
+    -o-transform: scale(0.65);
     -webkit-transform: scale(0.65);
     transform: scale(0.65);
 }
