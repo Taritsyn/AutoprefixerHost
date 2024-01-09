@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Product>Autoprefixer Host for .NET: Benchmarks</Product>
     <VersionPrefix>3.0.31</VersionPrefix>
-    <TargetFrameworks>net461;netcoreapp3.1;net5.0;net6.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>net462;netcoreapp3.1;net5.0;net6.0;net7.0;net8.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
@@ -14,6 +14,7 @@
   <Import Project="../../build/common.props" />
 
   <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" VersionOverride="0.13.12" />
     <PackageReference Include="JavaScriptEngineSwitcher.ChakraCore" />
     <PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.win-x64" />
     <PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.win-x86" />
@@ -21,15 +22,7 @@
     <ProjectReference Include="../../src/AutoprefixerHost/AutoprefixerHost.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
-    <PackageReference Include="BenchmarkDotNet" VersionOverride="0.13.3" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' != 'net461' ">
-    <PackageReference Include="BenchmarkDotNet" VersionOverride="0.13.8" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' != 'net461' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != 'net462' ">
     <PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.linux-x64" />
     <PackageReference Include="JavaScriptEngineSwitcher.ChakraCore.Native.osx-x64" />
   </ItemGroup>

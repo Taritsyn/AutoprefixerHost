@@ -1,14 +1,8 @@
-﻿using System;
-#if !NET40
-using System.Runtime.InteropServices;
-#endif
+﻿using System.Runtime.InteropServices;
 
 using JavaScriptEngineSwitcher.Core;
 using JavaScriptEngineSwitcher.Msie;
 using NUnit.Framework;
-#if NET40
-using PolyfillsForOldDotNet.System.Runtime.InteropServices;
-#endif
 
 namespace AutoprefixerHost.Tests
 {

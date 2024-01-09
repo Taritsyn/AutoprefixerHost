@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 
 using JavaScriptEngineSwitcher.Core;
-#if NET461 || NETCOREAPP3_1_OR_GREATER
+#if !NET8_0_OR_GREATER
 using JavaScriptEngineSwitcher.NiL;
 #endif
 
@@ -44,13 +44,9 @@ namespace AutoprefixerHost.Tests
 			};
 
 			string targetErrorDescription = "The value of 'Stats' property has an incorrect format.";
-			string targetErrorMessage = targetErrorDescription + " See the original error message: “" +
-#if NET461 || NETCOREAPP2_1_OR_GREATER
-				"'0xE2' is an invalid start of a property name. Expected a '\"'. LineNumber: 7 | BytePositionInLine: 4." +
-#else
-				"Invalid property identifier character: …. Path 'chrome', line 8, position 4." +
-#endif
-				"”."
+			string targetErrorMessage = targetErrorDescription + " See the original error message: " +
+				"“'0xE2' is an invalid start of a property name. Expected a '\"'. " +
+				"LineNumber: 7 | BytePositionInLine: 4.”."
 				;
 
 			// Act
@@ -90,7 +86,7 @@ namespace AutoprefixerHost.Tests
 			Assert.AreEqual(targetErrorMessage, processingException.Message);
 			Assert.AreEqual(targetErrorDescription, processingException.Description);
 		}
-#if NET461 || NETCOREAPP3_1_OR_GREATER
+#if !NET8_0_OR_GREATER
 
 		[Test]
 		public void MappingJavaScriptError()
