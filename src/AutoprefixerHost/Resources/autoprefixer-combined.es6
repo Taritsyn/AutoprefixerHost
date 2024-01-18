@@ -1,5 +1,5 @@
 /*!
- * Autoprefixer v10.4.16.1
+ * Autoprefixer v10.4.17.0
  * https://github.com/postcss/autoprefixer
  * https://github.com/ai/autoprefixer-rails
  *
@@ -21159,6 +21159,11 @@ var autoprefixer = (function (countryStatisticsService /*AH+*/) {
      */
     insert(decl, prefix, prefixes) {
       if (decl.value === 'all' && prefix === '-ms-') {
+        return undefined
+      } else if (
+        decl.value === 'contain' &&
+        (prefix === '-moz-' || prefix === '-webkit-')
+      ) {
         return undefined
       } else {
         return super.insert(decl, prefix, prefixes)
