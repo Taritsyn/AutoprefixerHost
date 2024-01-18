@@ -1,6 +1,9 @@
 Change log
 ==========
 
+## v3.0.33 - January 18, 2024
+ * Added support for the Autoprefixer version 10.4.17.0
+
 ## v3.0.32 - January 9, 2024
  * Updated a Can I Use data
  * Updated a Browserslist to version 4.22.2
