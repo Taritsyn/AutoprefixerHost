@@ -24,8 +24,7 @@ Since the original library is written in JavaScript, you will need a JS engine t
  * JavaScriptEngineSwitcher.Msie (only in the Chakra JsRT modes)
 
 After installing the packages, you will need to register the default JS engine (https://github.com/Taritsyn/JavaScriptEngineSwitcher/wiki/Registration-of-JS-engines).</Description>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Taritsyn/AutoprefixerHost</PackageProjectUrl>
     <PackageIcon>icon.png</PackageIcon>
     <RepositoryUrl>https://github.com/Taritsyn/AutoprefixerHost</RepositoryUrl>
@@ -76,38 +75,18 @@ After installing the packages, you will need to register the default JS engine (
       <Visible>false</Visible>
     </None>
     <None Include="../../LICENSE.txt">
-      <PackagePath>$(PackageLicenseFile)</PackagePath>
+      <PackagePath>/</PackagePath>
       <Pack>true</Pack>
       <Visible>false</Visible>
     </None>
-    <None Include="../../licenses/advanced-string-builder-license.txt">
-      <PackagePath>advanced-string-builder-license.txt</PackagePath>
-      <Pack>true</Pack>
-      <Visible>false</Visible>
-    </None>
-    <None Include="../../licenses/autoprefixer-license.txt">
-      <PackagePath>autoprefixer-license.txt</PackagePath>
-      <Pack>true</Pack>
-      <Visible>false</Visible>
-    </None>
-    <None Include="../../licenses/core-js-license.txt">
-      <PackagePath>core-js-license.txt</PackagePath>
-      <Pack>true</Pack>
-      <Visible>false</Visible>
-    </None>
-    <None Include="../../licenses/js-engine-switcher-license.txt">
-      <PackagePath>js-engine-switcher-license.txt</PackagePath>
-      <Pack>true</Pack>
-      <Visible>false</Visible>
-    </None>
-    <None Include="../../licenses/newtonsoft-json-license.txt">
-      <PackagePath>newtonsoft-json-license.txt</PackagePath>
+    <None Include="../../licenses/*.txt">
+      <PackagePath>/</PackagePath>
       <Pack>true</Pack>
       <Visible>false</Visible>
     </None>
 
     <Content Include="readme.txt">
-      <PackagePath>readme.txt</PackagePath>
+      <PackagePath>/</PackagePath>
       <Pack>true</Pack>
     </Content>
   </ItemGroup>
