@@ -2,13 +2,10 @@
 
   <PropertyGroup>
     <Product>Autoprefixer Host for .NET</Product>
-    <VersionPrefix>3.0.33</VersionPrefix>
+    <VersionPrefix>3.0.34</VersionPrefix>
     <TargetFrameworks>net40-client;net45;net461;netstandard1.3;netstandard2.0;net6.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <AssemblyOriginatorKeyFile>../../build/Key.snk</AssemblyOriginatorKeyFile>
-    <SignAssembly>true</SignAssembly>
-    <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
     <NoWarn>$(NoWarn);CS1591;NU1605</NoWarn>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DisableDefaultResxToCsConversionTarget>true</DisableDefaultResxToCsConversionTarget>
@@ -18,6 +15,7 @@
     <PackageReadmeFile>PACKAGE-DESCRIPTION.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Taritsyn/AutoprefixerHost</PackageProjectUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/Taritsyn/AutoprefixerHost/master/images/AutoprefixerHost_Logo_128x128.png</PackageIconUrl>
     <PackageIcon>icon.png</PackageIcon>
     <RepositoryUrl>https://github.com/Taritsyn/AutoprefixerHost</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -31,6 +29,7 @@
 
   <Import Project="../../build/common.props" />
   <Import Project="../../build/net40-client-target.props" />
+  <Import Project="../../build/strong-name-signing.props" />
   <Import Project="../../build/nuget-common.props" />
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net461' Or '$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net6.0' ">
