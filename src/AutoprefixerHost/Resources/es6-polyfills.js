@@ -3576,42 +3576,6 @@
     }
   });
 
-  // 7.2.9 SameValue(x, y)
-  var _sameValue = Object.is || function is(x, y) {
-    // eslint-disable-next-line no-self-compare
-    return x === y ? x !== 0 || 1 / x === 1 / y : x != x && y != y;
-  };
-
-  var anObject$2 = _anObject;
-  var sameValue = _sameValue;
-  var regExpExec = _regexpExecAbstract;
-
-  // @@search logic
-  _fixReWks('search', 1, function (defined, SEARCH, $search, maybeCallNative) {
-    return [
-      // `String.prototype.search` method
-      // https://tc39.github.io/ecma262/#sec-string.prototype.search
-      function search(regexp) {
-        var O = defined(this);
-        var fn = regexp == undefined ? undefined : regexp[SEARCH];
-        return fn !== undefined ? fn.call(regexp, O) : new RegExp(regexp)[SEARCH](String(O));
-      },
-      // `RegExp.prototype[@@search]` method
-      // https://tc39.github.io/ecma262/#sec-regexp.prototype-@@search
-      function (regexp) {
-        var res = maybeCallNative($search, regexp, this);
-        if (res.done) return res.value;
-        var rx = anObject$2(regexp);
-        var S = String(this);
-        var previousLastIndex = rx.lastIndex;
-        if (!sameValue(previousLastIndex, 0)) rx.lastIndex = 0;
-        var result = regExpExec(rx, S);
-        if (!sameValue(rx.lastIndex, previousLastIndex)) rx.lastIndex = previousLastIndex;
-        return result === null ? -1 : result.index;
-      }
-    ];
-  });
-
   // 19.1.2.1 Object.assign(target, source, ...)
   var DESCRIPTORS = _descriptors;
   var getKeys = _objectKeys;
@@ -3649,6 +3613,47 @@
       }
     } return T;
   } : $assign;
+
+  // 19.1.3.1 Object.assign(target, source)
+  var $export$7 = _export;
+
+  $export$7($export$7.S + $export$7.F, 'Object', { assign: _objectAssign });
+
+  // 7.2.9 SameValue(x, y)
+  var _sameValue = Object.is || function is(x, y) {
+    // eslint-disable-next-line no-self-compare
+    return x === y ? x !== 0 || 1 / x === 1 / y : x != x && y != y;
+  };
+
+  var anObject$2 = _anObject;
+  var sameValue = _sameValue;
+  var regExpExec = _regexpExecAbstract;
+
+  // @@search logic
+  _fixReWks('search', 1, function (defined, SEARCH, $search, maybeCallNative) {
+    return [
+      // `String.prototype.search` method
+      // https://tc39.github.io/ecma262/#sec-string.prototype.search
+      function search(regexp) {
+        var O = defined(this);
+        var fn = regexp == undefined ? undefined : regexp[SEARCH];
+        return fn !== undefined ? fn.call(regexp, O) : new RegExp(regexp)[SEARCH](String(O));
+      },
+      // `RegExp.prototype[@@search]` method
+      // https://tc39.github.io/ecma262/#sec-regexp.prototype-@@search
+      function (regexp) {
+        var res = maybeCallNative($search, regexp, this);
+        if (res.done) return res.value;
+        var rx = anObject$2(regexp);
+        var S = String(this);
+        var previousLastIndex = rx.lastIndex;
+        if (!sameValue(previousLastIndex, 0)) rx.lastIndex = 0;
+        var result = regExpExec(rx, S);
+        if (!sameValue(rx.lastIndex, previousLastIndex)) rx.lastIndex = previousLastIndex;
+        return result === null ? -1 : result.index;
+      }
+    ];
+  });
 
   var redefineAll = require_redefineAll();
   var getWeak$1 = _meta.exports.getWeak;
@@ -3795,20 +3800,15 @@
     });
   }
 
-  var $export$7 = _export;
+  var $export$6 = _export;
   var $filter = _arrayMethods(2);
 
-  $export$7($export$7.P + $export$7.F * !require_strictMethod()([].filter, true), 'Array', {
+  $export$6($export$6.P + $export$6.F * !require_strictMethod()([].filter, true), 'Array', {
     // 22.1.3.7 / 15.4.4.20 Array.prototype.filter(callbackfn [, thisArg])
     filter: function filter(callbackfn /* , thisArg */) {
       return $filter(this, callbackfn, arguments[1]);
     }
   });
-
-  // 19.1.3.1 Object.assign(target, source)
-  var $export$6 = _export;
-
-  $export$6($export$6.S + $export$6.F, 'Object', { assign: _objectAssign });
 
   var global$4 = _global.exports;
   var inheritIfRequired = _inheritIfRequired;

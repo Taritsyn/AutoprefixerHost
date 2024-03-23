@@ -2,10 +2,10 @@
   "name": "AutoprefixerHost",
   "version": "3.0.34",
   "devDependencies": {
-    "@babel/cli": "7.23.9",
-    "@babel/core": "7.24.0",
-    "@babel/preset-env": "7.24.0",
-    "terser": "5.28.1"
+    "@babel/cli": "7.24.1",
+    "@babel/core": "7.24.3",
+    "@babel/preset-env": "7.24.3",
+    "terser": "5.29.2"
   },
   "scripts": {
     "transpile-autoprefixer-combined-es6": "babel --out-dir ./Resources --config-file ./.babelrc ./Resources/autoprefixer-combined.es6",

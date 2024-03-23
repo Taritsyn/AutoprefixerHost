@@ -12,7 +12,7 @@
    DESCRIPTION
    ===========
    .NET wrapper around the Andrey Sitnik's Autoprefixer
-   (https://github.com/postcss/autoprefixer) version 10.4.18.0.
+   (https://github.com/postcss/autoprefixer) version 10.4.19.0.
 
    Since the original library is written in JavaScript, you will need a JS engine
    to run it. As a JS engine is used the JavaScript Engine Switcher library
@@ -21,8 +21,8 @@
 
     * JavaScriptEngineSwitcher.ChakraCore
     * JavaScriptEngineSwitcher.Jint
-    * JavaScriptEngineSwitcher.V8
     * JavaScriptEngineSwitcher.Msie (only in the Chakra JsRT modes)
+    * JavaScriptEngineSwitcher.V8
 
    After installing the packages, you will need to register the default JS engine
    (https://github.com/Taritsyn/JavaScriptEngineSwitcher/wiki/Registration-of-JS-engines).
@@ -30,7 +30,7 @@
    =============
    RELEASE NOTES
    =============
-   Added support for the Autoprefixer version 10.4.18.0.
+   Added support for the Autoprefixer version 10.4.19.0.
 
    ============
    PROJECT SITE
