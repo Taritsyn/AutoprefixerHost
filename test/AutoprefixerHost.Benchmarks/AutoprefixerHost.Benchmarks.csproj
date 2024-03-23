@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Product>Autoprefixer Host for .NET: Benchmarks</Product>
-    <VersionPrefix>3.0.34</VersionPrefix>
+    <VersionPrefix>3.0.35</VersionPrefix>
     <TargetFrameworks>net462;netcoreapp3.1;net5.0;net6.0;net7.0;net8.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
