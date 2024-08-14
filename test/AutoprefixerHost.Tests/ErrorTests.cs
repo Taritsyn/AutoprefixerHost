@@ -96,7 +96,7 @@ namespace AutoprefixerHost.Tests
 			const string input = @".some-class {
     border-image: linear-gradient(black, white) 20% fill stretch stretch;
 }";
-			const string targetErrorDescription = "TypeError: Can not define property \"Symbol(Symbol.toPrimitive)\". " +
+			const string targetErrorDescription = "TypeError: Cannot define property \"Symbol(Symbol.toPrimitive)\". " +
 				"Object immutable.";
 
 			// Act

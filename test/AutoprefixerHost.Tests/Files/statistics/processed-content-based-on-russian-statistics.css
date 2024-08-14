@@ -32,6 +32,7 @@
     -moz-transform: scale(1);
     -o-transform: scale(1);
     -webkit-transform: scale(1);
+    -ms-transform: scale(1);
     transform: scale(1);
 }
 
@@ -39,5 +40,6 @@
     -moz-transform: scale(0.65);
     -o-transform: scale(0.65);
     -webkit-transform: scale(0.65);
+    -ms-transform: scale(0.65);
     transform: scale(0.65);
 }
