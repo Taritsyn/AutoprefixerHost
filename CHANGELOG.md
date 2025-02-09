@@ -1,6 +1,13 @@
 Change log
 ==========
 
+## v3.1.0 - February 9, 2025
+ * Updated a Can I Use data
+ * Updated a Browserslist to version 4.24.4
+ * Updated a PostCSS to version 8.5.1
+ * No longer supports a .NET 6
+ * Added support for .NET 8
+
 ## v3.0.36 - August 14, 2024
  * Added support for the Autoprefixer version 10.4.20.0
 
