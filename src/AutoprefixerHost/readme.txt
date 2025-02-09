@@ -30,7 +30,8 @@
    =============
    RELEASE NOTES
    =============
-   Added support for the Autoprefixer version 10.4.20.0.
+   1. No longer supports a .NET 6;
+   2. Added support for .NET 8.
 
    ============
    PROJECT SITE

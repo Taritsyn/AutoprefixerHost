@@ -95,7 +95,7 @@ namespace AutoprefixerHost.JsonConverters
 			if (!string.IsNullOrWhiteSpace(value.Stats))
 			{
 				writer.WritePropertyName("stats");
-#if !MODERN_JSON_CONVERTER || NET6_0_OR_GREATER
+#if !MODERN_JSON_CONVERTER || NET8_0_OR_GREATER
 				writer.WriteRawValue(stats);
 #else
 				writer.WriteStringValue(stats);
