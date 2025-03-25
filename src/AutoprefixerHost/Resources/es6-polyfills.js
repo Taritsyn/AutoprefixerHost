@@ -663,35 +663,6 @@
 
   $export$l($export$l.S, 'Reflect', { get: get });
 
-  var _wksExt = {};
-
-  var _wks = {exports: {}};
-
-  var store = _shared.exports('wks');
-  var uid$2 = _uid;
-  var Symbol$1 = _global.exports.Symbol;
-  var USE_SYMBOL = typeof Symbol$1 == 'function';
-
-  var $exports = _wks.exports = function (name) {
-    return store[name] || (store[name] =
-      USE_SYMBOL && Symbol$1[name] || (USE_SYMBOL ? Symbol$1 : uid$2)('Symbol.' + name));
-  };
-
-  $exports.store = store;
-
-  _wksExt.f = _wks.exports;
-
-  var global$b = _global.exports;
-  var core = require_core();
-  var wksExt$1 = _wksExt;
-  var defineProperty = _objectDp.f;
-  var _wksDefine = function (name) {
-    var $Symbol = core.Symbol || (core.Symbol = global$b.Symbol || {});
-    if (name.charAt(0) != '_' && !(name in $Symbol)) defineProperty($Symbol, name, { value: wksExt$1.f(name) });
-  };
-
-  _wksDefine('asyncIterator');
-
   // 19.1.2.14 Object.keys(O)
   var toObject$7 = _toObject;
   var $keys$1 = _objectKeys;
@@ -821,6 +792,20 @@
       return createHTML(this, 'b', '', '');
     };
   });
+
+  var _wks = {exports: {}};
+
+  var store = _shared.exports('wks');
+  var uid$2 = _uid;
+  var Symbol$1 = _global.exports.Symbol;
+  var USE_SYMBOL = typeof Symbol$1 == 'function';
+
+  var $exports = _wks.exports = function (name) {
+    return store[name] || (store[name] =
+      USE_SYMBOL && Symbol$1[name] || (USE_SYMBOL ? Symbol$1 : uid$2)('Symbol.' + name));
+  };
+
+  $exports.store = store;
 
   // 7.2.8 IsRegExp(argument)
   var isObject$a = _isObject;
@@ -1532,6 +1517,19 @@
 
   var _setToStringTag = function (it, tag, stat) {
     if (it && !has$3(it = stat ? it : it.prototype, TAG$1)) def(it, TAG$1, { configurable: true, value: tag });
+  };
+
+  var _wksExt = {};
+
+  _wksExt.f = _wks.exports;
+
+  var global$b = _global.exports;
+  var core = require_core();
+  var wksExt$1 = _wksExt;
+  var defineProperty = _objectDp.f;
+  var _wksDefine = function (name) {
+    var $Symbol = core.Symbol || (core.Symbol = global$b.Symbol || {});
+    if (name.charAt(0) != '_' && !(name in $Symbol)) defineProperty($Symbol, name, { value: wksExt$1.f(name) });
   };
 
   // all enumerable object keys, includes symbols
@@ -4344,6 +4342,25 @@
     }
   });
 
+  var _mathSign;
+  var hasRequired_mathSign;
+
+  function require_mathSign () {
+  	if (hasRequired_mathSign) return _mathSign;
+  	hasRequired_mathSign = 1;
+  	// 20.2.2.28 Math.sign(x)
+  	_mathSign = Math.sign || function sign(x) {
+  	  // eslint-disable-next-line no-self-compare
+  	  return (x = +x) == 0 || x != x ? x : x < 0 ? -1 : 1;
+  	};
+  	return _mathSign;
+  }
+
+  // 20.2.2.28 Math.sign(x)
+  var $export$3 = _export;
+
+  $export$3($export$3.S, 'Math', { sign: require_mathSign() });
+
   var strong = _collectionStrong;
   var validate = _validateCollection;
   var SET = 'Set';
@@ -4358,20 +4375,13 @@
     }
   }, strong);
 
-  // B.2.3.13 String.prototype.sub()
-  _stringHtml('sub', function (createHTML) {
-    return function sub() {
-      return createHTML(this, 'sub', '', '');
-    };
-  });
-
-  var $export$3 = _export;
+  var $export$2 = _export;
   var toLength$1 = _toLength;
   var context = _stringContext;
   var ENDS_WITH = 'endsWith';
   var $endsWith = ''[ENDS_WITH];
 
-  $export$3($export$3.P + $export$3.F * require_failsIsRegexp()(ENDS_WITH), 'String', {
+  $export$2($export$2.P + $export$2.F * require_failsIsRegexp()(ENDS_WITH), 'String', {
     endsWith: function endsWith(searchString /* , endPosition = @length */) {
       var that = context(this, searchString, ENDS_WITH);
       var endPosition = arguments.length > 1 ? arguments[1] : undefined;
@@ -4385,13 +4395,13 @@
   });
 
   // 22.1.3.8 Array.prototype.find(predicate, thisArg = undefined)
-  var $export$2 = _export;
+  var $export$1 = _export;
   var $find = _arrayMethods(5);
   var KEY = 'find';
   var forced = true;
   // Shouldn't skip holes
   if (KEY in []) Array(1)[KEY](function () { forced = false; });
-  $export$2($export$2.P + $export$2.F * forced, 'Array', {
+  $export$1($export$1.P + $export$1.F * forced, 'Array', {
     find: function find(callbackfn /* , that = undefined */) {
       return $find(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
     }
@@ -4399,7 +4409,7 @@
   _addToUnscopables(KEY);
 
   var ctx = _ctx;
-  var $export$1 = _export;
+  var $export = _export;
   var toObject = _toObject;
   var call = _iterCall;
   var isArrayIter = _isArrayIter;
@@ -4407,7 +4417,7 @@
   var createProperty = _createProperty;
   var getIterFn = core_getIteratorMethod;
 
-  $export$1($export$1.S + $export$1.F * !require_iterDetect()(function (iter) { Array.from(iter); }), 'Array', {
+  $export($export.S + $export.F * !require_iterDetect()(function (iter) { Array.from(iter); }), 'Array', {
     // 22.1.2.1 Array.from(arrayLike, mapfn = undefined, thisArg = undefined)
     from: function from(arrayLike /* , mapfn = undefined, thisArg = undefined */) {
       var O = toObject(arrayLike);
@@ -4435,23 +4445,11 @@
     }
   });
 
-  var _mathSign;
-  var hasRequired_mathSign;
-
-  function require_mathSign () {
-  	if (hasRequired_mathSign) return _mathSign;
-  	hasRequired_mathSign = 1;
-  	// 20.2.2.28 Math.sign(x)
-  	_mathSign = Math.sign || function sign(x) {
-  	  // eslint-disable-next-line no-self-compare
-  	  return (x = +x) == 0 || x != x ? x : x < 0 ? -1 : 1;
-  	};
-  	return _mathSign;
-  }
-
-  // 20.2.2.28 Math.sign(x)
-  var $export = _export;
-
-  $export($export.S, 'Math', { sign: require_mathSign() });
+  // B.2.3.13 String.prototype.sub()
+  _stringHtml('sub', function (createHTML) {
+    return function sub() {
+      return createHTML(this, 'sub', '', '');
+    };
+  });
 
 })();

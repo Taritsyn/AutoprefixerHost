@@ -15,7 +15,7 @@
   <Import Project="../../build/common.props" />
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" VersionOverride="17.12.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" VersionOverride="17.13.0" />
     <PackageReference Include="NUnit" VersionOverride="3.14.0" />
     <PackageReference Include="NUnit3TestAdapter" VersionOverride="4.6.0" />
     <PackageReference Include="JavaScriptEngineSwitcher.ChakraCore" />

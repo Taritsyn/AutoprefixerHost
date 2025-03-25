@@ -23,11 +23,7 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageTags>Autoprefixer;CSS</PackageTags>
-    <PackageReleaseNotes>1. Updated a Can I Use data;
-2. Updated a Browserslist to version 4.24.4;
-3. Updated a PostCSS to version 8.5.1;
-4. No longer supports a .NET 6;
-5. Added support for .NET 8.</PackageReleaseNotes>
+    <PackageReleaseNotes>Added support for the Autoprefixer version 10.4.21.0.</PackageReleaseNotes>
     <NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
 
