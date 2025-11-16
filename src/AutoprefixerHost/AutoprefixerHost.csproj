@@ -23,7 +23,7 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageTags>Autoprefixer;CSS</PackageTags>
-    <PackageReleaseNotes>Added support for the Autoprefixer version 10.4.21.0.</PackageReleaseNotes>
+    <PackageReleaseNotes>Added support for the Autoprefixer version 10.4.22.0.</PackageReleaseNotes>
     <NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
 
@@ -42,7 +42,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net40-client' Or '$(TargetFramework)' == 'net45' Or '$(TargetFramework)' == 'netstandard1.3' ">
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net461' Or '$(TargetFramework)' == 'netstandard2.0' ">
@@ -72,7 +72,7 @@
   <Target Name="EnsureJsFilesBuilded" BeforeTargets="BeforeBuild">
     <Error
       Condition=" !Exists('./Resources/es6-polyfills.min.js') Or !Exists('./Resources/autoprefixer-combined.min.js') Or !Exists('./Resources/autoprefixer-helper.min.js') "
-      Text="In release mode, you need to build JS files. To do this, run a `build-js.cmd` or `build-js.sh` script." />
+      Text="You need to build JS files. To do this, run a `build-js.cmd` or `build-js.sh` script." />
   </Target>
 
 </Project>
