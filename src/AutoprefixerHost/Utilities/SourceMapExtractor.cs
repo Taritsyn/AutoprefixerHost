@@ -18,7 +18,7 @@ namespace AutoprefixerHost.Utilities
 		/// <returns>Source map</returns>
 		internal static string ExtractSourceMap(string content)
 		{
-			if (content == null)
+			if (content is null)
 			{
 				throw new ArgumentNullException(nameof(content));
 			}

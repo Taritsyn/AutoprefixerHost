@@ -28,7 +28,7 @@ namespace AutoprefixerHost.JsonConverters
 			ProcessingOptions value
 		)
 		{
-			if (value == null)
+			if (value is null)
 			{
 				throw new ArgumentNullException(nameof(value));
 			}
@@ -69,7 +69,7 @@ namespace AutoprefixerHost.JsonConverters
 			writer.WriteStartObject();
 
 			IList<string> browsers = value.Browsers;
-			if (browsers != null)
+			if (browsers is not null)
 			{
 				writer.WriteStartArray("browsers");
 

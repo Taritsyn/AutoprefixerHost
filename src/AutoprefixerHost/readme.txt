@@ -30,7 +30,8 @@
    =============
    RELEASE NOTES
    =============
-   Added support for the Autoprefixer version 10.4.22.0.
+   1. Added support for the Autoprefixer version 10.4.22.0;
+   2. Performed a migration to the modern C# null/not-null checks.
 
    ============
    PROJECT SITE

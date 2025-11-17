@@ -93,7 +93,7 @@ namespace AutoprefixerHost.JsonConverters
 
 			while (reader.Read() && reader.IsTokenTypeStartObject())
 			{
-				if (firstException != null)
+				if (firstException is not null)
 				{
 					continue;
 				}

@@ -65,7 +65,7 @@ namespace AutoprefixerHost.Helpers
 		internal static string GenerateProcessingErrorMessage(string type, string description, string documentName,
 			int lineNumber, int columnNumber, string sourceFragment)
 		{
-			if (description == null)
+			if (description is null)
 			{
 				throw new ArgumentNullException(nameof(description));
 			}
@@ -129,13 +129,13 @@ namespace AutoprefixerHost.Helpers
 		/// <returns>Error message with original error message</returns>
 		internal static string GenerateErrorMessageFromExceptionWithInnerException(Exception exception)
 		{
-			if (exception == null)
+			if (exception is null)
 			{
 				throw new ArgumentNullException(nameof(exception));
 			}
 
 			Exception innerException = exception.InnerException;
-			if (innerException == null)
+			if (innerException is null)
 			{
 				return exception.Message;
 			}
@@ -158,7 +158,7 @@ namespace AutoprefixerHost.Helpers
 		/// <returns>Detailed error message</returns>
 		public static string GenerateErrorDetails(AutoprefixerException autoprefixerException, bool omitMessage = false)
 		{
-			if (autoprefixerException == null)
+			if (autoprefixerException is null)
 			{
 				throw new ArgumentNullException(nameof(autoprefixerException));
 			}
@@ -168,7 +168,7 @@ namespace AutoprefixerHost.Helpers
 			WriteCommonErrorDetails(detailsBuilder, autoprefixerException, omitMessage);
 
 			var autoprefixerProcessingException = autoprefixerException as AutoprefixerProcessingException;
-			if (autoprefixerProcessingException != null)
+			if (autoprefixerProcessingException is not null)
 			{
 				WriteProcessingErrorDetails(detailsBuilder, autoprefixerProcessingException);
 			}
@@ -190,7 +190,7 @@ namespace AutoprefixerHost.Helpers
 		public static string GenerateErrorDetails(AutoprefixerProcessingException autoprefixerProcessingException,
 			bool omitMessage = false)
 		{
-			if (autoprefixerProcessingException == null)
+			if (autoprefixerProcessingException is null)
 			{
 				throw new ArgumentNullException(nameof(autoprefixerProcessingException));
 			}

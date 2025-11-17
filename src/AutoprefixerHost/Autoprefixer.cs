@@ -120,7 +120,7 @@ namespace AutoprefixerHost
 		/// <param name="options">Processing options</param>
 		public Autoprefixer(Func<IJsEngine> createJsEngineInstance, ProcessingOptions options)
 		{
-			if (createJsEngineInstance == null)
+			if (createJsEngineInstance is null)
 			{
 				throw new ArgumentNullException(nameof(createJsEngineInstance));
 			}
@@ -143,7 +143,7 @@ namespace AutoprefixerHost
 		/// <param name="options">Processing options</param>
 		public Autoprefixer(IJsEngineFactory jsEngineFactory, ProcessingOptions options)
 		{
-			if (jsEngineFactory == null)
+			if (jsEngineFactory is null)
 			{
 				throw new ArgumentNullException(nameof(jsEngineFactory));
 			}
@@ -250,7 +250,7 @@ namespace AutoprefixerHost
 		/// <returns>Processing result</returns>
 		public ProcessingResult Process(string content, ProcessingOptions options = null)
 		{
-			if (content == null)
+			if (content is null)
 			{
 				throw new ArgumentNullException(
 					nameof(content),
@@ -283,7 +283,7 @@ namespace AutoprefixerHost
 		public ProcessingResult Process(string content, string inputPath, string outputPath = null,
 			string sourceMapPath = null, string inputSourceMapContent = null, ProcessingOptions options = null)
 		{
-			if (content == null)
+			if (content is null)
 			{
 				throw new ArgumentNullException(
 					nameof(content),
@@ -291,7 +291,7 @@ namespace AutoprefixerHost
 				);
 			}
 
-			if (inputPath == null)
+			if (inputPath is null)
 			{
 				throw new ArgumentNullException(
 					nameof(inputPath),
@@ -330,7 +330,7 @@ namespace AutoprefixerHost
 			string serializedInputSourceMapContent = _jsonSerializer.SerializePrimitiveType(inputSourceMapContent);
 			string serializedOptions = "null";
 
-			if (options != null)
+			if (options is not null)
 			{
 				try
 				{
@@ -383,7 +383,7 @@ namespace AutoprefixerHost
 		{
 			if (_disposedFlag.Set())
 			{
-				if (_jsEngine != null)
+				if (_jsEngine is not null)
 				{
 					_jsEngine.RemoveVariable(COUNTRY_STATISTICS_SERVICE_VARIABLE_NAME);
 

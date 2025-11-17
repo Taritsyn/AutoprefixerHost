@@ -95,7 +95,7 @@ namespace AutoprefixerHost
 
 			using (Stream stream = assembly.GetManifestResourceStream(resourceName))
 			{
-				if (stream == null)
+				if (stream is null)
 				{
 					throw new AutoprefixerProcessingException(
 						string.Format(Strings.Processor_CountryStatisticsNotFound, countryCode));
