@@ -1,6 +1,12 @@
 Change log
 ==========
 
+## v3.2.0 - November 17, 2025
+ * Added support for the Autoprefixer version 10.4.22.0
+ * Performed a migration to the modern C# null/not-null checks
+ * Added support for .NET 10
+ * In the `lock` statements for .NET 10 target now uses a instances of the `System.Threading.Lock` class
+
 ## v3.1.1 - March 25, 2025
  * Added support for the Autoprefixer version 10.4.21.0
 
