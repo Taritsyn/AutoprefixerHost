@@ -5,6 +5,11 @@ using System.Reflection;
 #if MODERN_JSON_CONVERTER
 using System.Text.Json;
 #endif
+#if NET10_0_OR_GREATER
+using Lock = System.Threading.Lock;
+#else
+using Lock = System.Object;
+#endif
 
 using JavaScriptEngineSwitcher.Core;
 #if !MODERN_JSON_CONVERTER
@@ -72,7 +77,7 @@ namespace AutoprefixerHost
 		/// <summary>
 		/// Synchronizer of the Autoprefixer initialization
 		/// </summary>
-		private readonly object _initializationSynchronizer = new object();
+		private readonly Lock _initializationSynchronizer = new Lock();
 
 		/// <summary>
 		/// Flag indicating whether the Autoprefixer is initialized

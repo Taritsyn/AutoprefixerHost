@@ -3,10 +3,10 @@
   <PropertyGroup>
     <Product>Autoprefixer Host for .NET</Product>
     <VersionPrefix>3.1.1</VersionPrefix>
-    <TargetFrameworks>net40-client;net45;net461;netstandard1.3;netstandard2.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net40-client;net45;net461;netstandard1.3;netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <NoWarn>$(NoWarn);CS1591;NETSDK1215;NU1605</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;NETSDK1215;NU1605;NU1903;NU1904</NoWarn>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DisableDefaultResxToCsConversionTarget>true</DisableDefaultResxToCsConversionTarget>
     <Title>$(Product)</Title>
@@ -24,7 +24,9 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageTags>Autoprefixer;CSS</PackageTags>
     <PackageReleaseNotes>1. Added support for the Autoprefixer version 10.4.22.0;
-2. Performed a migration to the modern C# null/not-null checks.</PackageReleaseNotes>
+2. Performed a migration to the modern C# null/not-null checks;
+3. Added support for .NET 10;
+4. In the `lock` statements for .NET 10 target now uses a instances of the `System.Threading.Lock` class.</PackageReleaseNotes>
     <NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
 
@@ -33,7 +35,7 @@
   <Import Project="../../build/strong-name-signing.props" />
   <Import Project="../../build/nuget-common.props" />
 
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net461' Or '$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net8.0' ">
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net461' Or '$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0' ">
     <DefineConstants>$(DefineConstants);MODERN_JSON_CONVERTER</DefineConstants>
   </PropertyGroup>
 
