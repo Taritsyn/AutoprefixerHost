@@ -29,20 +29,30 @@ namespace AutoprefixerHost
 	/// </summary>
 	public sealed class Autoprefixer : IDisposable
 	{
+#if !DEBUG
 		/// <summary>
 		/// Name of file, which contains a ECMAScript 6+ polyfills
 		/// </summary>
 		private const string ES6_POLYFILLS_FILE_NAME = "es6-polyfills.min.js";
 
+#endif
 		/// <summary>
 		/// Name of file, which contains a Autoprefixer library
 		/// </summary>
+#if !DEBUG
 		private const string AUTOPREFIXER_LIBRARY_FILE_NAME = "autoprefixer-combined.min.js";
+#else
+		private const string AUTOPREFIXER_LIBRARY_FILE_NAME = "autoprefixer-combined.es6";
+#endif
 
 		/// <summary>
 		/// Name of file, which contains a Autoprefixer helper
 		/// </summary>
+#if !DEBUG
 		private const string AUTOPREFIXER_HELPER_FILE_NAME = "autoprefixer-helper.min.js";
+#else
+		private const string AUTOPREFIXER_HELPER_FILE_NAME = "autoprefixer-helper.js";
+#endif
 
 		/// <summary>
 		/// Name of variable, which contains a country statistics service
@@ -92,7 +102,7 @@ namespace AutoprefixerHost
 		/// <summary>
 		/// Gets a version of the Autoprefixer library
 		/// </summary>
-		public string Version => "10.4.22.0";
+		public string Version => "10.4.23.0";
 
 
 		/// <summary>
@@ -226,8 +236,10 @@ namespace AutoprefixerHost
 						.Assembly
 						;
 
+#if !DEBUG
 					_jsEngine.ExecuteResource(ResourceHelpers.GetResourceName(ES6_POLYFILLS_FILE_NAME),
 						assembly, true);
+#endif
 					_jsEngine.ExecuteResource(ResourceHelpers.GetResourceName(AUTOPREFIXER_LIBRARY_FILE_NAME),
 						assembly, true);
 					_jsEngine.ExecuteResource(ResourceHelpers.GetResourceName(AUTOPREFIXER_HELPER_FILE_NAME),

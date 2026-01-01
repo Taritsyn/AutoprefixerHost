@@ -12,7 +12,7 @@
    DESCRIPTION
    ===========
    .NET wrapper around the Andrey Sitnik's Autoprefixer
-   (https://github.com/postcss/autoprefixer) version 10.4.22.0.
+   (https://github.com/postcss/autoprefixer) version 10.4.23.0.
 
    Since the original library is written in JavaScript, you will need a JS engine
    to run it. As a JS engine is used the JavaScript Engine Switcher library
@@ -30,11 +30,7 @@
    =============
    RELEASE NOTES
    =============
-   1. Added support for the Autoprefixer version 10.4.22.0;
-   2. Performed a migration to the modern C# null/not-null checks;
-   3. Added support for .NET 10;
-   4. In the `lock` statements for .NET 10 target now uses a instances of the
-      `System.Threading.Lock` class.
+   Added support for the Autoprefixer version 10.4.23.0.
 
    ============
    PROJECT SITE

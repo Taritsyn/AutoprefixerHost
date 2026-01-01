@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 
 using JavaScriptEngineSwitcher.Core;
-#if !NET8_0_OR_GREATER
+#if !DEBUG && !NET8_0_OR_GREATER
 using JavaScriptEngineSwitcher.NiL;
 #endif
 
@@ -86,7 +86,7 @@ namespace AutoprefixerHost.Tests
 			Assert.AreEqual(targetErrorMessage, processingException.Message);
 			Assert.AreEqual(targetErrorDescription, processingException.Description);
 		}
-#if !NET8_0_OR_GREATER
+#if !DEBUG && !NET8_0_OR_GREATER
 
 		[Test]
 		public void MappingJavaScriptError()
