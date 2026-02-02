@@ -1,4 +1,4 @@
-.NET wrapper around the Andrey Sitnik's [Autoprefixer](https://github.com/postcss/autoprefixer) version 10.4.23.0.
+.NET wrapper around the Andrey Sitnik's [Autoprefixer](https://github.com/postcss/autoprefixer) version 10.4.24.0.
 
 Since the original library is written in JavaScript, you will need a JS engine to run it. As a JS engine is used the [JavaScript Engine Switcher](https://github.com/Taritsyn/JavaScriptEngineSwitcher) library.
 For correct working, you need to install one of the following NuGet packages:

@@ -190,12 +190,12 @@
   var hide$5 = _hide;
   var has$8 = _has;
   var SRC = _uid('src');
-  var $toString$2 = _functionToString;
-  var TO_STRING$2 = 'toString';
-  var TPL = ('' + $toString$2).split(TO_STRING$2);
+  var $toString$1 = _functionToString;
+  var TO_STRING$1 = 'toString';
+  var TPL = ('' + $toString$1).split(TO_STRING$1);
 
   require_core().inspectSource = function (it) {
-    return $toString$2.call(it);
+    return $toString$1.call(it);
   };
 
   (_redefine.exports = function (O, key, val, safe) {
@@ -214,8 +214,8 @@
       hide$5(O, key, val);
     }
   // add fake Function#toString for correct work wrapped methods / constructors with methods like LoDash isNative
-  })(Function.prototype, TO_STRING$2, function toString() {
-    return typeof this == 'function' && this[SRC] || $toString$2.call(this);
+  })(Function.prototype, TO_STRING$1, function toString() {
+    return typeof this == 'function' && this[SRC] || $toString$1.call(this);
   });
 
   var _aFunction = function (it) {
@@ -2636,19 +2636,6 @@
   var $export$b = _export;
 
   $export$b($export$b.S + $export$b.F, 'Object', { assign: _objectAssign });
-
-  var DateProto = Date.prototype;
-  var INVALID_DATE = 'Invalid Date';
-  var TO_STRING$1 = 'toString';
-  var $toString$1 = DateProto[TO_STRING$1];
-  var getTime = DateProto.getTime;
-  if (new Date(NaN) + '' != INVALID_DATE) {
-    _redefine.exports(DateProto, TO_STRING$1, function toString() {
-      var value = getTime.call(this);
-      // eslint-disable-next-line no-self-compare
-      return value === value ? $toString$1.call(this) : INVALID_DATE;
-    });
-  }
 
   // 21.2.5.3 get RegExp.prototype.flags()
   if (_descriptors && /./g.flags != 'g') _objectDp.f(RegExp.prototype, 'flags', {
