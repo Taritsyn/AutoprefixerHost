@@ -4,8 +4,8 @@
   "devDependencies": {
     "@babel/cli": "7.28.6",
     "@babel/core": "7.29.0",
-    "@babel/preset-env": "7.29.0",
-    "terser": "5.46.0"
+    "@babel/preset-env": "7.29.2",
+    "terser": "5.46.1"
   },
   "scripts": {
     "transpile-autoprefixer-combined-es6": "babel --out-dir ./Resources --config-file ./.babelrc ./Resources/autoprefixer-combined.es6",
