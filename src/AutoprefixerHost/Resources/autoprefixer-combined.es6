@@ -1,5 +1,5 @@
 /*!
- * Autoprefixer v10.5.1
+ * Autoprefixer v10.5.2
  * https://github.com/postcss/autoprefixer
  * https://github.com/ai/autoprefixer-rails
  *
@@ -14434,6 +14434,14 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   		lts: false,
   		security: false,
   		v8: "14.6.202.34"
+  	},
+  	{
+  		name: "nodejs",
+  		version: "26.4.0",
+  		date: "2026-06-24",
+  		lts: false,
+  		security: false,
+  		v8: "14.6.202.34"
   	}
   ];
 
@@ -23914,6 +23922,15 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   }
 
   class Intrinsic extends Value$3 {
+    constructor(name, prefixes, all) {
+      super(name, prefixes, all);
+      if (this.isStretch() && prefixes.includes('-moz-')) {
+        // Generate -moz-available before -webkit-fill-available
+        // since -webkit-fill-available is closer to spec and FF supports both
+        this.prefixes = ['-moz-'].concat(prefixes.filter(i => i !== '-moz-'));
+      }
+    }
+
     add(decl, prefix) {
       if (decl.prop.includes('grid') && prefix !== '-webkit-') {
         return undefined
