@@ -1,7 +1,7 @@
 Autoprefixer Host for .NET [![NuGet version](http://img.shields.io/nuget/v/AutoprefixerHost.svg)](https://www.nuget.org/packages/AutoprefixerHost/)  [![Download count](https://img.shields.io/nuget/dt/AutoprefixerHost.svg)](https://www.nuget.org/packages/AutoprefixerHost/)
 ==========================
 
-.NET wrapper around the [Andrey Sitnik's Autoprefixer](https://github.com/postcss/autoprefixer).
+.NET wrapper around the Andrey Sitnik's [Autoprefixer](https://github.com/postcss/autoprefixer).
 
 ## Installation
 This library can be installed through NuGet - [https://nuget.org/packages/AutoprefixerHost](https://nuget.org/packages/AutoprefixerHost).
