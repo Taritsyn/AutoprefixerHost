@@ -3843,6 +3843,20 @@
     _redefine.exports(global$4, NUMBER, $Number);
   }
 
+  var strong = _collectionStrong;
+  var validate = _validateCollection;
+  var SET = 'Set';
+
+  // 23.2 Set Objects
+  _collection(SET, function (get) {
+    return function Set() { return get(this, arguments.length > 0 ? arguments[0] : undefined); };
+  }, {
+    // 23.2.3.1 Set.prototype.add(value)
+    add: function add(value) {
+      return strong.def(validate(this, SET), value = value === 0 ? 0 : value, value);
+    }
+  }, strong);
+
   var ctx$2 = _ctx;
   var invoke = _invoke;
   var html = _html;
@@ -4375,20 +4389,6 @@
   var $export$2 = _export;
 
   $export$2($export$2.S, 'Math', { sign: require_mathSign() });
-
-  var strong = _collectionStrong;
-  var validate = _validateCollection;
-  var SET = 'Set';
-
-  // 23.2 Set Objects
-  _collection(SET, function (get) {
-    return function Set() { return get(this, arguments.length > 0 ? arguments[0] : undefined); };
-  }, {
-    // 23.2.3.1 Set.prototype.add(value)
-    add: function add(value) {
-      return strong.def(validate(this, SET), value = value === 0 ? 0 : value, value);
-    }
-  }, strong);
 
   var $export$1 = _export;
   var toLength$1 = _toLength;
