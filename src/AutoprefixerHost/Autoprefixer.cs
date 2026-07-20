@@ -102,7 +102,7 @@ namespace AutoprefixerHost
 		/// <summary>
 		/// Gets a version of the Autoprefixer library
 		/// </summary>
-		public string Version => "10.5.3";
+		public string Version => "10.5.4";
 
 
 		/// <summary>
