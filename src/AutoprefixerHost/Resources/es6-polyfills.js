@@ -1511,6 +1511,23 @@
 
   _addToUnscopables('includes');
 
+  var $export$g = _export;
+  var toLength$5 = _toLength;
+  var context$1 = _stringContext;
+  var STARTS_WITH = 'startsWith';
+  var $startsWith = ''[STARTS_WITH];
+
+  $export$g($export$g.P + $export$g.F * require_failsIsRegexp()(STARTS_WITH), 'String', {
+    startsWith: function startsWith(searchString /* , position = 0 */) {
+      var that = context$1(this, searchString, STARTS_WITH);
+      var index = toLength$5(Math.min(arguments.length > 1 ? arguments[1] : undefined, that.length));
+      var search = String(searchString);
+      return $startsWith
+        ? $startsWith.call(that, search, index)
+        : that.slice(index, index + search.length) === search;
+    }
+  });
+
   var def = _objectDp.f;
   var has$3 = _has;
   var TAG$1 = _wks.exports('toStringTag');
@@ -1574,7 +1591,7 @@
   var global$a = _global.exports;
   var has$2 = _has;
   var DESCRIPTORS$3 = _descriptors;
-  var $export$g = _export;
+  var $export$f = _export;
   var redefine$4 = _redefine.exports;
   var META = _meta.exports.KEY;
   var $fails = _fails;
@@ -1733,7 +1750,7 @@
     };
   }
 
-  $export$g($export$g.G + $export$g.W + $export$g.F * !USE_NATIVE$1, { Symbol: $Symbol });
+  $export$f($export$f.G + $export$f.W + $export$f.F * !USE_NATIVE$1, { Symbol: $Symbol });
 
   for (var es6Symbols = (
     // 19.4.2.2, 19.4.2.3, 19.4.2.4, 19.4.2.6, 19.4.2.8, 19.4.2.9, 19.4.2.10, 19.4.2.11, 19.4.2.12, 19.4.2.13, 19.4.2.14
@@ -1742,7 +1759,7 @@
 
   for (var wellKnownSymbols = $keys(wks$2.store), k = 0; wellKnownSymbols.length > k;) wksDefine(wellKnownSymbols[k++]);
 
-  $export$g($export$g.S + $export$g.F * !USE_NATIVE$1, 'Symbol', {
+  $export$f($export$f.S + $export$f.F * !USE_NATIVE$1, 'Symbol', {
     // 19.4.2.1 Symbol.for(key)
     'for': function (key) {
       return has$2(SymbolRegistry, key += '')
@@ -1758,7 +1775,7 @@
     useSimple: function () { setter = false; }
   });
 
-  $export$g($export$g.S + $export$g.F * !USE_NATIVE$1, 'Object', {
+  $export$f($export$f.S + $export$f.F * !USE_NATIVE$1, 'Object', {
     // 19.1.2.2 Object.create(O [, Properties])
     create: $create,
     // 19.1.2.4 Object.defineProperty(O, P, Attributes)
@@ -1777,14 +1794,14 @@
   // https://bugs.chromium.org/p/v8/issues/detail?id=3443
   var FAILS_ON_PRIMITIVES = $fails(function () { $GOPS.f(1); });
 
-  $export$g($export$g.S + $export$g.F * FAILS_ON_PRIMITIVES, 'Object', {
+  $export$f($export$f.S + $export$f.F * FAILS_ON_PRIMITIVES, 'Object', {
     getOwnPropertySymbols: function getOwnPropertySymbols(it) {
       return $GOPS.f(toObject$4(it));
     }
   });
 
   // 24.3.2 JSON.stringify(value [, replacer [, space]])
-  $JSON && $export$g($export$g.S + $export$g.F * (!USE_NATIVE$1 || $fails(function () {
+  $JSON && $export$f($export$f.S + $export$f.F * (!USE_NATIVE$1 || $fails(function () {
     var S = $Symbol();
     // MS Edge converts symbol values to JSON as {}
     // WebKit converts symbol values to JSON as null
@@ -1875,7 +1892,7 @@
   var call$1 = _iterCall;
   var isArrayIter$2 = _isArrayIter;
   var anObject$5 = _anObject;
-  var toLength$5 = _toLength;
+  var toLength$4 = _toLength;
   var getIterFn$2 = core_getIteratorMethod;
   var BREAK = {};
   var RETURN = {};
@@ -1886,7 +1903,7 @@
     var length, step, iterator, result;
     if (typeof iterFn != 'function') throw TypeError(iterable + ' is not iterable!');
     // fast case for arrays with default iterator
-    if (isArrayIter$2(iterFn)) for (length = toLength$5(iterable.length); length > index; index++) {
+    if (isArrayIter$2(iterFn)) for (length = toLength$4(iterable.length); length > index; index++) {
       result = entries ? f(anObject$5(step = iterable[index])[0], step[1]) : f(iterable[index]);
       if (result === BREAK || result === RETURN) return result;
     } else for (iterator = iterFn.call(iterable); !(step = iterator.next()).done;) {
@@ -1910,7 +1927,7 @@
     setToStringTag$2(Constructor, NAME + ' Iterator');
   };
 
-  var $export$f = _export;
+  var $export$e = _export;
   var redefine$3 = _redefine.exports;
   var hide$2 = _hide;
   var Iterators$3 = _iterators;
@@ -1973,7 +1990,7 @@
       };
       if (FORCED) for (key in methods) {
         if (!(key in proto)) redefine$3(proto, key, methods[key]);
-      } else $export$f($export$f.P + $export$f.F * (BUGGY || VALUES_BUG), NAME, methods);
+      } else $export$e($export$e.P + $export$e.F * (BUGGY || VALUES_BUG), NAME, methods);
     }
     return methods;
   };
@@ -2229,7 +2246,7 @@
   };
 
   var global$9 = _global.exports;
-  var $export$e = _export;
+  var $export$d = _export;
   var redefine$2 = _redefine.exports;
   var redefineAll$2 = require_redefineAll();
   var meta$1 = _meta.exports;
@@ -2306,7 +2323,7 @@
     setToStringTag(C, NAME);
 
     O[NAME] = C;
-    $export$e($export$e.G + $export$e.W + $export$e.F * (C != Base), O);
+    $export$d($export$d.G + $export$d.W + $export$d.F * (C != Base), O);
 
     if (!IS_WEAK) common.setStrong(C, NAME, IS_MAP);
 
@@ -2451,23 +2468,6 @@
       if (explicit) for (key$1 in $iterators$1) if (!proto$3[key$1]) redefine$1(proto$3, key$1, $iterators$1[key$1], true);
     }
   }
-
-  var $export$d = _export;
-  var toLength$4 = _toLength;
-  var context$1 = _stringContext;
-  var STARTS_WITH = 'startsWith';
-  var $startsWith = ''[STARTS_WITH];
-
-  $export$d($export$d.P + $export$d.F * require_failsIsRegexp()(STARTS_WITH), 'String', {
-    startsWith: function startsWith(searchString /* , position = 0 */) {
-      var that = context$1(this, searchString, STARTS_WITH);
-      var index = toLength$4(Math.min(arguments.length > 1 ? arguments[1] : undefined, that.length));
-      var search = String(searchString);
-      return $startsWith
-        ? $startsWith.call(that, search, index)
-        : that.slice(index, index + search.length) === search;
-    }
-  });
 
   var global$7 = _global.exports;
   var inheritIfRequired$1 = _inheritIfRequired;
@@ -4343,29 +4343,29 @@
     }
   });
 
-  // 22.1.3.8 Array.prototype.find(predicate, thisArg = undefined)
+  // 22.1.3.9 Array.prototype.findIndex(predicate, thisArg = undefined)
   var $export$4 = _export;
-  var $find$1 = _arrayMethods(5);
-  var KEY$1 = 'find';
+  var $find$1 = _arrayMethods(6);
+  var KEY$1 = 'findIndex';
   var forced$1 = true;
   // Shouldn't skip holes
   if (KEY$1 in []) Array(1)[KEY$1](function () { forced$1 = false; });
   $export$4($export$4.P + $export$4.F * forced$1, 'Array', {
-    find: function find(callbackfn /* , that = undefined */) {
+    findIndex: function findIndex(callbackfn /* , that = undefined */) {
       return $find$1(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
     }
   });
   _addToUnscopables(KEY$1);
 
-  // 22.1.3.9 Array.prototype.findIndex(predicate, thisArg = undefined)
+  // 22.1.3.8 Array.prototype.find(predicate, thisArg = undefined)
   var $export$3 = _export;
-  var $find = _arrayMethods(6);
-  var KEY = 'findIndex';
+  var $find = _arrayMethods(5);
+  var KEY = 'find';
   var forced = true;
   // Shouldn't skip holes
   if (KEY in []) Array(1)[KEY](function () { forced = false; });
   $export$3($export$3.P + $export$3.F * forced, 'Array', {
-    findIndex: function findIndex(callbackfn /* , that = undefined */) {
+    find: function find(callbackfn /* , that = undefined */) {
       return $find(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
     }
   });
