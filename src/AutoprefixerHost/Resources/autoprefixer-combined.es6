@@ -1,5 +1,5 @@
 /*!
- * Autoprefixer v10.6.1
+ * Autoprefixer v10.6.2
  * https://github.com/postcss/autoprefixer
  * https://github.com/ai/autoprefixer-rails
  *
@@ -412,21 +412,9 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   var cssSyntaxError = CssSyntaxError$3;
   CssSyntaxError$3.default = CssSyntaxError$3;
 
-  // Escapes sequences that could break out of an HTML <style> context.
-  // Uses CSS unicode escaping (\3c = '<') which is valid CSS and parsed
-  // correctly by all compliant CSS consumers.
-  const STYLE_TAG = /(<)(\/?style\b)/gi;
-  const COMMENT_OPEN = /(<)(!--)/g;
-
   // Characters that end an at-rule name, mirroring RE_AT_END in the tokenizer.
   // Params starting with anything else need a space to stay separate tokens.
   const AT_NAME_END = /[\t\n\f\r "#'()/;[\\\]{}]/;
-
-  function escapeHTMLInCSS(str) {
-    if (typeof str !== 'string') return str
-    if (!str.includes('<')) return str
-    return str.replace(STYLE_TAG, '\\3c $2').replace(COMMENT_OPEN, '\\3c $2')
-  }
 
   const DEFAULT_RAW = {
     after: '\n',
@@ -462,11 +450,12 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   }
 
   // `*--x` is not a custom property: the parser checks the first token, and the
-  // `*`/`_` hack prefix moves from `prop` into `before` only after that.
+  // `*`/`_` hack prefix moves from `prop` into `before` only after that. A free
+  // semicolon in front of the declaration also ends up in `before`.
   function isCustomProperty(node) {
     if (!node.prop.startsWith('--')) return false
     let before = node.raws.before;
-    return typeof before === 'undefined' || !/\S$/.test(before)
+    return typeof before === 'undefined' || !/[^\s;]$/.test(before)
   }
 
   function pushBody(str, stack, node) {
@@ -504,17 +493,17 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   function pushBlock(str, stack, node, start) {
     let between = str.raw(node, 'between', 'beforeOpen');
-    str.builder(escapeHTMLInCSS(start + between) + '{', node, 'start');
+    str.builder(start + between + '{', node, 'start');
 
     let hasNodes = node.nodes && node.nodes.length;
     let close = () => {
       let after = hasNodes
         ? str.raw(node, 'after')
         : str.raw(node, 'after', 'emptyBody');
-      if (after) str.builder(escapeHTMLInCSS(after));
+      if (after) str.builder(after);
       str.builder('}', node, 'end');
       if (node.type === 'rule' && node.raws.ownSemicolon) {
-        str.builder(escapeHTMLInCSS(node.raws.ownSemicolon), node, 'end');
+        str.builder(node.raws.ownSemicolon, node, 'end');
       }
     };
 
@@ -537,7 +526,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         this.block(node, start);
       } else {
         let end = (node.raws.between || '') + (semicolon ? ';' : '');
-        this.builder(escapeHTMLInCSS(start + end), node);
+        this.builder(start + end, node);
       }
     }
 
@@ -572,7 +561,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
     block(node, start) {
       let between = this.raw(node, 'between', 'beforeOpen');
-      this.builder(escapeHTMLInCSS(start + between) + '{', node, 'start');
+      this.builder(start + between + '{', node, 'start');
 
       let after;
       if (node.nodes && node.nodes.length) {
@@ -582,7 +571,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         after = this.raw(node, 'after', 'emptyBody');
       }
 
-      if (after) this.builder(escapeHTMLInCSS(after));
+      if (after) this.builder(after);
       this.builder('}', node, 'end');
     }
 
@@ -609,7 +598,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         let child = entry.node;
         let before = this.raw(child, 'before');
         if (before) {
-          this.builder(entry.document ? before : escapeHTMLInCSS(before));
+          this.builder(before);
         }
 
         if (expandable && child.type === 'rule') {
@@ -625,7 +614,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     comment(node) {
       let left = this.raw(node, 'left', 'commentLeft');
       let right = this.raw(node, 'right', 'commentRight');
-      this.builder(escapeHTMLInCSS('/*' + left + node.text + right + '*/'), node);
+      this.builder('/*' + left + node.text + right + '*/', node);
     }
 
     decl(node, semicolon) {
@@ -639,7 +628,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       }
 
       if (semicolon) string += ';';
-      this.builder(escapeHTMLInCSS(string), node);
+      this.builder(string, node);
     }
 
     document(node) {
@@ -844,21 +833,20 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     }
 
     root(node) {
-      if (node.source && node.source.input.hasBOM) {
+      let inDocument = node.parent && node.parent.type === 'document';
+      if (!inDocument && node.source && node.source.input.hasBOM) {
         this.builder('\uFEFF', node, 'start');
       }
       this.body(node);
       if (node.raws.after) {
-        let after = node.raws.after;
-        let isDocument = node.parent && node.parent.type === 'document';
-        this.builder(isDocument ? after : escapeHTMLInCSS(after));
+        this.builder(node.raws.after);
       }
     }
 
     rule(node) {
       this.block(node, this.rawValue(node, 'selector'));
       if (node.raws.ownSemicolon) {
-        this.builder(escapeHTMLInCSS(node.raws.ownSemicolon), node, 'end');
+        this.builder(node.raws.ownSemicolon, node, 'end');
       }
     }
 
@@ -882,9 +870,91 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   let Stringifier$1 = stringifier;
 
+  const STYLE_TAG = /(<)(\/?style\b)/gi;
+  const COMMENT_OPEN = /(<)(!--)/g;
+
+  function escapeHTMLInCSS(str) {
+    if (!str.includes('<')) return str
+    return str.replace(STYLE_TAG, '\\3c $2').replace(COMMENT_OPEN, '\\3c $2')
+  }
+
+  function cutEscaped(chunks, css, escaped) {
+    let parts = [];
+    let at = 0;
+    let into = 0;
+    for (let i = 0; i < chunks.length; i += 3) {
+      let from = into;
+      let end = at + chunks[i].length;
+      while (at < end) {
+        if (css[at] === escaped[into]) {
+          at += 1;
+          into += 1;
+        } else {
+          // The `<` of this pair was replaced by the `\3c ` in front of it
+          at += 1;
+          into += 4;
+        }
+      }
+      parts.push(escaped.slice(from, into));
+    }
+    return parts
+  }
+
+  class SafeStringifier extends Stringifier$1 {
+    escapeHTML(print) {
+      let builder = this.builder;
+      let chunks, css;
+      this.builder = (str, child, type) => {
+        if (chunks) {
+          css += str;
+          chunks.push(str, child, type);
+        } else if (str.includes('<')) {
+          // Dangerous sequences start with `<`, so everything before
+          // the first `<` is safe to pass through. The rest is buffered
+          // to escape it as a whole.
+          css = str;
+          chunks = [str, child, type];
+        } else {
+          builder(str, child, type);
+        }
+      };
+      print();
+      this.builder = builder;
+      if (!chunks) return
+
+      let escaped = escapeHTMLInCSS(css);
+      if (escaped === css) {
+        // Keep the chunks to get a precise source map
+        for (let i = 0; i < chunks.length; i += 3) {
+          builder(chunks[i], chunks[i + 1], chunks[i + 2]);
+        }
+      } else {
+        let parts = cutEscaped(chunks, css, escaped);
+        for (let i = 0; i < chunks.length; i += 3) {
+          builder(parts[i / 3], chunks[i + 1], chunks[i + 2]);
+        }
+      }
+    }
+
+    root(node) {
+      if (node.parent && node.parent.type === 'document') {
+        // Document raws around the Root hold markup and are kept as is since CSS in Document can be marked with <style>
+        this.escapeHTML(() => this.body(node));
+        if (node.raws.after) this.builder(node.raws.after);
+      } else {
+        this.escapeHTML(() => super.root(node));
+      }
+    }
+  }
+
   function stringify$7(node, builder) {
-    let str = new Stringifier$1(builder);
-    str.stringify(node);
+    let str = new SafeStringifier(builder);
+    // Root escapes its own output and keeps markup in Document raws
+    if (node.type === 'root' || node.type === 'document') {
+      str.stringify(node);
+    } else {
+      str.escapeHTML(() => str.stringify(node));
+    }
   }
 
   var stringify_1$1 = stringify$7;
@@ -1136,7 +1206,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       } else if (opts.word) {
         let stringRepresentation = inputString.slice(
           sourceOffset(inputString, this.source.start),
-          sourceOffset(inputString, this.source.end)
+          this.rangeBy().end.offset
         );
         let index = stringRepresentation.indexOf(opts.word);
         if (index !== -1) pos = this.positionInside(index);
@@ -1204,7 +1274,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       if (opts.word) {
         let stringRepresentation = inputString.slice(
           sourceOffset(inputString, this.source.start),
-          sourceOffset(inputString, this.source.end)
+          end.offset
         );
         let index = stringRepresentation.indexOf(opts.word);
         if (index !== -1) {
@@ -3625,10 +3695,12 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
         if (mapping.generatedLine !== previousGeneratedLine) {
           previousGeneratedColumn = 0;
-          while (mapping.generatedLine !== previousGeneratedLine) {
-            next += ';';
-            previousGeneratedLine++;
-          }
+          // One ';' per skipped line. Build large gaps with a single flat
+          // string: appending ';' one by one creates a rope node per line, which
+          // can exhaust the heap for a big gap (CVE-2026-93749).
+          var lineDelta = mapping.generatedLine - previousGeneratedLine;
+          next += lineDelta === 1 ? ';' : ';'.repeat(lineDelta);
+          previousGeneratedLine = mapping.generatedLine;
         }
         else {
           if (i > 0) {
@@ -3956,6 +4028,15 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     return templateFn(comparator);
   }
 
+  let isEvalAllowed = (function () {
+    try {
+      new Function('return 0')();
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
   /**
    * Sort the given array in-place with the given comparator function.
    *
@@ -3967,7 +4048,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   let sortCache = new WeakMap();
   quickSort$1.quickSort = function (ary, comparator, start = 0) {
-    let doQuickSort = sortCache.get(comparator);
+    let doQuickSort = isEvalAllowed ? sortCache.get(comparator) : SortTemplate();
     if (doQuickSort === void 0) {
       doQuickSort = cloneSort(comparator);
       sortCache.set(comparator, doQuickSort);
@@ -3988,6 +4069,14 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   var ArraySet = arraySet.ArraySet;
   var base64VLQ = base64Vlq;
   var quickSort = quickSort$1.quickSort;
+
+  // Upper bound for a section's `offset.line` in an indexed source map. A flat
+  // map spends one ';' per generated line, so a tiny indexed map with a huge
+  // offset.line turns into a huge amount of work and memory once its mappings
+  // are copied into a SourceMapGenerator (CVE-2026-93749). Ten million lines is
+  // far beyond any real generated file. Columns are VLQ-encoded as deltas and
+  // don't amplify, so they only need to be valid integers.
+  var MAX_SECTION_OFFSET_LINE = 1e7;
 
   function SourceMapConsumer$3(aSourceMap, aSourceMapURL) {
     var sourceMap = aSourceMap;
@@ -4912,6 +5001,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       line: -1,
       column: 0
     };
+    var maxOffsetLine = 0;
     this._sections = sections.map(function (s) {
       if (s.url) {
         // The url field will require support for asynchronicity.
@@ -4922,11 +5012,31 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       var offsetLine = util$1.getArg(offset, 'line');
       var offsetColumn = util$1.getArg(offset, 'column');
 
+      if (!isValidOffset(offsetLine) || !isValidOffset(offsetColumn)) {
+        throw new Error('Section offset line and column must be non-negative integers.');
+      }
+      if (offsetLine > MAX_SECTION_OFFSET_LINE) {
+        throw new Error('Section offset line must not exceed ' + MAX_SECTION_OFFSET_LINE + '.');
+      }
+
       if (offsetLine < lastOffset.line ||
           (offsetLine === lastOffset.line && offsetColumn < lastOffset.column)) {
         throw new Error('Section offsets must be ordered and non-overlapping.');
       }
       lastOffset = offset;
+
+      var consumer = new SourceMapConsumer$3(util$1.getArg(s, 'map'), aSourceMapURL);
+
+      // Offsets of a nested indexed map add up with this one, so apply the
+      // bound to the total.
+      var totalOffsetLine = offsetLine + (consumer._maxOffsetLine || 0);
+      if (totalOffsetLine > MAX_SECTION_OFFSET_LINE) {
+        throw new Error('Section offset line must not exceed ' + MAX_SECTION_OFFSET_LINE +
+                        ', including offsets of nested sections.');
+      }
+      if (totalOffsetLine > maxOffsetLine) {
+        maxOffsetLine = totalOffsetLine;
+      }
 
       return {
         generatedOffset: {
@@ -4935,9 +5045,24 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
           generatedLine: offsetLine + 1,
           generatedColumn: offsetColumn + 1
         },
-        consumer: new SourceMapConsumer$3(util$1.getArg(s, 'map'), aSourceMapURL)
+        consumer: consumer
       }
     });
+
+    // The largest offset.line of any section, including nested sections.
+    this._maxOffsetLine = maxOffsetLine;
+  }
+
+  /**
+   * Section offsets come from untrusted input and are used as line/column
+   * numbers, so only accept non-negative safe integers (rejects NaN, Infinity,
+   * strings, fractions, etc).
+   */
+  function isValidOffset(aValue) {
+    return typeof aValue === 'number' &&
+      aValue >= 0 &&
+      aValue <= 9007199254740991 && // Number.MAX_SAFE_INTEGER
+      Math.floor(aValue) === aValue;
   }
 
   IndexedSourceMapConsumer.prototype = Object.create(SourceMapConsumer$3.prototype);
@@ -4955,8 +5080,12 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     get: function () {
       var sources = [];
       for (var i = 0; i < this._sections.length; i++) {
-        for (var j = 0; j < this._sections[i].consumer.sources.length; j++) {
-          sources.push(this._sections[i].consumer.sources[j]);
+        // Read the getter once per section: for a nested indexed map it is
+        // itself this getter, and re-reading it per item is exponential in the
+        // nesting depth (CVE-2026-93749).
+        var sectionSources = this._sections[i].consumer.sources;
+        for (var j = 0; j < sectionSources.length; j++) {
+          sources.push(sectionSources[j]);
         }
       }
       return sources;
@@ -5282,6 +5411,13 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         // to the SourceNode without any mapping.
         // Each line is added as separate string.
         while (lastGeneratedLine < mapping.generatedLine) {
+          if (remainingLinesIndex >= remainingLines.length) {
+            // The generated code is exhausted. Skip the rest instead of adding
+            // empty lines one by one: a mapping may point far past the end of
+            // the code (e.g. an indexed map section with a huge offset.line).
+            lastGeneratedLine = mapping.generatedLine;
+            break;
+          }
           node.add(shiftNextLine());
           lastGeneratedLine++;
         }
@@ -9159,7 +9295,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       } else {
         fromUrl = new URL(
           from.source,
-          this.map.consumer().sourceRoot || pathToFileURL$1(this.map.mapFile)
+          pathToFileURL$1(this.map.mapFile || resolve$2('.') + '/')
         );
       }
 
@@ -9305,8 +9441,21 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       let inQuote = false;
       let prevQuote = '';
       let escape = false;
+      let inComment = false;
 
-      for (let letter of string) {
+      for (let i = 0; i < string.length; i++) {
+        let letter = string[i];
+
+        if (inComment) {
+          current += letter;
+          if (letter === '*' && string[i + 1] === '/') {
+            current += '/';
+            i += 1;
+            inComment = false;
+          }
+          continue
+        }
+
         if (escape) {
           escape = false;
         } else if (letter === '\\') {
@@ -9318,6 +9467,11 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         } else if (letter === '"' || letter === "'") {
           inQuote = true;
           prevQuote = letter;
+        } else if (letter === '/' && string[i + 1] === '*') {
+          current += '/*';
+          i += 1;
+          inComment = true;
+          continue
         } else if (letter === '(') {
           func += 1;
         } else if (letter === ')') {
@@ -9552,16 +9706,22 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
           }
         }
       } else if (this.css) {
+        // Single forward pass. Removing every annotation from the whole
+        // string separately would be O(n^2) on many annotations.
         let annotation = '/*# sourceMappingURL=';
+        let css = '';
+        let cursor = 0;
         let startIndex;
-        while ((startIndex = this.css.lastIndexOf(annotation)) !== -1) {
+        while ((startIndex = this.css.indexOf(annotation, cursor)) !== -1) {
           let endIndex = this.css.indexOf('*/', startIndex + annotation.length);
           if (endIndex === -1) break
-          while (startIndex > 0 && this.css[startIndex - 1] === '\n') {
+          while (startIndex > cursor && this.css[startIndex - 1] === '\n') {
             startIndex--;
           }
-          this.css = this.css.slice(0, startIndex) + this.css.slice(endIndex + 2);
+          css += this.css.slice(cursor, startIndex);
+          cursor = endIndex + 2;
         }
+        if (cursor > 0) this.css = css + this.css.slice(cursor);
       }
     }
 
@@ -10616,6 +10776,9 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       let token, type;
       let length = tokens.length;
       let value = '';
+      // Last character of `value`. Reading it from `value` would flatten
+      // the string concatenation on every comment and make parsing O(n^2).
+      let last = '';
       let clean = true;
       let next, prev;
 
@@ -10628,16 +10791,18 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
           prev = tokens[i - 1] ? tokens[i - 1][0] : 'empty';
           next = tokens[i + 1] ? tokens[i + 1][0] : 'empty';
           if (!SAFE_COMMENT_NEIGHBOR[prev] && !SAFE_COMMENT_NEIGHBOR[next]) {
-            if (value.slice(-1) === ',') {
+            if (last === ',') {
               clean = false;
             } else {
               value += token[1];
+              last = token[1].slice(-1);
             }
           } else {
             clean = false;
           }
         } else {
           value += token[1];
+          last = token[1].slice(-1);
         }
       }
       if (!clean) {
@@ -10814,6 +10979,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         return this.node.error(this.text, {
           index: this.index,
           plugin: this.plugin,
+          start: this.start,
           word: this.word
         }).message
       }
@@ -11088,7 +11254,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     }
 
     finally(onFinally) {
-      return this.async().then(onFinally, onFinally)
+      return this.async().finally(onFinally)
     }
 
     getAsyncError() {
@@ -11610,7 +11776,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     }
 
     finally(onFinally) {
-      return this.async().then(onFinally, onFinally)
+      return this.async().finally(onFinally)
     }
 
     sync() {
@@ -11651,7 +11817,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   let Processor$4 = class Processor {
     constructor(plugins = []) {
-      this.version = '8.5.28';
+      this.version = '8.5.32';
       this.plugins = this.normalize(plugins);
     }
 
@@ -11839,7 +12005,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   var dist = {};
 
-  "function"==typeof SuppressedError&&SuppressedError;const n=(n,a)=>{if(n===a)return 0;const[e=0,u=0]=n.split(".",2).map(Number),[s=0,o=0]=a.split(".",2).map(Number);if(isNaN(e)||isNaN(u))throw new Error(`Invalid version: ${n}`);if(isNaN(s)||isNaN(o))throw new Error(`Invalid version: ${a}`);return e!==s?e>s?1:-1:u!==o?u>o?1:-1:0},a={c:{longName:"chrome"},ca:{longName:"chrome_android"},e:{longName:"edge"},f:{longName:"firefox"},fa:{longName:"firefox_android"},s:{longName:"safari"},si:{longName:"safari_ios"},o:{longName:"opera",engine:"Blink"},oa:{longName:"opera_android",engine:"Blink"},sa:{longName:"samsunginternet_android",engine:"Blink"},wva:{longName:"webview_android",engine:"Blink"},y:{longName:"ya_android",engine:"Blink"},u:{longName:"uc_android",engine:"Blink"},q:{longName:"qq_android",engine:"Blink"},k:{longName:"kai_os",engine:"Gecko"},fb:{longName:"facebook_android",engine:"Blink"},ia:{longName:"instagram_android",engine:"Blink"}},e=n=>6===n.length&&/^\d{6}$/.test(n)?`20${n.slice(0,2)}-${n.slice(2,4)}-${n.slice(4,6)}`:8===n.length&&/^\d{8}$/.test(n)?`${n.slice(0,4)}-${n.slice(4,6)}-${n.slice(6,8)}`:n,u={},s={};let o="",f$1=!1;"pre_baseline\nc,1,081211\nc,2,090521\nc,3,090915\nc,4,100125\nc,5,100525\nc,6,100902\nc,7,101019\nc,8,101202\nc,9,110203\nc,10,110308\nc,11,110427\nc,12,110607\nc,13,110802\nc,14,110916\nc,15,111025\nc,16,111213\nc,17,120208\nc,18,120328\nc,19,120515\nc,20,120626\nc,21,120731\nc,22,120925\nc,23,121106\nc,24,130110\nc,25,130221\nc,26,130326\nc,27,130521\nc,28,130709\nc,29,130820\nc,30,131001\nc,31,131112\nc,32,140114\nc,33,140220\nc,34,140408\nc,35,140520\nc,36,140716\nc,37,140826\nc,38,141007\nc,39,141118\nc,40,150121\nc,41,150303\nc,42,150414\nc,43,150519\nc,44,150721\nca,18,120627\nca,25,130227\nca,26,130403\nca,27,130522\nca,28,130710\nca,29,130821\nca,30,131002\nca,31,131114\nca,32,140115\nca,33,140226\nca,34,140402\nca,35,140520\nca,36,140716\nca,37,140903\nca,38,141008\nca,39,141112\nca,40,150121\nca,41,150311\nca,42,150415\nca,43,150527\nf,1,041109\nf,1.5,051129\nf,2,061024\nf,3,080617\nf,3.5,090630\nf,3.6,100121\nf,4,110322\nf,5,110621\nf,6,110816\nf,7,110927\nf,8,111108\nf,9,111220\nf,10,120131\nf,11,120313\nf,12,120424\nf,13,120605\nf,14,120717\nf,15,120828\nf,16,121009\nf,17,121120\nf,18,130108\nf,19,130219\nf,20,130402\nf,21,130514\nf,22,130625\nf,23,130806\nf,24,130917\nf,25,131029\nf,26,131210\nf,27,140204\nf,28,140318\nf,29,140429\nf,30,140610\nf,31,140722\nf,32,140902\nf,33,141014\nf,34,141201\nf,35,150113\nf,36,150224\nf,37,150331\nf,38,150512\nf,39,150702\nfa,4,110329\nfa,5,110621\nfa,6,110816\nfa,7,110927\nfa,8,111108\nfa,9,111221\nfa,10,120131\nfa,14,120626\nfa,15,120828\nfa,16,121009\nfa,17,121120\nfa,18,130108\nfa,19,130219\nfa,20,130402\nfa,21,130514\nfa,22,130625\nfa,23,130806\nfa,24,130917\nfa,25,131029\nfa,26,131210\nfa,27,140204\nfa,28,140318\nfa,29,140429\nfa,30,140610\nfa,31,140722\nfa,32,140902\nfa,33,141014\nfa,34,141201\nfa,35,150113\nfa,36,150227\nfa,37,150331\nfa,38,150512\nfa,39,150702\ns,1,030623\ns,1.1,031024\ns,1.2,040202\ns,1.3,050415\ns,2,050429\ns,3,071026\ns,3.1,080318\ns,4,090608\ns,5,100607\ns,5.1,110720\ns,6,120725\ns,7,131022\ns,8,141016\nsi,1,070629\nsi,2,080711\nsi,3,090617\nsi,3.2,100403\nsi,4,100621\nsi,4.2,101122\nsi,5,111012\nsi,6,120910\nsi,7,130918\nsi,8,140917\n20150729\nc,38,141007\nca,38,141008\ne,12,150729\nf,38,150512\nfa,38,150512\ns,8,141016\nsi,8,140917\no,25,141015,38\noa,25,141016,38\nsa,3.0,150410,38\nwva,38,141008,38\ny,14.12,u,38\nu,11.1,u,40\nq,8.1,u,57\nk,2.0,170701,48\nfb,66,u,48\nia,23,u,62\n20150916\nsi,9,150916\n20150922\nf,41,150922\nfa,41,150922\n20150930\nc,44,150721\nca,44,150729\ns,9,150930\no,31,150804,44\noa,32,150923,45\nsa,4.0,160311,44\nwva,44,150729,44\ny,15.9,u,44\nu,11.6,u,57\n20151112\ne,13,151112\n20151231\nc,44,150721\nca,44,150729\ne,13,151112\nf,41,150922\nfa,41,150922\ns,9,150930\nsi,9,150916\no,31,150804,44\noa,32,150923,45\nsa,4.0,160311,44\nwva,44,150729,44\ny,15.9,u,44\nu,11.6,u,57\nq,8.1,u,57\nk,2.0,170701,48\nfb,66,u,48\nia,23,u,62\n20160308\nf,45,160308\nfa,45,160308\n20160321\ns,9.1,160321\nsi,9.3,160321\n20160607\nf,47,160607\nfa,47,160607\n20160802\ne,14,160802\n20160907\nc,53,160831\nca,53,160907\no,40,160920,53\noa,41,161025,54\nsa,6.0,170823,56\nwva,53,160907,53\ny,16.10,u,53\nfb,95,u,53\n20160920\nf,49,160920\nfa,49,160920\ns,10,160920\nsi,10,160913\nk,3.0,210901,84\n20161231\nc,53,160831\nca,53,160907\ne,14,160802\nf,49,160920\nfa,49,160920\ns,10,160920\nsi,10,160913\no,40,160920,53\noa,41,161025,54\nsa,6.0,170823,56\nwva,53,160907,53\ny,16.10,u,53\nu,11.6,u,57\nq,8.1,u,57\nk,3.0,210901,84\nfb,95,u,53\nia,23,u,62\n20170201\nc,56,170125\nca,56,170201\nf,50,161115\nfa,50,161115\no,43,170207,56\noa,43,170927,59\nwva,56,170201,56\ny,17.3,u,56\nfb,112,u,56\n20170307\nf,52,170307\nfa,52,170307\n20170316\nca,57,170316\n20170327\ns,10.1,170327\nsi,10.3,170327\n20170405\nc,57,170309\ne,15,170405\no,44,170321,57\nsa,7.0,180316,59\nwva,57,170316,57\ny,17.4,u,57\nfb,117,u,57\n20170419\nf,53,170419\nfa,53,170419\n20170919\ns,11,170919\nsi,11,170919\n20170928\nfa,56,170928\n20171017\ne,16,171017\n20171024\nc,62,171017\nca,62,171024\no,49,171108,62\noa,46,180514,63\nsa,8.0,180718,63\nwva,62,171024,62\ny,17.11,u,62\nu,13.3,200909,78\nq,9.6,u,66\nfb,149,u,62\n20171128\nfa,57,171128\n20171231\nc,62,171017\nca,62,171024\ne,16,171017\nf,53,170419\nfa,57,171128\ns,11,170919\nsi,11,170919\no,49,171108,62\noa,46,180514,63\nsa,8.0,180718,63\nwva,62,171024,62\ny,17.11,u,62\nu,13.3,200909,78\nq,9.6,u,66\nk,3.0,210901,84\nfb,149,u,62\nia,23,u,62\n20180412\ns,11.1,180412\nsi,11.3,180329\n20180430\ne,17,180430\n20180509\nc,66,180417\nca,66,180417\nf,60,180509\nfa,60,180509\no,53,180510,66\noa,47,180723,66\nsa,9.0,180915,67\nwva,66,180417,66\ny,18.6,u,66\nfb,169,u,66\nia,42,u,66\n20180905\nf,62,180905\nfa,62,180905\n20181002\ne,18,181002\n20181023\nf,63,181023\nfa,63,181023\n20181211\nf,64,181211\nfa,64,181211\n20181231\nc,66,180417\nca,66,180417\ne,18,181002\nf,64,181211\nfa,64,181211\ns,11.1,180412\nsi,11.3,180329\no,53,180510,66\noa,47,180723,66\nsa,9.0,180915,67\nwva,66,180417,66\ny,18.6,u,66\nu,13.3,200909,78\nq,9.6,u,66\nk,3.0,210901,84\nfb,169,u,66\nia,42,u,66\n20190129\nf,65,190129\nfa,65,190129\n20190325\ns,12.1,190325\nsi,12.2,190325\n20190919\ns,13,190919\nsi,13,190919\n20191231\nc,66,180417\nca,66,180417\ne,18,181002\nf,65,190129\nfa,65,190129\ns,13,190919\nsi,13,190919\no,53,180510,66\noa,47,180723,66\nsa,9.0,180915,67\nwva,66,180417,66\ny,18.6,u,66\nu,13.3,200909,78\nq,9.6,u,66\nk,3.0,210901,84\nfb,169,u,66\nia,42,u,66\n20200115\nc,76,190730\nca,76,190730\ne,79,200115\nf,68,190709\nfa,68,190709\no,63,190820,76\noa,54,191018,76\nsa,12.0,200619,79\nwva,76,190730,76\ny,19.9,u,76\nq,10.9,201122,77\nfb,233,u,76\nia,96,u,80\n20200204\nc,80,200204\nca,80,200204\no,67,200303,80\noa,57,200330,80\nsa,13.0,201202,83\nwva,80,200204,80\ny,20.3,u,80\nu,15.3,230317,100\nq,11.7,211102,89\nfb,256,u,80\n20200207\ne,80,200207\n20200324\ns,13.1,200324\nsi,13.4,200324\n20200413\nc,81,200407\nca,81,200407\ne,81,200413\no,68,200422,81\noa,58,200513,81\nwva,81,200407,81\ny,20.4,u,81\nfb,266,u,81\nia,137,u,81\n20200727\nc,84,200727\nca,84,200727\ne,84,200716\no,70,200727,84\noa,60,200923,85\nsa,14.0,210417,87\nwva,84,200727,84\ny,20.8,200902,84\nfb,297,201202,86\nia,153,u,84\n20200728\nf,78,200630\nfa,79,200728\n20200827\nc,85,200825\nca,85,200825\ne,85,200827\no,71,200915,85\nwva,85,200825,85\ny,20.9,200927,85\nia,163,u,92\n20200916\nf,79,200728\ns,14,200916\nsi,14,200916\n20201020\nc,86,201020\nca,86,201020\ne,86,201009\no,72,201021,86\noa,61,201207,86\nwva,86,201020,86\ny,20.11,201111,86\n20201117\nf,83,201117\nfa,83,201117\n20201119\nc,87,201117\nca,87,201117\ne,87,201119\no,73,201209,87\noa,62,210216,87\nwva,87,201117,87\ny,20.12,201220,87\nfb,348,211219,96\n20201231\nc,87,201117\nca,87,201117\ne,87,201119\nf,83,201117\nfa,83,201117\ns,14,200916\nsi,14,200916\no,73,201209,87\noa,62,210216,87\nsa,14.0,210417,87\nwva,87,201117,87\ny,20.12,201220,87\nu,15.3,230317,100\nq,11.7,211102,89\nk,3.0,210901,84\nfb,348,211219,96\nia,163,u,92\n20210121\nc,88,210119\nca,88,210119\ne,88,210121\nf,84,201215\nfa,84,201215\no,74,210202,88\noa,63,210416,89\nsa,15.0,210813,90\nwva,88,210119,88\ny,21.1,211231,88\n20210126\nf,85,210126\nfa,85,210126\nk,4.0,250501,123\n20210426\nc,89,210302\nca,89,210302\ne,89,210304\nf,86,210223\nfa,86,210223\ns,14.1,210426\nsi,14.5,210426\no,75,210324,89\nwva,89,210302,89\ny,21.3,210404,89\n20210810\nf,91,210810\nfa,91,210810\n20210902\ne,93,210902\n20210907\nf,92,210907\nfa,92,210907\n20210920\nc,93,210831\nca,93,210831\ns,15,210920\nsi,15,210920\no,79,210914,93\noa,66,211215,94\nsa,17.0,220504,96\nwva,93,210831,93\ny,21.9,210929,93\nq,13.4,230426,98\nia,258,221104,106\n20211005\nf,93,211005\nfa,93,211005\n20211025\ns,15.1,211025\nsi,15.1,211025\n20211102\nf,94,211102\nfa,94,211102\n20211119\nc,96,211115\nca,96,211115\ne,96,211119\no,82,211202,96\noa,67,220131,96\nwva,96,211115,96\ny,22.1,211231,96\n20211207\nf,95,211207\n20211213\ns,15.2,211213\nsi,15.2,211213\n20211231\nc,96,211115\nca,96,211115\ne,96,211119\nf,95,211207\nfa,94,211102\ns,15.2,211213\nsi,15.2,211213\no,82,211202,96\noa,67,220131,96\nsa,17.0,220504,96\nwva,96,211115,96\ny,22.1,211231,96\nu,15.3,230317,100\nq,13.4,230426,98\nk,4.0,250501,123\nfb,348,211219,96\nia,258,221104,106\n20220106\nc,97,220104\nca,97,220104\ne,97,220106\no,83,220119,97\noa,68,220330,99\nsa,18.0,220808,99\nwva,97,220104,97\ny,22.3,220325,98\nfb,399,230204,109\n20220203\nc,98,220201\nca,98,220201\ne,98,220203\nf,96,220111\nfa,96,220111\no,84,220216,98\nwva,98,220201,98\n20220303\nc,99,220301\nca,99,220301\ne,99,220303\no,85,220323,99\nwva,99,220301,99\ny,22.5,220520,100\nq,14.2,231014,109\n20220314\nf,98,220308\nfa,98,220308\ns,15.4,220314\nsi,15.4,220314\n20220428\nc,101,220426\nca,101,220426\ne,101,220428\no,87,220517,101\noa,70,220629,102\nsa,19.0,221101,102\nwva,101,220426,101\ny,22.7,220707,102\nu,17.6,250515,123\n20220503\nf,100,220503\nfa,100,220503\n20220531\nf,101,220531\nfa,101,220531\n20220628\nf,102,220628\nfa,102,220628\n20220726\nf,103,220726\nfa,103,220726\n20220805\nc,104,220802\nca,104,220802\ne,104,220805\no,90,220818,104\noa,71,220916,104\nsa,20.0,230210,106\nwva,104,220802,104\ny,22.8,u,104\n20220823\nf,104,220823\nfa,104,220823\n20220902\nc,105,220902\nca,105,220902\ne,105,220901\ns,15.6,220720\nsi,15.6,220720\no,91,220914,105\noa,72,221021,106\nwva,105,220902,105\ny,22.11,221111,106\n20220912\ns,16,220912\nsi,16,220912\n20221003\nc,106,220927\nca,106,220927\ne,106,221003\no,92,221019,106\nwva,106,220927,106\n20221027\nc,107,221025\nca,107,221025\ne,107,221027\no,93,221117,107\noa,73,230117,108\nsa,21.0,230519,110\nwva,107,221025,107\ny,23.1,230110,108\nia,279,231231,109\n20221115\nf,107,221115\nfa,107,221115\n20221205\nc,108,221129\nca,108,221129\ne,108,221205\no,94,221215,108\nwva,108,221129,108\n20221213\nf,108,221213\nfa,108,221213\n20221231\nc,108,221129\nca,108,221129\ne,108,221205\nf,108,221213\nfa,108,221213\ns,16,220912\nsi,16,220912\no,94,221215,108\noa,73,230117,108\nsa,21.0,230519,110\nwva,108,221129,108\ny,23.1,230110,108\nu,17.6,250515,123\nq,14.2,231014,109\nk,4.0,250501,123\nfb,399,230204,109\nia,279,231231,109\n20230112\nc,109,230110\nca,109,230110\ne,109,230112\no,95,230201,109\noa,74,230313,110\nwva,109,230110,109\ny,23.3,230326,110\n20230214\nf,110,230214\nfa,110,230214\n20230313\nc,111,230307\nca,111,230307\ne,111,230313\no,97,230322,111\noa,75,230517,112\nsa,22.0,230714,111\nwva,111,230301,111\ny,23.5,230519,112\nq,19.1,250708,121\nfb,420,230628,114\nia,288,u,114\n20230314\nf,111,230314\nfa,111,230314\n20230327\ns,16.4,230327\nsi,16.4,230327\n20230411\nf,112,230411\nfa,112,230411\n20230509\nf,113,230509\nfa,113,230509\n20230606\nf,114,230606\nfa,114,230606\n20230704\nc,112,230404\nca,112,230404\ne,112,230406\nf,115,230704\nfa,115,230704\no,98,230420,112\nsa,23.0,231018,115\nwva,112,230404,112\n20230721\nc,115,230718\nca,115,230721\ne,115,230721\no,101,230726,115\noa,77,230831,115\nwva,115,230721,115\ny,23.9,230913,116\nfb,430,230903,116\nia,292,u,115\n20230801\nf,116,230801\nfa,116,230801\n20230915\nc,117,230912\nca,117,230912\ne,117,230915\no,103,231003,117\noa,78,231023,117\nsa,24.0,240125,117\nwva,117,230912,117\ny,23.11,231115,118\nfb,434,231005,117\nia,302,u,117\n20230918\ns,17,230918\nsi,17,230918\n20231013\nc,118,231010\nca,118,231010\ne,118,231013\nf,118,230926\nfa,118,230926\no,104,231023,118\noa,79,231206,119\nsa,25.0,240424,121\nwva,118,231010,118\nfb,437,u,118\nia,306,240117,118\n20231024\nf,119,231024\nfa,119,231024\n20231102\nc,119,231031\nca,119,231031\ne,119,231102\no,105,231114,119\nwva,119,231031,119\ny,24.1,240118,120\nfb,439,231111,119\nia,309,u,119\n20231121\nf,120,231121\nfa,120,231121\n20231205\nca,120,231205\n20231207\nc,120,231205\ne,120,231207\no,106,231219,120\noa,80,240125,120\nwva,120,231205,120\nfb,443,231207,120\nia,311,u,120\n20231211\ns,17.2,231211\nsi,17.2,231211\n20231219\nf,121,231219\nfa,121,231219\n20231231\nc,120,231205\nca,120,231205\ne,120,231207\nf,121,231219\nfa,121,231219\ns,17.2,231211\nsi,17.2,231211\no,106,231219,120\noa,80,240125,120\nsa,25.0,240424,121\nwva,120,231205,120\ny,24.1,240118,120\nu,17.6,250515,123\nq,19.1,250708,121\nk,4.0,250501,123\nfb,443,231207,120\nia,311,u,120\n20240123\nf,122,240123\nfa,122,240123\n20240125\nc,121,240123\nca,121,240123\ne,121,240125\no,107,240207,121\noa,81,240314,122\nwva,121,240123,121\ny,24.4,240327,122\nfb,448,240129,121\nia,317,240203,121\n20240220\nf,123,240220\nfa,123,240220\n20240305\ns,17.4,240305\nsi,17.4,240305\n20240319\nf,124,240319\nfa,124,240319\n20240322\nc,123,240319\nca,123,240319\ne,123,240322\no,109,240327,123\noa,82,240502,124\nsa,27.0,241106,125\nwva,123,240319,123\ny,24.6,240604,124\nfb,465,240707,126\nia,338,240706,126\n20240416\nf,125,240416\nfa,125,240416\n20240418\nc,124,240416\nca,124,240416\ne,124,240418\no,110,240514,124\nwva,124,240416,124\n20240513\ns,17.5,240513\nsi,17.5,240513\n20240514\nf,126,240514\nfa,126,240514\n20240517\nc,125,240514\nca,125,240514\ne,125,240517\no,111,240612,125\noa,83,240625,126\nwva,125,240514,125\ny,24.7,240718,126\n20240611\nf,127,240611\nfa,127,240611\n20240709\nf,128,240709\nfa,128,240709\n20240725\nc,127,240723\nca,127,240723\ne,127,240725\no,113,240822,127\noa,84,240826,127\nsa,28.0,250402,130\nwva,127,240723,127\ny,24.10,241011,128\nfb,474,240730,127\nia,346,240901,127\n20240806\nf,129,240806\nfa,129,240806\n20240903\nf,130,240903\nfa,130,240903\n20240916\ns,18,240916\nsi,18,240916\n20241001\nf,131,241001\nfa,131,241001\n20241017\nc,130,241015\nca,130,241015\ne,130,241017\no,115,241127,130\noa,86,241202,130\nwva,130,241015,130\ny,24.12,241130,130\nfb,486,241018,130\nia,355,241106,130\n20241029\nf,132,241029\nfa,132,241029\n20241211\ns,18.2,241211\nsi,18.2,241211\n20241231\nc,130,241015\nca,130,241015\ne,130,241017\nf,132,241029\nfa,132,241029\ns,18.2,241211\nsi,18.2,241211\no,115,241127,130\noa,86,241202,130\nsa,28.0,250402,130\nwva,130,241015,130\ny,24.12,241130,130\nfb,486,241018,130\nia,355,241106,130\n20250107\nf,134,250107\nfa,134,250107\n20250127\nsi,18.3,250127\n20250304\nf,136,250304\nfa,136,250304\n20250331\ns,18.4,250331\nsi,18.4,250331\n20250401\nc,133,250204\nca,133,250204\ne,133,250206\nf,137,250401\nfa,137,250401\no,118,250415,133\noa,88,250319,134\nsa,29.0,251025,136\nwva,133,250204,133\ny,25.4,250423,134\nfb,503,250312,134\nia,378,250503,135\n20250404\nc,135,250401\nca,135,250401\ne,135,250404\no,120,250702,135\noa,89,250429,135\nwva,135,250401,135\ny,25.6,250904,136\nfb,514,250528,136\n20250429\nf,138,250429\nfa,138,250429\n20250501\nc,136,250429\nca,136,250429\ne,136,250501\no,121,250827,137\noa,90,250618,137\nwva,136,250429,136\nia,381,250619,137\n20250512\nsi,18.5,250512\n20250527\nf,139,250527\nfa,139,250527\n20250529\nc,137,250527\nca,137,250527\ne,137,250529\nsa,30.0,260511,143\nwva,137,250527,137\ny,25.8,250830,138\nfb,515,250531,137\n20250626\nc,138,250624\nca,138,250624\ne,138,250626\no,122,250911,138\noa,91,250819,139\nwva,138,250624,138\nia,390,250726,138\n20250819\nf,142,250819\nfa,142,250819\n20250905\nc,140,250902\nca,140,250902\ne,140,250905\no,124,251113,140\noa,92,251008,140\nwva,140,250902,140\ny,25.10,251009,140\nia,399,250928,140\n20250915\ns,26,250915\nsi,26,250915\n20250916\nf,143,250916\nfa,143,250916\n20251003\nc,141,250930\nca,141,250930\ne,141,251003\no,125,251204,141\noa,93,251125,142\nwva,141,250930,141\ny,25.12,251207,142\nia,400,251006,141\n20251014\nf,144,251014\nfa,144,251014\n20251111\nf,145,251111\nfa,145,251111\n20251212\ns,26.2,251212\nsi,26.2,251212\n20251231\nc,141,250930\nca,141,250930\ne,141,251003\nf,145,251111\nfa,145,251111\ns,26.2,251212\nsi,26.2,251212\no,125,251204,141\noa,93,251125,142\nsa,30.0,260511,143\nwva,141,250930,141\ny,25.12,251207,142\nia,400,251006,141\n20260113\nf,147,260113\nfa,147,260113\n20260211\ns,26.3,260211\nsi,26.3,260211\n20260214\nc,145,260210\nca,145,260210\ne,145,260214\no,129,260318,145\noa,96,260310,145\nwva,145,260210,145\ny,26.4,260425,146\nia,423,260405,146\n20260224\nf,148,260224\nfa,148,260224\n20260313\nc,146,260310\nca,146,260310\ne,146,260313\no,130,260408,146\noa,97,260416,146\nwva,146,260310,146\n20260324\nf,149,260324\nfa,149,260324\ns,26.4,260324\nsi,26.4,260324\n20260410\nc,147,260407\nca,147,260407\ne,147,260410\no,131,260429,147\noa,98,260505,147\nwva,147,260407,147\ny,26.6,260608,148\nia,430,260530,148\n20260505\nca,148,260505\n20260507\nc,148,260505\ne,148,260507\no,132,260528,148\noa,99,260610,148\nwva,148,260505,148\n20260511\ns,26.5,260511\nsi,26.5,260511\n20260519\nf,151,260519\nfa,151,260519\n20260616\nf,152,260616\nfa,152,260616\n20260721\nf,153,260721\nfa,153,260721\n20260818\nf,154,260818\nfa,154,260818\n20260828\nc,152,260825\nca,152,260825\ne,152,260828\no,136,u,152\nwva,152,260825,152\nia,446,260912,153\n20260901\nf,155,260901\nfa,155,260901\nreleases\nc,45,150901\nc,46,151013\nc,47,151201\nc,48,160120\nc,49,160302\nc,50,160413\nc,51,160525\nc,52,160720\nc,54,161012\nc,55,161201\nc,58,170419\nc,59,170605\nc,60,170725\nc,61,170905\nc,63,171206\nc,64,180123\nc,65,180306\nc,67,180529\nc,68,180724\nc,69,180904\nc,70,181016\nc,71,181204\nc,72,190129\nc,73,190312\nc,74,190423\nc,75,190604\nc,77,190910\nc,78,191022\nc,79,191210\nc,83,200519\nc,90,210413\nc,91,210525\nc,92,210720\nc,94,210921\nc,95,211019\nc,100,220329\nc,102,220524\nc,103,220621\nc,110,230207\nc,113,230502\nc,114,230530\nc,116,230815\nc,122,240220\nc,126,240611\nc,128,240820\nc,129,240917\nc,131,241112\nc,132,250114\nc,134,250304\nc,139,250805\nc,142,251028\nc,143,251202\nc,144,260113\nc,149,260602\nc,150,260630\nc,151,260728\nc,153,260908\nc,154,260922\nc,155,261006\nca,45,150901\nca,46,151014\nca,47,151202\nca,48,160126\nca,49,160309\nca,50,160413\nca,51,160608\nca,52,160727\nca,54,161019\nca,55,161206\nca,58,170425\nca,59,170606\nca,60,170801\nca,61,170905\nca,63,171205\nca,64,180123\nca,65,180306\nca,67,180531\nca,68,180724\nca,69,180904\nca,70,181017\nca,71,181204\nca,72,190129\nca,73,190312\nca,74,190424\nca,75,190604\nca,77,190910\nca,78,191022\nca,79,191217\nca,83,200519\nca,90,210413\nca,91,210525\nca,92,210720\nca,94,210921\nca,95,211019\nca,100,220329\nca,102,220524\nca,103,220621\nca,110,230207\nca,113,230502\nca,114,230530\nca,116,230815\nca,122,240220\nca,126,240611\nca,128,240820\nca,129,240917\nca,131,241112\nca,132,250114\nca,134,250304\nca,139,250805\nca,142,251028\nca,143,251202\nca,144,260113\nca,149,260602\nca,150,260630\nca,151,260728\nca,153,260908\nca,154,260922\nca,155,261006\ne,83,200521\ne,90,210415\ne,91,210527\ne,92,210722\ne,94,210924\ne,95,211021\ne,100,220401\ne,102,220531\ne,103,220623\ne,110,230209\ne,113,230505\ne,114,230602\ne,116,230821\ne,122,240223\ne,126,240613\ne,128,240822\ne,129,240919\ne,131,241114\ne,132,250117\ne,134,250306\ne,139,250807\ne,142,251031\ne,143,251205\ne,144,260121\ne,149,260604\ne,150,260702\ne,151,260731\ne,153,260910\ne,154,260924\nf,40,150811\nf,42,151103\nf,43,151215\nf,44,160126\nf,46,160426\nf,48,160802\nf,51,170124\nf,54,170613\nf,55,170808\nf,56,170928\nf,57,171114\nf,58,180123\nf,59,180313\nf,61,180626\nf,66,190319\nf,67,190521\nf,69,190903\nf,70,191022\nf,71,191210\nf,72,200107\nf,73,200211\nf,74,200310\nf,75,200407\nf,76,200505\nf,77,200602\nf,80,200825\nf,81,200922\nf,82,201020\nf,87,210323\nf,88,210419\nf,89,210601\nf,90,210713\nf,97,220208\nf,99,220405\nf,105,220920\nf,106,221018\nf,109,230117\nf,117,230829\nf,133,241126\nf,135,250204\nf,140,250624\nf,141,250722\nf,146,251209\nf,150,260421\nf,156,260915\nf,157,260929\nfa,40,150811\nfa,42,151103\nfa,43,151215\nfa,44,160126\nfa,46,160426\nfa,48,160802\nfa,51,170124\nfa,54,170613\nfa,55,170808\nfa,58,180122\nfa,59,180313\nfa,61,180626\nfa,66,190319\nfa,67,190521\nfa,80,200831\nfa,81,200922\nfa,82,201020\nfa,87,210323\nfa,88,210419\nfa,89,210601\nfa,90,210713\nfa,95,211207\nfa,97,220208\nfa,99,220405\nfa,105,220920\nfa,106,221018\nfa,109,230117\nfa,117,230829\nfa,133,241126\nfa,135,250204\nfa,140,250624\nfa,141,250722\nfa,146,251209\nfa,150,260421\nfa,156,260915\nfa,157,260929\ns,12,180917\ns,15.3,220126\ns,15.5,220516\ns,16.1,221024\ns,16.2,221213\ns,16.3,230123\ns,16.5,230518\ns,16.6,230724\ns,17.1,231025\ns,17.3,240122\ns,17.6,240729\ns,18.1,241028\ns,18.3,250127\ns,18.5,250512\ns,18.6,250729\ns,26.1,251103\ns,26.6,260727\ns,27,u\nsi,12,180917\nsi,15.3,220126\nsi,15.5,220516\nsi,16.1,221024\nsi,16.2,221213\nsi,16.3,230123\nsi,16.5,230518\nsi,16.6,230724\nsi,17.1,231025\nsi,17.3,240122\nsi,17.6,240729\nsi,18.1,241028\nsi,18.6,250729\nsi,26.1,251103\nsi,26.6,260727\nsi,27,u\no,15,130702,28\no,16,130827,29\no,17,131008,30\no,18,131119,31\no,19,140128,32\no,20,140304,33\no,21,140506,34\no,22,140603,35\no,23,140722,36\no,24,140902,37\no,26,141203,39\no,27,150127,40\no,28,150310,41\no,29,150428,42\no,30,150609,43\no,32,150915,45\no,33,151027,46\no,34,151208,47\no,35,160202,48\no,36,160315,49\no,37,160504,50\no,38,160608,51\no,39,160802,52\no,41,161025,54\no,42,161213,55\no,45,170510,58\no,46,170622,59\no,47,170809,60\no,48,170927,61\no,50,180104,63\no,51,180207,64\no,52,180322,65\no,54,180628,67\no,55,180816,68\no,56,180925,69\no,57,181128,70\no,58,190123,71\no,60,190409,73\no,62,190627,75\no,64,191007,77\no,65,191113,78\no,66,200107,79\no,69,200624,83\no,76,210428,90\no,77,210609,91\no,78,210803,92\no,80,211005,94\no,81,211104,95\no,86,220420,100\no,88,220608,102\no,89,220707,103\no,96,230222,110\no,99,230516,113\no,100,230629,114\no,102,230823,116\no,108,240305,122\no,112,240711,126\no,114,240925,128\no,116,250108,131\no,117,250213,132\no,119,250513,134\no,123,251028,139\no,126,260108,142\no,127,260202,143\no,128,260226,144\no,133,260629,149\no,134,260806,150\no,135,260820,151\no,137,u,153\noa,15,130708,28\noa,16,130918,29\noa,18,131120,31\noa,19,140128,32\noa,20,140306,33\noa,21,140422,34\noa,22,140617,35\noa,24,140910,37\noa,26,141202,39\noa,27,150129,40\noa,28,150310,41\noa,29,150428,42\noa,30,150610,43\noa,33,151103,46\noa,34,151216,47\noa,35,160204,48\noa,36,160331,49\noa,37,160616,50\noa,42,170121,55\noa,44,171211,60\noa,45,180215,61\noa,48,181108,69\noa,49,181207,70\noa,50,190218,71\noa,51,190321,72\noa,52,190517,73\noa,53,190711,74\noa,55,191203,77\noa,56,200206,78\noa,59,200630,83\noa,64,210525,91\noa,65,211020,92\noa,69,220509,100\noa,76,230626,114\noa,85,241029,128\noa,87,250122,132\noa,94,260113,143\noa,95,260211,144\noa,100,260701,149\noa,101,260826,151\nsa,1.5,130925,28\nsa,1.6,140411,28\nsa,2.0,141017,34\nsa,2.1,150107,34\nsa,3.2,150824,38\nsa,4.2,160802,44\nsa,5.0,161215,51\nsa,5.2,170421,51\nsa,5.4,170517,51\nsa,6.2,171026,56\nsa,6.4,180219,56\nsa,7.2,180620,59\nsa,7.4,180912,59\nsa,8.2,181221,63\nsa,9.2,190402,67\nsa,9.4,190725,67\nsa,10.0,190822,71\nsa,10.2,191009,71\nsa,11.0,191205,75\nsa,11.2,200322,75\nsa,12.1,200707,79\nsa,13.2,210120,83\nsa,14.2,210625,87\nsa,16.0,211125,92\nsa,16.2,220306,92\nsa,18.1,220909,99\nsa,19.1,221108,102\nsa,26.0,240607,122\nwva,4.4,131209,30\nwva,4.4.3,140602,33\nwva,37,140903,37\nwva,39,141112,39\nwva,40,150121,40\nwva,41,150311,41\nwva,42,150415,42\nwva,43,150527,43\nwva,45,150901,45\nwva,46,151014,46\nwva,47,151202,47\nwva,48,160126,48\nwva,49,160309,49\nwva,50,160413,50\nwva,51,160608,51\nwva,52,160727,52\nwva,54,161019,54\nwva,55,161206,55\nwva,58,170425,58\nwva,59,170606,59\nwva,60,170801,60\nwva,61,170905,61\nwva,63,171205,63\nwva,64,180123,64\nwva,65,180306,65\nwva,67,180531,67\nwva,68,180724,68\nwva,69,180904,69\nwva,70,181017,70\nwva,71,181204,71\nwva,72,190129,72\nwva,73,190312,73\nwva,74,190424,74\nwva,75,190604,75\nwva,77,190910,77\nwva,78,191022,78\nwva,79,191217,79\nwva,83,200519,83\nwva,90,210413,90\nwva,91,210525,91\nwva,92,210720,92\nwva,94,210921,94\nwva,95,211019,95\nwva,100,220329,100\nwva,102,220524,102\nwva,103,220621,103\nwva,110,230207,110\nwva,113,230502,113\nwva,114,230530,114\nwva,116,230815,116\nwva,122,240220,122\nwva,126,240611,126\nwva,128,240820,128\nwva,129,240917,129\nwva,131,241112,131\nwva,132,250114,132\nwva,134,250304,134\nwva,139,250805,139\nwva,142,251028,142\nwva,143,251202,143\nwva,144,260113,144\nwva,149,260602,149\nwva,150,260630,150\nwva,151,260728,151\nwva,153,260908,153\nwva,154,260922,154\nwva,155,261006,155\ny,1.0,u,25\ny,1.5,u,22\ny,1.6,u,25\ny,1.7,u,25\ny,1.20,u,25\ny,2.5,u,25\ny,3.2,u,25\ny,4.6,u,25\ny,5.3,u,25\ny,5.4,u,25\ny,7.4,u,25\ny,9.6,u,25\ny,10.5,u,25\ny,11.4,u,25\ny,11.5,u,25\ny,12.7,u,25\ny,13.9,u,28\ny,13.10,u,28\ny,13.11,u,28\ny,13.12,u,30\ny,14.2,u,32\ny,14.4,u,33\ny,14.5,u,34\ny,14.7,u,35\ny,14.8,u,36\ny,14.10,u,37\ny,15.2,u,40\ny,15.4,u,41\ny,15.6,u,42\ny,15.7,u,43\ny,15.10,u,45\ny,15.12,u,46\ny,16.2,u,47\ny,16.3,u,47\ny,16.4,u,49\ny,16.6,u,50\ny,16.7,u,51\ny,16.9,u,52\ny,16.11,u,54\ny,17.1,u,55\ny,17.6,u,58\ny,17.7,u,59\ny,17.9,u,60\ny,17.10,u,61\ny,18.1,u,63\ny,18.2,u,63\ny,18.3,u,64\ny,18.4,u,65\ny,18.7,u,67\ny,18.9,u,68\ny,18.10,u,69\ny,18.11,u,70\ny,19.1,u,71\ny,19.3,u,72\ny,19.4,u,73\ny,19.5,u,75\ny,19.6,u,75\ny,19.7,u,75\ny,19.10,u,77\ny,19.11,u,78\ny,19.12,u,78\ny,20.2,u,79\ny,20.6,u,81\ny,20.7,u,83\ny,21.2,u,88\ny,21.5,u,90\ny,21.6,210928,91\ny,21.8,210928,92\ny,21.11,211029,94\ny,22.4,u,92\ny,22.9,220827,104\ny,23.7,230706,114\ny,24.2,240325,120\ny,24.9,241001,126\ny,25.2,250424,132\ny,25.3,250423,132\ny,26.3,260304,144\ny,26.7,260723,149\ny,26.8,260801,150\nu,10.5,u,31\nu,10.7,u,31\nu,10.8,u,31\nu,10.10,u,31\nu,11.0,u,31\nu,11.2,u,40\nu,11.3,u,40\nu,11.4,u,40\nu,11.5,u,40\nu,11.8,u,57\nu,11.9,u,57\nu,12.0,u,57\nu,12.1,u,57\nu,12.2,u,57\nu,12.3,u,57\nu,12.4,u,57\nu,12.5,u,57\nu,12.6,u,57\nu,12.7,u,57\nu,12.8,u,57\nu,12.9,u,57\nu,12.10,u,57\nu,12.11,u,57\nu,12.12,u,57\nu,12.13,u,57\nu,12.14,u,57\nu,13.0,u,57\nu,13.1,u,57\nu,13.2,u,57\nu,13.4,210928,78\nu,13.5,230825,78\nu,13.6,231217,78\nu,13.7,230624,78\nu,13.8,220430,78\nu,13.9,220518,78\nu,15.0,220824,78\nu,15.1,221111,78\nu,15.2,230423,78\nu,15.4,231025,100\nu,15.5,230822,100\nu,16.0,230824,100\nu,16.1,231015,100\nu,16.2,231209,100\nu,16.3,240308,100\nu,16.4,241003,100\nu,16.5,240530,100\nu,16.6,240723,100\nu,17.0,240824,100\nu,17.1,240926,100\nu,17.2,241129,100\nu,17.3,250107,100\nu,17.4,250226,100\nu,17.5,250408,100\nu,17.7,250611,123\nu,17.8,250730,123\nu,18.0,250817,123\nu,18.1,251004,123\nu,18.2,251104,123\nu,18.3,251212,123\nu,18.4,260109,123\nu,18.5,260128,123\nu,18.6,260321,123\nu,18.8,260503,123\nu,18.9,260702,123\nu,18.10,260808,123\nu,19.0,260824,123\nq,6.0,u,37\nq,6.1,u,37\nq,6.2,u,37\nq,6.3,u,37\nq,6.4,u,37\nq,6.6,u,37\nq,6.7,u,37\nq,6.8,u,37\nq,6.9,u,37\nq,7.0,u,37\nq,7.1,u,37\nq,7.2,u,37\nq,7.3,u,37\nq,7.4,u,37\nq,7.5,u,37\nq,7.6,u,37\nq,7.7,u,37\nq,7.8,u,37\nq,7.9,u,37\nq,8.0,u,37\nq,8.2,u,57\nq,8.3,u,57\nq,8.4,u,57\nq,8.5,u,57\nq,8.6,u,57\nq,8.7,u,57\nq,8.8,u,57\nq,8.9,u,57\nq,9.1,u,57\nq,9.7,u,66\nq,9.8,u,66\nq,10.0,u,66\nq,10.1,u,66\nq,10.2,u,66\nq,10.3,u,66\nq,10.4,u,66\nq,10.5,u,66\nq,10.7,200909,66\nq,11.0,u,77\nq,11.2,210130,77\nq,11.3,210331,77\nq,11.9,u,89\nq,12.0,211104,89\nq,12.1,211105,89\nq,12.2,211207,89\nq,12.5,220407,89\nq,12.7,220521,89\nq,12.8,220630,89\nq,12.9,220726,89\nq,13.0,220815,89\nq,13.1,220910,89\nq,13.2,221026,89\nq,13.3,221109,89\nq,13.5,230206,98\nq,13.6,230209,98\nq,13.7,230421,98\nq,13.8,230421,98\nq,14.0,231212,98\nq,14.1,230716,98\nq,14.3,230913,109\nq,14.4,231031,109\nq,14.5,231112,109\nq,14.6,231224,109\nq,14.7,240118,109\nq,14.8,240304,109\nq,14.9,240409,109\nq,15.0,240417,109\nq,15.1,240518,109\nq,15.2,241024,109\nq,15.3,240728,109\nq,15.4,240907,109\nq,15.5,240924,109\nq,15.6,241024,109\nq,15.7,241203,109\nq,15.8,241211,109\nq,15.9,250201,109\nq,19.2,250715,121\nq,19.3,250831,121\nq,19.4,250920,121\nq,19.5,251023,121\nq,19.6,251117,121\nq,19.7,251218,121\nq,19.8,260120,121\nq,19.9,260309,121\nq,20.0,260406,121\nq,20.1,260430,121\nq,20.2,260610,121\nq,20.3,260617,121\nq,20.4,260728,121\nq,20.5,260817,121\nq,20.6,260915,121\nk,1.0,170301,37\nk,2.5,170701,48\nk,3.1,220301,84\nfb,68,u,48\nfb,74,u,50\nfb,75,u,50\nfb,76,u,50\nfb,77,u,50\nfb,78,u,50\nfb,79,u,50\nfb,80,u,51\nfb,81,u,51\nfb,82,u,51\nfb,83,u,51\nfb,84,u,51\nfb,86,u,51\nfb,87,u,52\nfb,88,u,52\nfb,89,u,52\nfb,90,u,52\nfb,91,u,52\nfb,92,u,52\nfb,93,u,52\nfb,94,u,52\nfb,96,u,53\nfb,97,u,53\nfb,98,u,53\nfb,99,u,53\nfb,100,u,54\nfb,101,u,54\nfb,103,u,54\nfb,104,u,54\nfb,105,u,54\nfb,106,u,55\nfb,107,u,55\nfb,108,u,55\nfb,109,u,55\nfb,110,u,55\nfb,111,u,55\nfb,113,u,56\nfb,114,u,56\nfb,115,u,56\nfb,116,u,56\nfb,118,u,57\nfb,119,u,57\nfb,120,u,57\nfb,121,u,57\nfb,122,u,58\nfb,123,u,58\nfb,124,u,58\nfb,125,u,58\nfb,126,u,58\nfb,127,u,58\nfb,128,u,58\nfb,129,u,58\nfb,130,u,59\nfb,131,u,59\nfb,132,u,59\nfb,133,u,59\nfb,134,u,59\nfb,135,u,59\nfb,136,u,59\nfb,137,u,59\nfb,138,u,60\nfb,140,u,60\nfb,142,u,61\nfb,143,u,61\nfb,144,u,61\nfb,145,u,61\nfb,146,u,61\nfb,147,u,61\nfb,148,u,61\nfb,150,u,62\nfb,151,u,62\nfb,152,u,62\nfb,153,u,63\nfb,154,u,63\nfb,155,u,63\nfb,156,u,63\nfb,157,u,64\nfb,158,u,64\nfb,159,u,64\nfb,160,u,64\nfb,161,u,64\nfb,162,u,64\nfb,163,u,65\nfb,164,u,65\nfb,165,u,65\nfb,166,u,65\nfb,167,u,65\nfb,168,u,65\nfb,170,u,66\nfb,171,u,66\nfb,172,u,66\nfb,173,u,66\nfb,174,u,66\nfb,175,u,67\nfb,176,u,67\nfb,177,u,67\nfb,178,u,67\nfb,180,u,67\nfb,181,u,67\nfb,182,u,67\nfb,183,u,68\nfb,184,u,68\nfb,185,u,68\nfb,186,u,68\nfb,187,u,68\nfb,188,u,68\nfb,202,u,71\nfb,227,u,75\nfb,228,u,75\nfb,229,u,75\nfb,230,u,75\nfb,231,u,75\nfb,235,u,76\nfb,236,u,76\nfb,237,u,76\nfb,238,u,76\nfb,240,u,77\nfb,241,u,77\nfb,242,u,77\nfb,243,u,77\nfb,244,u,78\nfb,245,u,78\nfb,246,u,78\nfb,247,u,78\nfb,248,u,78\nfb,249,u,78\nfb,250,u,78\nfb,251,u,79\nfb,252,u,79\nfb,253,u,79\nfb,254,u,79\nfb,255,u,79\nfb,257,u,80\nfb,258,u,80\nfb,259,u,80\nfb,260,u,80\nfb,261,u,80\nfb,262,u,80\nfb,263,u,80\nfb,264,u,80\nfb,265,u,80\nfb,267,u,81\nfb,268,u,81\nfb,269,u,81\nfb,270,u,81\nfb,271,u,81\nfb,272,u,83\nfb,273,u,83\nfb,274,u,83\nfb,275,u,83\nfb,400,230210,109\nfb,436,231013,117\nfb,438,231028,118\nfb,440,231112,119\nfb,441,231120,119\nfb,442,231129,119\nfb,444,231213,120\nfb,445,231221,120\nfb,446,240106,120\nfb,447,240112,120\nfb,449,240202,121\nfb,450,240205,121\nfb,451,240217,121\nfb,452,240225,122\nfb,453,240228,122\nfb,454,240304,122\nfb,466,u,126\nfb,469,u,126\nfb,471,240710,126\nfb,472,240711,126\nfb,475,240801,127\nfb,476,240809,127\nfb,477,240816,127\nfb,478,240821,128\nfb,479,240831,128\nfb,480,240907,128\nfb,481,240914,128\nfb,482,240920,129\nfb,483,240927,129\nfb,484,241004,129\nfb,485,241011,129\nfb,487,241026,130\nfb,488,241102,130\nfb,489,241109,130\nfb,494,241226,131\nfb,497,250126,132\nia,24,u,62\nia,25,u,62\nia,26,u,63\nia,27,u,63\nia,28,u,63\nia,29,u,63\nia,30,u,63\nia,31,u,64\nia,32,u,64\nia,33,u,64\nia,34,u,64\nia,35,u,65\nia,36,u,65\nia,37,u,65\nia,38,u,65\nia,39,u,65\nia,40,u,65\nia,41,u,65\nia,43,u,66\nia,44,u,66\nia,45,u,66\nia,46,u,66\nia,47,u,66\nia,48,u,67\nia,49,u,67\nia,50,u,67\nia,51,u,67\nia,52,u,67\nia,53,u,67\nia,54,u,67\nia,55,u,67\nia,56,u,68\nia,57,u,68\nia,58,u,68\nia,59,u,68\nia,60,u,68\nia,61,u,68\nia,65,u,69\nia,66,u,69\nia,68,u,69\nia,72,u,70\nia,74,u,71\nia,75,u,71\nia,79,u,71\nia,81,u,72\nia,82,u,72\nia,83,u,72\nia,84,u,73\nia,86,u,73\nia,95,u,74\nia,97,u,80\nia,98,u,80\nia,103,u,80\nia,104,u,80\nia,117,u,80\nia,118,u,80\nia,119,u,80\nia,120,u,80\nia,121,u,80\nia,127,u,80\nia,128,u,80\nia,129,u,80\nia,130,u,80\nia,131,u,80\nia,132,u,80\nia,133,u,80\nia,134,u,80\nia,135,u,80\nia,136,u,80\nia,138,u,81\nia,139,u,81\nia,140,u,81\nia,141,u,81\nia,142,u,81\nia,143,u,83\nia,144,u,83\nia,145,u,83\nia,146,u,83\nia,164,u,92\nia,230,u,92\nia,259,221104,106\nia,281,u,109\nia,289,231221,114\nia,290,231230,114\nia,295,u,115\nia,296,u,115\nia,297,u,115\nia,298,240111,115\nia,299,u,115\nia,300,u,116\nia,301,240112,116\nia,303,u,117\nia,304,u,117\nia,305,u,117\nia,307,u,118\nia,308,240119,118\nia,310,u,119\nia,312,u,120\nia,313,u,120\nia,314,u,120\nia,315,240119,120\nia,316,240125,120\nia,318,240216,121\nia,320,240304,121\nia,321,240307,122\nia,347,240911,127\nia,349,240920,128\nia,366,u,132\nia,367,250215,132\nia,382,250619,137\nia,383,250618,137\nia,384,250616,137\nia,385,250627,137\nia,387,250709,137\nia,392,250812,138\nia,394,250826,139\nia,395,250913,139\nia,396,250920,139\nia,397,250919,139\nia,401,251008,141\nia,404,251031,141\nia,406,251116,141\nia,407,251123,142\nia,408,251128,142\nia,409,251216,143\nia,410,251217,143\nia,411,260107,143\nia,438,260722,150\nia,443,260821,151\nia,444,260827,151\n".split("\n").forEach(n=>{if(n=n.trim())if("releases"!==n){if(f$1){const a=n.split(",");if(a.length>=3){const[n,u,o,f]=a,i=[n,u,e(o.trim())];f&&i.push(f.trim()),s[n]||(s[n]=[]),s[n].push(i);}return}if(n.startsWith("20")||n.startsWith("pre_baseline"))return o=e(n),void(u[o]=[]);{const a=n.split(",");if(a.length>=3){const[n,s,f,i]=a,r=[n,s,e(f.trim())];if(i&&r.push(i.trim()),!u[o])throw new Error(`Timeline entry for date ${o} is undefined. This should not happen.`);u[o].push(r);}}}else f$1=!0;});const i={};Object.keys(a).forEach(n=>{var a;i[n]=[...null!==(a=s[n])&&void 0!==a?a:[]];}),Object.keys(u).forEach(n=>{u[n].forEach(n=>{const a=n[0];i[a]&&(i[a].some(a=>a[1]===n[1])||i[a].push(n));});}),Object.keys(i).forEach(a=>{i[a].sort((a,e)=>n(a[1],e[1]));});let r=!1;const c=Object.keys(a).filter(n=>void 0===a[n].engine).map(n=>{const{longName:e}=a[n];return {shortName:n,longName:e}}),t=["webview_android","samsunginternet_android","opera_android","opera","ya_android","uc_android","qq_android","kai_os","facebook_android","instagram_android"],b=a=>{const e=[],u=[];return a.forEach(n=>{c.some(a=>a.longName===n.browser)?e.push(n):u.push(n);}),e.sort((a,e)=>a.browser<e.browser?-1:a.browser>e.browser?1:n(a.version,e.version)),u.sort((a,e)=>{const u=t.indexOf(a.browser),s=t.indexOf(e.browser);return u!==s?u-s:n(a.version,e.version)}),[...e,...u]};let l=!1;const w=n=>{if(!1===n.includeDownstreamBrowsers&&!0===n.includeKaiOS)throw new Error("KaiOS is a downstream browser and can only be included if you include other downstream browsers. Please ensure you use `includeDownstreamBrowsers: true`.")},v=(n,e,u,s,o)=>{var f;const i={browser:e,version:u,release_date:"u"===s?"unknown":s};return o&&(i.engine_version=o,i.engine=null===(f=a[n])||void 0===f?void 0:f.engine),i};function y(e){var s,o,f,t,y,p,d;let g=null!=e?e:{},q={listAllCompatibleVersions:null!==(s=g.listAllCompatibleVersions)&&void 0!==s&&s,includeDownstreamBrowsers:null!==(o=g.includeDownstreamBrowsers)&&void 0!==o&&o,widelyAvailableOnDate:null!==(f=g.widelyAvailableOnDate)&&void 0!==f?f:void 0,targetYear:null!==(t=g.targetYear)&&void 0!==t?t:void 0,includeKaiOS:null!==(y=g.includeKaiOS)&&void 0!==y&&y,overrideLastUpdated:null!==(p=g.overrideLastUpdated)&&void 0!==p?p:void 0,suppressWarnings:null!==(d=g.suppressWarnings)&&void 0!==d&&d},m=new Date;if(q.widelyAvailableOnDate||q.targetYear){if(q.targetYear&&q.widelyAvailableOnDate)throw new Error("You cannot use targetYear and widelyAvailableOnDate at the same time.  Please remove one of these options and try again.");q.widelyAvailableOnDate?m=new Date(q.widelyAvailableOnDate):q.targetYear&&(m=new Date(`${q.targetYear}-12-31`));}else m=new Date;if((q.widelyAvailableOnDate||void 0===q.targetYear)&&m.setMonth(m.getMonth()-30),!q.suppressWarnings){if(((n,a)=>{if(r||"undefined"!=typeof process&&process.env&&(process.env.BROWSERSLIST_IGNORE_OLD_DATA||process.env.BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA))return;const e=new Date;e.setMonth(e.getMonth()-2),n>e&&(null!=a?a:1789495117411)<e.getTime()&&(console.warn("[baseline-browser-mapping] The data in this module is over two months old and you are targetting a recent feature cut off date of "+n.toISOString().slice(0,10)+". To ensure accurate Baseline data, please update to the latest version of this module using the package manager of your choice.You can suppress these warnings using the environment variables `BROWSERSLIST_IGNORE_OLD_DATA=true` or `BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true` or by passing `suppressWarnings: true` when you call `getCompatibleVersions()` or `getAllVersions()`."),r=!0);})(m,q.overrideLastUpdated),w(q),m.getFullYear()<2015&&!l&&console.warn(new Error("There are no browser versions compatible with Baseline before 2015.  You may receive unexpected results.")),m.getFullYear()<2002)throw new Error("None of the browsers in the core set were released before 2002.  Please use a date after 2002.");if(m.getFullYear()>(new Date).getFullYear())throw new Error("There are no browser versions compatible with Baseline in the future")}const h=m<new Date("2015-07-29"),_={};Object.keys(a).forEach(n=>{_[n]=void 0;}),Object.keys(u).forEach(n=>{const a=u[n];let e=!1;e="pre_baseline"===n||new Date(n)<=m,e&&a.forEach(a=>{const e=a[0];"pre_baseline"!==n&&(_[e]=a);});});const O=[];return Object.keys(a).forEach(e=>{var u,s;const{longName:o}=a[e];if(!q.includeKaiOS&&"k"===e)return;const f=c.some(n=>n.shortName===e);if(q.includeDownstreamBrowsers||f)if(h)if(q.listAllCompatibleVersions){O.push({browser:o,version:"0",release_date:""});(null!==(u=i[e])&&void 0!==u?u:[]).forEach(n=>{O.push(v(e,o,n[1],n[2],n[3]));});}else O.push({browser:o,version:"0",release_date:""});else {const a=_[e];if(!a)return;const u=a[1];if(q.listAllCompatibleVersions){(null!==(s=i[e])&&void 0!==s?s:[]).forEach(a=>{const s=a[1];n(s,u)>=0&&O.push(v(e,o,s,a[2],a[3]));});}else O.push(v(e,o,u,a[2],a[3]));}}),b(O)}dist._resetHasWarned=function(){r=!1;},dist.getAllVersions=function(a){var e,u,s,o,f;l=!0;let i=null!=a?a:{},r={outputFormat:null!==(e=i.outputFormat)&&void 0!==e?e:"array",includeDownstreamBrowsers:null!==(u=i.includeDownstreamBrowsers)&&void 0!==u&&u,useSupports:null!==(s=i.useSupports)&&void 0!==s&&s,includeKaiOS:null!==(o=i.includeKaiOS)&&void 0!==o&&o,suppressWarnings:null!==(f=i.suppressWarnings)&&void 0!==f&&f};w(r);let t=(new Date).getFullYear()+1;const b=[...Array(t).keys()].slice(2015),v={};b.forEach(n=>{v[n]={},y({targetYear:n,suppressWarnings:r.suppressWarnings}).forEach(a=>{v[n]&&(v[n][a.browser]=a);});});const p=y({suppressWarnings:r.suppressWarnings}),d={};p.forEach(n=>{d[n.browser]=n;});const g=new Date;g.setMonth(g.getMonth()+30);const q=y({widelyAvailableOnDate:g.toISOString().slice(0,10),suppressWarnings:r.suppressWarnings}),m={};q.forEach(n=>{m[n.browser]=n;});const h=y({targetYear:2002,listAllCompatibleVersions:!0,suppressWarnings:r.suppressWarnings}),_=[];if(c.map(n=>n.longName).forEach(a=>{var e,u,s,o;let f=h.filter(n=>n.browser==a).sort((a,e)=>n(a.version,e.version)),i=null!==(u=null===(e=d[a])||void 0===e?void 0:e.version)&&void 0!==u?u:"0",c=null!==(o=null===(s=m[a])||void 0===s?void 0:s.version)&&void 0!==o?o:"0";b.forEach(e=>{var u;if(v[e]){let s=(null!==(u=v[e][a])&&void 0!==u?u:{version:"0"}).version,o=f.findIndex(a=>0===n(a.version,s));(e===t-1?f:f.slice(0,o)).forEach(a=>{let u=n(a.version,i)>=0,s=n(a.version,c)>=0,o=Object.assign(Object.assign({},a),{year:e<=2015?"pre_baseline":e-1});r.useSupports?(u&&(o.supports="widely"),s&&(o.supports="newly")):o=Object.assign(Object.assign({},o),{wa_compatible:u}),_.push(o);}),f=f.slice(o,f.length);}});}),r.includeDownstreamBrowsers){y({targetYear:2002,listAllCompatibleVersions:!0,includeDownstreamBrowsers:!0,includeKaiOS:r.includeKaiOS,suppressWarnings:r.suppressWarnings}).filter(n=>!c.map(n=>n.longName).includes(n.browser)).forEach(n=>{const a="Gecko"===n.engine?"firefox":"chrome";let e=_.find(e=>e.browser===a&&e.version===n.engine_version);e&&(r.useSupports?_.push(Object.assign(Object.assign({},n),{year:e.year,supports:e.supports})):_.push(Object.assign(Object.assign({},n),{year:e.year,wa_compatible:e.wa_compatible})));});}if(_.sort((a,e)=>{if("pre_baseline"===a.year&&"pre_baseline"!==e.year)return -1;if("pre_baseline"===e.year&&"pre_baseline"!==a.year)return 1;if("pre_baseline"!==a.year&&"pre_baseline"!==e.year){if(a.year<e.year)return -1;if(a.year>e.year)return 1}return a.browser<e.browser?-1:a.browser>e.browser?1:n(a.version,e.version)}),"object"===r.outputFormat){const n={};return _.forEach(a=>{n[a.browser]||(n[a.browser]={});let e={year:a.year,release_date:a.release_date,engine:a.engine,engine_version:a.engine_version};n[a.browser][a.version]=r.useSupports?a.supports?Object.assign(Object.assign({},e),{supports:a.supports}):e:Object.assign(Object.assign({},e),{wa_compatible:a.wa_compatible});}),null!=n?n:{}}if("csv"===r.outputFormat){let n=`"browser","version","year","${r.useSupports?"supports":"wa_compatible"}","release_date","engine","engine_version"`;return _.forEach(a=>{var e,u,s,o;let f={browser:a.browser,version:a.version,year:a.year,release_date:null!==(e=a.release_date)&&void 0!==e?e:"NULL",engine:null!==(u=a.engine)&&void 0!==u?u:"NULL",engine_version:null!==(s=a.engine_version)&&void 0!==s?s:"NULL"};f=r.useSupports?Object.assign(Object.assign({},f),{supports:null!==(o=a.supports)&&void 0!==o?o:""}):Object.assign(Object.assign({},f),{wa_compatible:a.wa_compatible}),n+=`\n"${f.browser}","${f.version}","${f.year}","${r.useSupports?f.supports:f.wa_compatible}","${f.release_date}","${f.engine}","${f.engine_version}"`;}),n}return _},dist.getCompatibleVersions=y,dist.getTimeline=function(n){var e,s,o,f;const i=null!=n?n:{},r=null!==(e=i.groupBy)&&void 0!==e?e:"date",t=null!==(s=i.listAllBrowsers)&&void 0!==s&&s,l=null!==(o=i.includeDownstreamBrowsers)&&void 0!==o&&o,w=null!==(f=i.includeKaiOS)&&void 0!==f&&f;if(!1===l&&!0===w)throw new Error("KaiOS is a downstream browser and can only be included if you include other downstream browsers. Please ensure you use `includeDownstreamBrowsers: true`.");const y={},p=[];if(Object.keys(u).forEach(n=>{const e=u[n];if("pre_baseline"===n)return;const s=new Set;e.forEach(n=>{const a=n[0],e=y[a],u=n[1];e&&e[1]===u||s.add(a),y[a]=n;});const o=[];if(Object.keys(a).forEach(n=>{const{longName:e}=a[n];if(!w&&"k"===n)return;const u=c.some(a=>a.shortName===n);if(!l&&!u)return;const f=s.has(n);if(t||f){const a=y[n];a&&o.push(v(n,e,a[1],a[2],a[3]));}}),o.length>0){const a=b(o);p.push({date:n,browsers:a});}}),"browser"===r){const n={};return Object.keys(a).forEach(e=>{const{longName:u}=a[e];if(!w&&"k"===e)return;const s=c.some(n=>n.shortName===e);(l||s)&&(n[u]=[]);}),p.forEach(a=>{a.browsers.forEach(e=>{const{browser:u}=e,s=function(n,a){var e={};for(var u in n)Object.prototype.hasOwnProperty.call(n,u)&&a.indexOf(u)<0&&(e[u]=n[u]);if(null!=n&&"function"==typeof Object.getOwnPropertySymbols){var s=0;for(u=Object.getOwnPropertySymbols(n);s<u.length;s++)a.indexOf(u[s])<0&&Object.prototype.propertyIsEnumerable.call(n,u[s])&&(e[u[s]]=n[u[s]]);}return e}(e,["browser"]);n[u]&&n[u].push(Object.assign({date:a.date},s));});}),n}return p};
+  "function"==typeof SuppressedError&&SuppressedError;const n="pre_baseline\nc,1,081211\nc,2,090521\nc,3,090915\nc,4,100125\nc,5,100525\nc,6,100902\nc,7,101019\nc,8,101202\nc,9,110203\nc,10,110308\nc,11,110427\nc,12,110607\nc,13,110802\nc,14,110916\nc,15,111025\nc,16,111213\nc,17,120208\nc,18,120328\nc,19,120515\nc,20,120626\nc,21,120731\nc,22,120925\nc,23,121106\nc,24,130110\nc,25,130221\nc,26,130326\nc,27,130521\nc,28,130709\nc,29,130820\nc,30,131001\nc,31,131112\nc,32,140114\nc,33,140220\nc,34,140408\nc,35,140520\nc,36,140716\nc,37,140826\nc,38,141007\nc,39,141118\nc,40,150121\nc,41,150303\nc,42,150414\nc,43,150519\nc,44,150721\nca,18,120627\nca,25,130227\nca,26,130403\nca,27,130522\nca,28,130710\nca,29,130821\nca,30,131002\nca,31,131114\nca,32,140115\nca,33,140226\nca,34,140402\nca,35,140520\nca,36,140716\nca,37,140903\nca,38,141008\nca,39,141112\nca,40,150121\nca,41,150311\nca,42,150415\nca,43,150527\nf,1,041109\nf,1.5,051129\nf,2,061024\nf,3,080617\nf,3.5,090630\nf,3.6,100121\nf,4,110322\nf,5,110621\nf,6,110816\nf,7,110927\nf,8,111108\nf,9,111220\nf,10,120131\nf,11,120313\nf,12,120424\nf,13,120605\nf,14,120717\nf,15,120828\nf,16,121009\nf,17,121120\nf,18,130108\nf,19,130219\nf,20,130402\nf,21,130514\nf,22,130625\nf,23,130806\nf,24,130917\nf,25,131029\nf,26,131210\nf,27,140204\nf,28,140318\nf,29,140429\nf,30,140610\nf,31,140722\nf,32,140902\nf,33,141014\nf,34,141201\nf,35,150113\nf,36,150224\nf,37,150331\nf,38,150512\nf,39,150702\nfa,4,110329\nfa,5,110621\nfa,6,110816\nfa,7,110927\nfa,8,111108\nfa,9,111221\nfa,10,120131\nfa,14,120626\nfa,15,120828\nfa,16,121009\nfa,17,121120\nfa,18,130108\nfa,19,130219\nfa,20,130402\nfa,21,130514\nfa,22,130625\nfa,23,130806\nfa,24,130917\nfa,25,131029\nfa,26,131210\nfa,27,140204\nfa,28,140318\nfa,29,140429\nfa,30,140610\nfa,31,140722\nfa,32,140902\nfa,33,141014\nfa,34,141201\nfa,35,150113\nfa,36,150227\nfa,37,150331\nfa,38,150512\nfa,39,150702\ns,1,030623\ns,1.1,031024\ns,1.2,040202\ns,1.3,050415\ns,2,050429\ns,3,071026\ns,3.1,080318\ns,4,090608\ns,5,100607\ns,5.1,110720\ns,6,120725\ns,7,131022\ns,8,141016\nsi,1,070629\nsi,2,080711\nsi,3,090617\nsi,3.2,100403\nsi,4,100621\nsi,4.2,101122\nsi,5,111012\nsi,6,120910\nsi,7,130918\nsi,8,140917\n20150729\nc,38,141007\nca,38,141008\ne,12,150729\nf,38,150512\nfa,38,150512\ns,8,141016\nsi,8,140917\no,25,141015,38\noa,25,141016,38\nsa,3.0,150410,38\nwva,38,141008,38\ny,14.12,u,38\nu,11.1,u,40\nq,8.1,u,57\nk,2.0,170701,48\nfb,66,u,48\nia,23,u,62\n20150916\nsi,9,150916\n20150922\nf,41,150922\nfa,41,150922\n20150930\nc,44,150721\nca,44,150729\ns,9,150930\no,31,150804,44\noa,32,150923,45\nsa,4.0,160311,44\nwva,44,150729,44\ny,15.9,u,44\nu,11.6,u,57\n20151112\ne,13,151112\n20151231\nc,44,150721\nca,44,150729\ne,13,151112\nf,41,150922\nfa,41,150922\ns,9,150930\nsi,9,150916\no,31,150804,44\noa,32,150923,45\nsa,4.0,160311,44\nwva,44,150729,44\ny,15.9,u,44\nu,11.6,u,57\nq,8.1,u,57\nk,2.0,170701,48\nfb,66,u,48\nia,23,u,62\n20160308\nf,45,160308\nfa,45,160308\n20160321\nc,48,160120\nca,48,160126\ns,9.1,160321\nsi,9.3,160321\no,35,160202,48\noa,35,160204,48\nsa,5.0,161215,51\nwva,48,160126,48\ny,16.4,u,49\n20160607\nf,47,160607\nfa,47,160607\n20160802\ne,14,160802\n20160907\nc,53,160831\nca,53,160907\no,40,160920,53\noa,41,161025,54\nsa,6.0,170823,56\nwva,53,160907,53\ny,16.10,u,53\nfb,95,u,53\n20160920\nf,49,160920\nfa,49,160920\ns,10,160920\nsi,10,160913\nk,3.0,210901,84\n20161231\nc,53,160831\nca,53,160907\ne,14,160802\nf,49,160920\nfa,49,160920\ns,10,160920\nsi,10,160913\no,40,160920,53\noa,41,161025,54\nsa,6.0,170823,56\nwva,53,160907,53\ny,16.10,u,53\nu,11.6,u,57\nq,8.1,u,57\nk,3.0,210901,84\nfb,95,u,53\nia,23,u,62\n20170201\nc,56,170125\nca,56,170201\nf,50,161115\nfa,50,161115\no,43,170207,56\noa,43,170927,59\nwva,56,170201,56\ny,17.3,u,56\nfb,112,u,56\n20170307\nf,52,170307\nfa,52,170307\n20170316\nca,57,170316\n20170327\ns,10.1,170327\nsi,10.3,170327\n20170405\nc,57,170309\ne,15,170405\no,44,170321,57\nsa,7.0,180316,59\nwva,57,170316,57\ny,17.4,u,57\nfb,117,u,57\n20170419\nf,53,170419\nfa,53,170419\n20170919\ns,11,170919\nsi,11,170919\n20170928\nfa,56,170928\n20171017\ne,16,171017\n20171024\nc,62,171017\nca,62,171024\no,49,171108,62\noa,46,180514,63\nsa,8.0,180718,63\nwva,62,171024,62\ny,17.11,u,62\nu,13.3,200909,78\nq,9.6,u,66\nfb,149,u,62\n20171128\nfa,57,171128\n20171231\nc,62,171017\nca,62,171024\ne,16,171017\nf,53,170419\nfa,57,171128\ns,11,170919\nsi,11,170919\no,49,171108,62\noa,46,180514,63\nsa,8.0,180718,63\nwva,62,171024,62\ny,17.11,u,62\nu,13.3,200909,78\nq,9.6,u,66\nk,3.0,210901,84\nfb,149,u,62\nia,23,u,62\n20180412\ns,11.1,180412\nsi,11.3,180329\n20180430\ne,17,180430\n20180509\nc,66,180417\nca,66,180417\nf,60,180509\nfa,60,180509\no,53,180510,66\noa,47,180723,66\nsa,9.0,180915,67\nwva,66,180417,66\ny,18.6,u,66\nfb,169,u,66\nia,42,u,66\n20180905\nf,62,180905\nfa,62,180905\n20181002\ne,18,181002\n20181023\nf,63,181023\nfa,63,181023\n20181211\nf,64,181211\nfa,64,181211\n20181231\nc,66,180417\nca,66,180417\ne,18,181002\nf,64,181211\nfa,64,181211\ns,11.1,180412\nsi,11.3,180329\no,53,180510,66\noa,47,180723,66\nsa,9.0,180915,67\nwva,66,180417,66\ny,18.6,u,66\nu,13.3,200909,78\nq,9.6,u,66\nk,3.0,210901,84\nfb,169,u,66\nia,42,u,66\n20190129\nf,65,190129\nfa,65,190129\n20190325\ns,12.1,190325\nsi,12.2,190325\n20190919\ns,13,190919\nsi,13,190919\n20191231\nc,66,180417\nca,66,180417\ne,18,181002\nf,65,190129\nfa,65,190129\ns,13,190919\nsi,13,190919\no,53,180510,66\noa,47,180723,66\nsa,9.0,180915,67\nwva,66,180417,66\ny,18.6,u,66\nu,13.3,200909,78\nq,9.6,u,66\nk,3.0,210901,84\nfb,169,u,66\nia,42,u,66\n20200115\nc,76,190730\nca,76,190730\ne,79,200115\nf,68,190709\nfa,68,190709\no,63,190820,76\noa,54,191018,76\nsa,12.0,200619,79\nwva,76,190730,76\ny,19.9,u,76\nq,10.9,201122,77\nfb,233,u,76\nia,96,u,80\n20200204\nc,80,200204\nca,80,200204\no,67,200303,80\noa,57,200330,80\nsa,13.0,201202,83\nwva,80,200204,80\ny,20.3,u,80\nu,15.3,230317,100\nq,11.7,211102,89\nfb,256,u,80\n20200207\ne,80,200207\n20200324\ns,13.1,200324\nsi,13.4,200324\n20200413\nc,81,200407\nca,81,200407\ne,81,200413\no,68,200422,81\noa,58,200513,81\nwva,81,200407,81\ny,20.4,u,81\nfb,266,u,81\nia,137,u,81\n20200727\nc,84,200727\nca,84,200727\ne,84,200716\no,70,200727,84\noa,60,200923,85\nsa,14.0,210417,87\nwva,84,200727,84\ny,20.8,200902,84\nfb,297,201202,86\nia,153,u,84\n20200728\nf,78,200630\nfa,79,200728\n20200827\nc,85,200825\nca,85,200825\ne,85,200827\no,71,200915,85\nwva,85,200825,85\ny,20.9,200927,85\nia,163,u,92\n20200916\nf,79,200728\ns,14,200916\nsi,14,200916\n20201020\nc,86,201020\nca,86,201020\ne,86,201009\no,72,201021,86\noa,61,201207,86\nwva,86,201020,86\ny,20.11,201111,86\n20201117\nf,83,201117\nfa,83,201117\n20201119\nc,87,201117\nca,87,201117\ne,87,201119\no,73,201209,87\noa,62,210216,87\nwva,87,201117,87\ny,20.12,201220,87\nfb,348,211219,96\n20201231\nc,87,201117\nca,87,201117\ne,87,201119\nf,83,201117\nfa,83,201117\ns,14,200916\nsi,14,200916\no,73,201209,87\noa,62,210216,87\nsa,14.0,210417,87\nwva,87,201117,87\ny,20.12,201220,87\nu,15.3,230317,100\nq,11.7,211102,89\nk,3.0,210901,84\nfb,348,211219,96\nia,163,u,92\n20210121\nc,88,210119\nca,88,210119\ne,88,210121\nf,84,201215\nfa,84,201215\no,74,210202,88\noa,63,210416,89\nsa,15.0,210813,90\nwva,88,210119,88\ny,21.1,211231,88\n20210126\nf,85,210126\nfa,85,210126\nk,4.0,250501,123\n20210426\nc,89,210302\nca,89,210302\ne,89,210304\nf,86,210223\nfa,86,210223\ns,14.1,210426\nsi,14.5,210426\no,75,210324,89\nwva,89,210302,89\ny,21.3,210404,89\n20210810\nf,91,210810\nfa,91,210810\n20210902\ne,93,210902\n20210907\nf,92,210907\nfa,92,210907\n20210920\nc,93,210831\nca,93,210831\ns,15,210920\nsi,15,210920\no,79,210914,93\noa,66,211215,94\nsa,17.0,220504,96\nwva,93,210831,93\ny,21.9,210929,93\nq,13.4,230426,98\nia,258,221104,106\n20211005\nf,93,211005\nfa,93,211005\n20211025\ns,15.1,211025\nsi,15.1,211025\n20211102\nf,94,211102\nfa,94,211102\n20211119\nc,96,211115\nca,96,211115\ne,96,211119\no,82,211202,96\noa,67,220131,96\nwva,96,211115,96\ny,22.1,211231,96\n20211207\nf,95,211207\n20211213\ns,15.2,211213\nsi,15.2,211213\n20211231\nc,96,211115\nca,96,211115\ne,96,211119\nf,95,211207\nfa,94,211102\ns,15.2,211213\nsi,15.2,211213\no,82,211202,96\noa,67,220131,96\nsa,17.0,220504,96\nwva,96,211115,96\ny,22.1,211231,96\nu,15.3,230317,100\nq,13.4,230426,98\nk,4.0,250501,123\nfb,348,211219,96\nia,258,221104,106\n20220106\nc,97,220104\nca,97,220104\ne,97,220106\no,83,220119,97\noa,68,220330,99\nsa,18.0,220808,99\nwva,97,220104,97\ny,22.3,220325,98\nfb,399,230204,109\n20220203\nc,98,220201\nca,98,220201\ne,98,220203\nf,96,220111\nfa,96,220111\no,84,220216,98\nwva,98,220201,98\n20220303\nc,99,220301\nca,99,220301\ne,99,220303\no,85,220323,99\nwva,99,220301,99\ny,22.5,220520,100\nq,14.2,231014,109\n20220314\nf,98,220308\nfa,98,220308\ns,15.4,220314\nsi,15.4,220314\n20220428\nc,101,220426\nca,101,220426\ne,101,220428\no,87,220517,101\noa,70,220629,102\nsa,19.0,221101,102\nwva,101,220426,101\ny,22.7,220707,102\nu,17.6,250515,123\n20220503\nf,100,220503\nfa,100,220503\n20220531\nf,101,220531\nfa,101,220531\n20220628\nf,102,220628\nfa,102,220628\n20220726\nf,103,220726\nfa,103,220726\n20220805\nc,104,220802\nca,104,220802\ne,104,220805\no,90,220818,104\noa,71,220916,104\nsa,20.0,230210,106\nwva,104,220802,104\ny,22.8,u,104\n20220823\nf,104,220823\nfa,104,220823\n20220902\nc,105,220902\nca,105,220902\ne,105,220901\ns,15.6,220720\nsi,15.6,220720\no,91,220914,105\noa,72,221021,106\nwva,105,220902,105\ny,22.11,221111,106\n20220912\ns,16,220912\nsi,16,220912\n20221003\nc,106,220927\nca,106,220927\ne,106,221003\no,92,221019,106\nwva,106,220927,106\n20221027\nc,107,221025\nca,107,221025\ne,107,221027\no,93,221117,107\noa,73,230117,108\nsa,21.0,230519,110\nwva,107,221025,107\ny,23.1,230110,108\nia,279,231231,109\n20221115\nf,107,221115\nfa,107,221115\n20221205\nc,108,221129\nca,108,221129\ne,108,221205\no,94,221215,108\nwva,108,221129,108\n20221213\nf,108,221213\nfa,108,221213\n20221231\nc,108,221129\nca,108,221129\ne,108,221205\nf,108,221213\nfa,108,221213\ns,16,220912\nsi,16,220912\no,94,221215,108\noa,73,230117,108\nsa,21.0,230519,110\nwva,108,221129,108\ny,23.1,230110,108\nu,17.6,250515,123\nq,14.2,231014,109\nk,4.0,250501,123\nfb,399,230204,109\nia,279,231231,109\n20230112\nc,109,230110\nca,109,230110\ne,109,230112\no,95,230201,109\noa,74,230313,110\nwva,109,230110,109\ny,23.3,230326,110\n20230214\nf,110,230214\nfa,110,230214\n20230313\nc,111,230307\nca,111,230307\ne,111,230313\no,97,230322,111\noa,75,230517,112\nsa,22.0,230714,111\nwva,111,230301,111\ny,23.5,230519,112\nq,19.1,250708,121\nfb,420,230628,114\nia,288,u,114\n20230314\nf,111,230314\nfa,111,230314\n20230327\ns,16.4,230327\nsi,16.4,230327\n20230411\nf,112,230411\nfa,112,230411\n20230509\nf,113,230509\nfa,113,230509\n20230606\nf,114,230606\nfa,114,230606\n20230704\nc,112,230404\nca,112,230404\ne,112,230406\nf,115,230704\nfa,115,230704\no,98,230420,112\nsa,23.0,231018,115\nwva,112,230404,112\n20230721\nc,115,230718\nca,115,230721\ne,115,230721\no,101,230726,115\noa,77,230831,115\nwva,115,230721,115\ny,23.9,230913,116\nfb,430,230903,116\nia,292,u,115\n20230801\nf,116,230801\nfa,116,230801\n20230915\nc,117,230912\nca,117,230912\ne,117,230915\no,103,231003,117\noa,78,231023,117\nsa,24.0,240125,117\nwva,117,230912,117\ny,23.11,231115,118\nfb,434,231005,117\nia,302,u,117\n20230918\ns,17,230918\nsi,17,230918\n20231013\nc,118,231010\nca,118,231010\ne,118,231013\nf,118,230926\nfa,118,230926\no,104,231023,118\noa,79,231206,119\nsa,25.0,240424,121\nwva,118,231010,118\nfb,437,u,118\nia,306,240117,118\n20231024\nf,119,231024\nfa,119,231024\n20231102\nc,119,231031\nca,119,231031\ne,119,231102\no,105,231114,119\nwva,119,231031,119\ny,24.1,240118,120\nfb,439,231111,119\nia,309,u,119\n20231121\nf,120,231121\nfa,120,231121\n20231205\nca,120,231205\n20231207\nc,120,231205\ne,120,231207\no,106,231219,120\noa,80,240125,120\nwva,120,231205,120\nfb,443,231207,120\nia,311,u,120\n20231211\ns,17.2,231211\nsi,17.2,231211\n20231219\nf,121,231219\nfa,121,231219\n20231231\nc,120,231205\nca,120,231205\ne,120,231207\nf,121,231219\nfa,121,231219\ns,17.2,231211\nsi,17.2,231211\no,106,231219,120\noa,80,240125,120\nsa,25.0,240424,121\nwva,120,231205,120\ny,24.1,240118,120\nu,17.6,250515,123\nq,19.1,250708,121\nk,4.0,250501,123\nfb,443,231207,120\nia,311,u,120\n20240123\nf,122,240123\nfa,122,240123\n20240125\nc,121,240123\nca,121,240123\ne,121,240125\no,107,240207,121\noa,81,240314,122\nwva,121,240123,121\ny,24.4,240327,122\nfb,448,240129,121\nia,317,240203,121\n20240220\nf,123,240220\nfa,123,240220\n20240305\ns,17.4,240305\nsi,17.4,240305\n20240319\nf,124,240319\nfa,124,240319\n20240322\nc,123,240319\nca,123,240319\ne,123,240322\no,109,240327,123\noa,82,240502,124\nsa,27.0,241106,125\nwva,123,240319,123\ny,24.6,240604,124\nfb,465,240707,126\nia,338,240706,126\n20240416\nf,125,240416\nfa,125,240416\n20240418\nc,124,240416\nca,124,240416\ne,124,240418\no,110,240514,124\nwva,124,240416,124\n20240513\ns,17.5,240513\nsi,17.5,240513\n20240514\nf,126,240514\nfa,126,240514\n20240517\nc,125,240514\nca,125,240514\ne,125,240517\no,111,240612,125\noa,83,240625,126\nwva,125,240514,125\ny,24.7,240718,126\n20240611\nf,127,240611\nfa,127,240611\n20240709\nf,128,240709\nfa,128,240709\n20240725\nc,127,240723\nca,127,240723\ne,127,240725\no,113,240822,127\noa,84,240826,127\nsa,28.0,250402,130\nwva,127,240723,127\ny,24.10,241011,128\nfb,474,240730,127\nia,346,240901,127\n20240806\nf,129,240806\nfa,129,240806\n20240903\nf,130,240903\nfa,130,240903\n20240916\ns,18,240916\nsi,18,240916\n20241001\nf,131,241001\nfa,131,241001\n20241017\nc,130,241015\nca,130,241015\ne,130,241017\no,115,241127,130\noa,86,241202,130\nwva,130,241015,130\ny,24.12,241130,130\nfb,486,241018,130\nia,355,241106,130\n20241029\nf,132,241029\nfa,132,241029\n20241211\ns,18.2,241211\nsi,18.2,241211\n20241231\nc,130,241015\nca,130,241015\ne,130,241017\nf,132,241029\nfa,132,241029\ns,18.2,241211\nsi,18.2,241211\no,115,241127,130\noa,86,241202,130\nsa,28.0,250402,130\nwva,130,241015,130\ny,24.12,241130,130\nfb,486,241018,130\nia,355,241106,130\n20250107\nf,134,250107\nfa,134,250107\n20250127\nsi,18.3,250127\n20250304\nf,136,250304\nfa,136,250304\n20250331\ns,18.4,250331\nsi,18.4,250331\n20250401\nc,133,250204\nca,133,250204\ne,133,250206\nf,137,250401\nfa,137,250401\no,118,250415,133\noa,88,250319,134\nsa,29.0,251025,136\nwva,133,250204,133\ny,25.4,250423,134\nfb,503,250312,134\nia,378,250503,135\n20250404\nc,135,250401\nca,135,250401\ne,135,250404\no,120,250702,135\noa,89,250429,135\nwva,135,250401,135\ny,25.6,250904,136\nfb,514,250528,136\n20250429\nf,138,250429\nfa,138,250429\n20250501\nc,136,250429\nca,136,250429\ne,136,250501\no,121,250827,137\noa,90,250618,137\nwva,136,250429,136\nia,381,250619,137\n20250512\nsi,18.5,250512\n20250527\nf,139,250527\nfa,139,250527\n20250529\nc,137,250527\nca,137,250527\ne,137,250529\nsa,30.0,260511,143\nwva,137,250527,137\ny,25.8,250830,138\nfb,515,250531,137\n20250626\nc,138,250624\nca,138,250624\ne,138,250626\no,122,250911,138\noa,91,250819,139\nwva,138,250624,138\nia,390,250726,138\n20250819\nf,142,250819\nfa,142,250819\n20250905\nc,140,250902\nca,140,250902\ne,140,250905\no,124,251113,140\noa,92,251008,140\nwva,140,250902,140\ny,25.10,251009,140\nia,399,250928,140\n20250915\ns,26,250915\nsi,26,250915\n20250916\nf,143,250916\nfa,143,250916\n20251003\nc,141,250930\nca,141,250930\ne,141,251003\no,125,251204,141\noa,93,251125,142\nwva,141,250930,141\ny,25.12,251207,142\nia,400,251006,141\n20251014\nf,144,251014\nfa,144,251014\n20251111\nf,145,251111\nfa,145,251111\n20251212\ns,26.2,251212\nsi,26.2,251212\n20251231\nc,141,250930\nca,141,250930\ne,141,251003\nf,145,251111\nfa,145,251111\ns,26.2,251212\nsi,26.2,251212\no,125,251204,141\noa,93,251125,142\nsa,30.0,260511,143\nwva,141,250930,141\ny,25.12,251207,142\nia,400,251006,141\n20260113\nf,147,260113\nfa,147,260113\n20260211\ns,26.3,260211\nsi,26.3,260211\n20260214\nc,145,260210\nca,145,260210\ne,145,260214\no,129,260318,145\noa,96,260310,145\nwva,145,260210,145\ny,26.4,260425,146\nia,423,260405,146\n20260224\nf,148,260224\nfa,148,260224\n20260313\nc,146,260310\nca,146,260310\ne,146,260313\no,130,260408,146\noa,97,260416,146\nwva,146,260310,146\n20260324\nf,149,260324\nfa,149,260324\ns,26.4,260324\nsi,26.4,260324\n20260410\nc,147,260407\nca,147,260407\ne,147,260410\no,131,260429,147\noa,98,260505,147\nwva,147,260407,147\ny,26.6,260608,148\nia,430,260530,148\n20260505\nca,148,260505\n20260507\nc,148,260505\ne,148,260507\no,132,260528,148\noa,99,260610,148\nwva,148,260505,148\n20260511\ns,26.5,260511\nsi,26.5,260511\n20260519\nf,151,260519\nfa,151,260519\n20260616\nf,152,260616\nfa,152,260616\n20260721\nf,153,260721\nfa,153,260721\n20260818\nf,154,260818\nfa,154,260818\n20260901\nf,155,260901\nfa,155,260901\n20260911\nc,153,260908\nca,153,260908\ne,153,260911\no,137,261007,153\noa,103,261020,154\nwva,153,260908,153\nia,446,260912,153\n20260914\ns,27,260914\nsi,27,260914\n20261027\nf,159,261027\nfa,159,261027\nreleases\nc,45,150901\nc,46,151013\nc,47,151201\nc,49,160302\nc,50,160413\nc,51,160525\nc,52,160720\nc,54,161012\nc,55,161201\nc,58,170419\nc,59,170605\nc,60,170725\nc,61,170905\nc,63,171206\nc,64,180123\nc,65,180306\nc,67,180529\nc,68,180724\nc,69,180904\nc,70,181016\nc,71,181204\nc,72,190129\nc,73,190312\nc,74,190423\nc,75,190604\nc,77,190910\nc,78,191022\nc,79,191210\nc,83,200519\nc,90,210413\nc,91,210525\nc,92,210720\nc,94,210921\nc,95,211019\nc,100,220329\nc,102,220524\nc,103,220621\nc,110,230207\nc,113,230502\nc,114,230530\nc,116,230815\nc,122,240220\nc,126,240611\nc,128,240820\nc,129,240917\nc,131,241112\nc,132,250114\nc,134,250304\nc,139,250805\nc,142,251028\nc,143,251202\nc,144,260113\nc,149,260602\nc,150,260630\nc,151,260728\nc,152,260825\nc,154,260922\nc,155,261006\nc,156,261020\nc,157,261103\nc,158,261117\nca,45,150901\nca,46,151014\nca,47,151202\nca,49,160309\nca,50,160413\nca,51,160608\nca,52,160727\nca,54,161019\nca,55,161206\nca,58,170425\nca,59,170606\nca,60,170801\nca,61,170905\nca,63,171205\nca,64,180123\nca,65,180306\nca,67,180531\nca,68,180724\nca,69,180904\nca,70,181017\nca,71,181204\nca,72,190129\nca,73,190312\nca,74,190424\nca,75,190604\nca,77,190910\nca,78,191022\nca,79,191217\nca,83,200519\nca,90,210413\nca,91,210525\nca,92,210720\nca,94,210921\nca,95,211019\nca,100,220329\nca,102,220524\nca,103,220621\nca,110,230207\nca,113,230502\nca,114,230530\nca,116,230815\nca,122,240220\nca,126,240611\nca,128,240820\nca,129,240917\nca,131,241112\nca,132,250114\nca,134,250304\nca,139,250805\nca,142,251028\nca,143,251202\nca,144,260113\nca,149,260602\nca,150,260630\nca,151,260728\nca,152,260825\nca,154,260922\nca,155,261006\nca,156,261020\nca,157,261103\nca,158,261117\ne,83,200521\ne,90,210415\ne,91,210527\ne,92,210722\ne,94,210924\ne,95,211021\ne,100,220401\ne,102,220531\ne,103,220623\ne,110,230209\ne,113,230505\ne,114,230602\ne,116,230821\ne,122,240223\ne,126,240613\ne,128,240822\ne,129,240919\ne,131,241114\ne,132,250117\ne,134,250306\ne,139,250807\ne,142,251031\ne,143,251205\ne,144,260121\ne,149,260604\ne,150,260702\ne,151,260731\ne,152,260828\ne,154,260924\ne,155,261008\ne,156,261022\ne,157,261105\ne,158,261119\nf,40,150811\nf,42,151103\nf,43,151215\nf,44,160126\nf,46,160426\nf,48,160802\nf,51,170124\nf,54,170613\nf,55,170808\nf,56,170928\nf,57,171114\nf,58,180123\nf,59,180313\nf,61,180626\nf,66,190319\nf,67,190521\nf,69,190903\nf,70,191022\nf,71,191210\nf,72,200107\nf,73,200211\nf,74,200310\nf,75,200407\nf,76,200505\nf,77,200602\nf,80,200825\nf,81,200922\nf,82,201020\nf,87,210323\nf,88,210419\nf,89,210601\nf,90,210713\nf,97,220208\nf,99,220405\nf,105,220920\nf,106,221018\nf,109,230117\nf,117,230829\nf,133,241126\nf,135,250204\nf,140,250624\nf,141,250722\nf,146,251209\nf,150,260421\nf,156,260915\nf,157,260929\nf,158,261013\nf,160,261110\nf,161,261124\nfa,40,150811\nfa,42,151103\nfa,43,151215\nfa,44,160126\nfa,46,160426\nfa,48,160802\nfa,51,170124\nfa,54,170613\nfa,55,170808\nfa,58,180122\nfa,59,180313\nfa,61,180626\nfa,66,190319\nfa,67,190521\nfa,80,200831\nfa,81,200922\nfa,82,201020\nfa,87,210323\nfa,88,210419\nfa,89,210601\nfa,90,210713\nfa,95,211207\nfa,97,220208\nfa,99,220405\nfa,105,220920\nfa,106,221018\nfa,109,230117\nfa,117,230829\nfa,133,241126\nfa,135,250204\nfa,140,250624\nfa,141,250722\nfa,146,251209\nfa,150,260421\nfa,156,260915\nfa,157,260929\nfa,158,261013\nfa,160,261110\nfa,161,261124\ns,12,180917\ns,15.3,220126\ns,15.5,220516\ns,16.1,221024\ns,16.2,221213\ns,16.3,230123\ns,16.5,230518\ns,16.6,230724\ns,17.1,231025\ns,17.3,240122\ns,17.6,240729\ns,18.1,241028\ns,18.3,250127\ns,18.5,250512\ns,18.6,250729\ns,26.1,251103\ns,26.6,260727\ns,27.1,261023\ns,27.2,261026\nsi,12,180917\nsi,15.3,220126\nsi,15.5,220516\nsi,16.1,221024\nsi,16.2,221213\nsi,16.3,230123\nsi,16.5,230518\nsi,16.6,230724\nsi,17.1,231025\nsi,17.3,240122\nsi,17.6,240729\nsi,18.1,241028\nsi,18.6,250729\nsi,26.1,251103\nsi,26.6,260727\nsi,27.1,261023\nsi,27.2,261026\no,15,130702,28\no,16,130827,29\no,17,131008,30\no,18,131119,31\no,19,140128,32\no,20,140304,33\no,21,140506,34\no,22,140603,35\no,23,140722,36\no,24,140902,37\no,26,141203,39\no,27,150127,40\no,28,150310,41\no,29,150428,42\no,30,150609,43\no,32,150915,45\no,33,151027,46\no,34,151208,47\no,36,160315,49\no,37,160504,50\no,38,160608,51\no,39,160802,52\no,41,161025,54\no,42,161213,55\no,45,170510,58\no,46,170622,59\no,47,170809,60\no,48,170927,61\no,50,180104,63\no,51,180207,64\no,52,180322,65\no,54,180628,67\no,55,180816,68\no,56,180925,69\no,57,181128,70\no,58,190123,71\no,60,190409,73\no,62,190627,75\no,64,191007,77\no,65,191113,78\no,66,200107,79\no,69,200624,83\no,76,210428,90\no,77,210609,91\no,78,210803,92\no,80,211005,94\no,81,211104,95\no,86,220420,100\no,88,220608,102\no,89,220707,103\no,96,230222,110\no,99,230516,113\no,100,230629,114\no,102,230823,116\no,108,240305,122\no,112,240711,126\no,114,240925,128\no,116,250108,131\no,117,250213,132\no,119,250513,134\no,123,251028,139\no,126,260108,142\no,127,260202,143\no,128,260226,144\no,133,260629,149\no,134,260806,150\no,135,260820,151\no,136,260917,152\no,138,261020,154\no,139,261027,155\no,140,u,156\no,141,u,157\noa,15,130708,28\noa,16,130918,29\noa,18,131120,31\noa,19,140128,32\noa,20,140306,33\noa,21,140422,34\noa,22,140617,35\noa,24,140910,37\noa,26,141202,39\noa,27,150129,40\noa,28,150310,41\noa,29,150428,42\noa,30,150610,43\noa,33,151103,46\noa,34,151216,47\noa,36,160331,49\noa,37,160616,50\noa,42,170121,55\noa,44,171211,60\noa,45,180215,61\noa,48,181108,69\noa,49,181207,70\noa,50,190218,71\noa,51,190321,72\noa,52,190517,73\noa,53,190711,74\noa,55,191203,77\noa,56,200206,78\noa,59,200630,83\noa,64,210525,91\noa,65,211020,92\noa,69,220509,100\noa,76,230626,114\noa,85,241029,128\noa,87,250122,132\noa,94,260113,143\noa,95,260211,144\noa,100,260701,149\noa,101,260826,151\noa,102,260923,152\nsa,1.5,130925,28\nsa,1.6,140411,28\nsa,2.0,141017,34\nsa,2.1,150107,34\nsa,3.2,150824,38\nsa,4.2,160802,44\nsa,5.2,170421,51\nsa,5.4,170517,51\nsa,6.2,171026,56\nsa,6.4,180219,56\nsa,7.2,180620,59\nsa,7.4,180912,59\nsa,8.2,181221,63\nsa,9.2,190402,67\nsa,9.4,190725,67\nsa,10.0,190822,71\nsa,10.2,191009,71\nsa,11.0,191205,75\nsa,11.2,200322,75\nsa,12.1,200707,79\nsa,13.2,210120,83\nsa,14.2,210625,87\nsa,16.0,211125,92\nsa,16.2,220306,92\nsa,18.1,220909,99\nsa,19.1,221108,102\nsa,26.0,240607,122\nwva,4.4,131209,30\nwva,4.4.3,140602,33\nwva,37,140903,37\nwva,39,141112,39\nwva,40,150121,40\nwva,41,150311,41\nwva,42,150415,42\nwva,43,150527,43\nwva,45,150901,45\nwva,46,151014,46\nwva,47,151202,47\nwva,49,160309,49\nwva,50,160413,50\nwva,51,160608,51\nwva,52,160727,52\nwva,54,161019,54\nwva,55,161206,55\nwva,58,170425,58\nwva,59,170606,59\nwva,60,170801,60\nwva,61,170905,61\nwva,63,171205,63\nwva,64,180123,64\nwva,65,180306,65\nwva,67,180531,67\nwva,68,180724,68\nwva,69,180904,69\nwva,70,181017,70\nwva,71,181204,71\nwva,72,190129,72\nwva,73,190312,73\nwva,74,190424,74\nwva,75,190604,75\nwva,77,190910,77\nwva,78,191022,78\nwva,79,191217,79\nwva,83,200519,83\nwva,90,210413,90\nwva,91,210525,91\nwva,92,210720,92\nwva,94,210921,94\nwva,95,211019,95\nwva,100,220329,100\nwva,102,220524,102\nwva,103,220621,103\nwva,110,230207,110\nwva,113,230502,113\nwva,114,230530,114\nwva,116,230815,116\nwva,122,240220,122\nwva,126,240611,126\nwva,128,240820,128\nwva,129,240917,129\nwva,131,241112,131\nwva,132,250114,132\nwva,134,250304,134\nwva,139,250805,139\nwva,142,251028,142\nwva,143,251202,143\nwva,144,260113,144\nwva,149,260602,149\nwva,150,260630,150\nwva,151,260728,151\nwva,152,260825,152\nwva,154,260922,154\nwva,155,261006,155\nwva,156,261020,156\nwva,157,261103,157\nwva,158,261117,158\ny,1.0,u,25\ny,1.5,u,22\ny,1.6,u,25\ny,1.7,u,25\ny,1.20,u,25\ny,2.5,u,25\ny,3.2,u,25\ny,4.6,u,25\ny,5.3,u,25\ny,5.4,u,25\ny,7.4,u,25\ny,9.6,u,25\ny,10.5,u,25\ny,11.4,u,25\ny,11.5,u,25\ny,12.7,u,25\ny,13.9,u,28\ny,13.10,u,28\ny,13.11,u,28\ny,13.12,u,30\ny,14.2,u,32\ny,14.4,u,33\ny,14.5,u,34\ny,14.7,u,35\ny,14.8,u,36\ny,14.10,u,37\ny,15.2,u,40\ny,15.4,u,41\ny,15.6,u,42\ny,15.7,u,43\ny,15.10,u,45\ny,15.12,u,46\ny,16.2,u,47\ny,16.3,u,47\ny,16.6,u,50\ny,16.7,u,51\ny,16.9,u,52\ny,16.11,u,54\ny,17.1,u,55\ny,17.6,u,58\ny,17.7,u,59\ny,17.9,u,60\ny,17.10,u,61\ny,18.1,u,63\ny,18.2,u,63\ny,18.3,u,64\ny,18.4,u,65\ny,18.7,u,67\ny,18.9,u,68\ny,18.10,u,69\ny,18.11,u,70\ny,19.1,u,71\ny,19.3,u,72\ny,19.4,u,73\ny,19.5,u,75\ny,19.6,u,75\ny,19.7,u,75\ny,19.10,u,77\ny,19.11,u,78\ny,19.12,u,78\ny,20.2,u,79\ny,20.6,u,81\ny,20.7,u,83\ny,21.2,u,88\ny,21.5,u,90\ny,21.6,210928,91\ny,21.8,210928,92\ny,21.11,211029,94\ny,22.4,u,92\ny,22.9,220827,104\ny,23.7,230706,114\ny,24.2,240325,120\ny,24.9,241001,126\ny,25.2,250424,132\ny,25.3,250423,132\ny,26.3,260304,144\ny,26.7,260723,149\ny,26.8,260801,150\ny,26.10,261008,152\nu,10.5,u,31\nu,10.7,u,31\nu,10.8,u,31\nu,10.10,u,31\nu,11.0,u,31\nu,11.2,u,40\nu,11.3,u,40\nu,11.4,u,40\nu,11.5,u,40\nu,11.8,u,57\nu,11.9,u,57\nu,12.0,u,57\nu,12.1,u,57\nu,12.2,u,57\nu,12.3,u,57\nu,12.4,u,57\nu,12.5,u,57\nu,12.6,u,57\nu,12.7,u,57\nu,12.8,u,57\nu,12.9,u,57\nu,12.10,u,57\nu,12.11,u,57\nu,12.12,u,57\nu,12.13,u,57\nu,12.14,u,57\nu,13.0,u,57\nu,13.1,u,57\nu,13.2,u,57\nu,13.4,210928,78\nu,13.5,230825,78\nu,13.6,231217,78\nu,13.7,230624,78\nu,13.8,220430,78\nu,13.9,220518,78\nu,15.0,220824,78\nu,15.1,221111,78\nu,15.2,230423,78\nu,15.4,231025,100\nu,15.5,230822,100\nu,16.0,230824,100\nu,16.1,231015,100\nu,16.2,231209,100\nu,16.3,240308,100\nu,16.4,241003,100\nu,16.5,240530,100\nu,16.6,240723,100\nu,17.0,240824,100\nu,17.1,240926,100\nu,17.2,241129,100\nu,17.3,250107,100\nu,17.4,250226,100\nu,17.5,250408,100\nu,17.7,250611,123\nu,17.8,250730,123\nu,18.0,250817,123\nu,18.1,251004,123\nu,18.2,251104,123\nu,18.3,251212,123\nu,18.4,260109,123\nu,18.5,260128,123\nu,18.6,260321,123\nu,18.8,260503,123\nu,18.9,260702,123\nu,18.10,260808,123\nu,19.0,260824,123\nu,19.2,261023,123\nq,6.0,u,37\nq,6.1,u,37\nq,6.2,u,37\nq,6.3,u,37\nq,6.4,u,37\nq,6.6,u,37\nq,6.7,u,37\nq,6.8,u,37\nq,6.9,u,37\nq,7.0,u,37\nq,7.1,u,37\nq,7.2,u,37\nq,7.3,u,37\nq,7.4,u,37\nq,7.5,u,37\nq,7.6,u,37\nq,7.7,u,37\nq,7.8,u,37\nq,7.9,u,37\nq,8.0,u,37\nq,8.2,u,57\nq,8.3,u,57\nq,8.4,u,57\nq,8.5,u,57\nq,8.6,u,57\nq,8.7,u,57\nq,8.8,u,57\nq,8.9,u,57\nq,9.1,u,57\nq,9.7,u,66\nq,9.8,u,66\nq,10.0,u,66\nq,10.1,u,66\nq,10.2,u,66\nq,10.3,u,66\nq,10.4,u,66\nq,10.5,u,66\nq,10.7,200909,66\nq,11.0,u,77\nq,11.2,210130,77\nq,11.3,210331,77\nq,11.9,u,89\nq,12.0,211104,89\nq,12.1,211105,89\nq,12.2,211207,89\nq,12.5,220407,89\nq,12.7,220521,89\nq,12.8,220630,89\nq,12.9,220726,89\nq,13.0,220815,89\nq,13.1,220910,89\nq,13.2,221026,89\nq,13.3,221109,89\nq,13.5,230206,98\nq,13.6,230209,98\nq,13.7,230421,98\nq,13.8,230421,98\nq,14.0,231212,98\nq,14.1,230716,98\nq,14.3,230913,109\nq,14.4,231031,109\nq,14.5,231112,109\nq,14.6,231224,109\nq,14.7,240118,109\nq,14.8,240304,109\nq,14.9,240409,109\nq,15.0,240417,109\nq,15.1,240518,109\nq,15.2,241024,109\nq,15.3,240728,109\nq,15.4,240907,109\nq,15.5,240924,109\nq,15.6,241024,109\nq,15.7,241203,109\nq,15.8,241211,109\nq,15.9,250201,109\nq,19.2,250715,121\nq,19.3,250831,121\nq,19.4,250920,121\nq,19.5,251023,121\nq,19.6,251117,121\nq,19.7,251218,121\nq,19.8,260120,121\nq,19.9,260309,121\nq,20.0,260406,121\nq,20.1,260430,121\nq,20.2,260610,121\nq,20.3,260617,121\nq,20.4,260728,121\nq,20.5,260817,121\nq,20.6,260915,121\nq,20.7,261025,121\nk,1.0,170301,37\nk,2.5,170701,48\nk,3.1,220301,84\nfb,68,u,48\nfb,74,u,50\nfb,75,u,50\nfb,76,u,50\nfb,77,u,50\nfb,78,u,50\nfb,79,u,50\nfb,80,u,51\nfb,81,u,51\nfb,82,u,51\nfb,83,u,51\nfb,84,u,51\nfb,86,u,51\nfb,87,u,52\nfb,88,u,52\nfb,89,u,52\nfb,90,u,52\nfb,91,u,52\nfb,92,u,52\nfb,93,u,52\nfb,94,u,52\nfb,96,u,53\nfb,97,u,53\nfb,98,u,53\nfb,99,u,53\nfb,100,u,54\nfb,101,u,54\nfb,103,u,54\nfb,104,u,54\nfb,105,u,54\nfb,106,u,55\nfb,107,u,55\nfb,108,u,55\nfb,109,u,55\nfb,110,u,55\nfb,111,u,55\nfb,113,u,56\nfb,114,u,56\nfb,115,u,56\nfb,116,u,56\nfb,118,u,57\nfb,119,u,57\nfb,120,u,57\nfb,121,u,57\nfb,122,u,58\nfb,123,u,58\nfb,124,u,58\nfb,125,u,58\nfb,126,u,58\nfb,127,u,58\nfb,128,u,58\nfb,129,u,58\nfb,130,u,59\nfb,131,u,59\nfb,132,u,59\nfb,133,u,59\nfb,134,u,59\nfb,135,u,59\nfb,136,u,59\nfb,137,u,59\nfb,138,u,60\nfb,140,u,60\nfb,142,u,61\nfb,143,u,61\nfb,144,u,61\nfb,145,u,61\nfb,146,u,61\nfb,147,u,61\nfb,148,u,61\nfb,150,u,62\nfb,151,u,62\nfb,152,u,62\nfb,153,u,63\nfb,154,u,63\nfb,155,u,63\nfb,156,u,63\nfb,157,u,64\nfb,158,u,64\nfb,159,u,64\nfb,160,u,64\nfb,161,u,64\nfb,162,u,64\nfb,163,u,65\nfb,164,u,65\nfb,165,u,65\nfb,166,u,65\nfb,167,u,65\nfb,168,u,65\nfb,170,u,66\nfb,171,u,66\nfb,172,u,66\nfb,173,u,66\nfb,174,u,66\nfb,175,u,67\nfb,176,u,67\nfb,177,u,67\nfb,178,u,67\nfb,180,u,67\nfb,181,u,67\nfb,182,u,67\nfb,183,u,68\nfb,184,u,68\nfb,185,u,68\nfb,186,u,68\nfb,187,u,68\nfb,188,u,68\nfb,202,u,71\nfb,227,u,75\nfb,228,u,75\nfb,229,u,75\nfb,230,u,75\nfb,231,u,75\nfb,235,u,76\nfb,236,u,76\nfb,237,u,76\nfb,238,u,76\nfb,240,u,77\nfb,241,u,77\nfb,242,u,77\nfb,243,u,77\nfb,244,u,78\nfb,245,u,78\nfb,246,u,78\nfb,247,u,78\nfb,248,u,78\nfb,249,u,78\nfb,250,u,78\nfb,251,u,79\nfb,252,u,79\nfb,253,u,79\nfb,254,u,79\nfb,255,u,79\nfb,257,u,80\nfb,258,u,80\nfb,259,u,80\nfb,260,u,80\nfb,261,u,80\nfb,262,u,80\nfb,263,u,80\nfb,264,u,80\nfb,265,u,80\nfb,267,u,81\nfb,268,u,81\nfb,269,u,81\nfb,270,u,81\nfb,271,u,81\nfb,272,u,83\nfb,273,u,83\nfb,274,u,83\nfb,275,u,83\nfb,400,230210,109\nfb,436,231013,117\nfb,438,231028,118\nfb,440,231112,119\nfb,441,231120,119\nfb,442,231129,119\nfb,444,231213,120\nfb,445,231221,120\nfb,446,240106,120\nfb,447,240112,120\nfb,449,240202,121\nfb,450,240205,121\nfb,451,240217,121\nfb,452,240225,122\nfb,453,240228,122\nfb,454,240304,122\nfb,466,u,126\nfb,469,u,126\nfb,471,240710,126\nfb,472,240711,126\nfb,475,240801,127\nfb,476,240809,127\nfb,477,240816,127\nfb,478,240821,128\nfb,479,240831,128\nfb,480,240907,128\nfb,481,240914,128\nfb,482,240920,129\nfb,483,240927,129\nfb,484,241004,129\nfb,485,241011,129\nfb,487,241026,130\nfb,488,241102,130\nfb,489,241109,130\nfb,494,241226,131\nfb,497,250126,132\nia,24,u,62\nia,25,u,62\nia,26,u,63\nia,27,u,63\nia,28,u,63\nia,29,u,63\nia,30,u,63\nia,31,u,64\nia,32,u,64\nia,33,u,64\nia,34,u,64\nia,35,u,65\nia,36,u,65\nia,37,u,65\nia,38,u,65\nia,39,u,65\nia,40,u,65\nia,41,u,65\nia,43,u,66\nia,44,u,66\nia,45,u,66\nia,46,u,66\nia,47,u,66\nia,48,u,67\nia,49,u,67\nia,50,u,67\nia,51,u,67\nia,52,u,67\nia,53,u,67\nia,54,u,67\nia,55,u,67\nia,56,u,68\nia,57,u,68\nia,58,u,68\nia,59,u,68\nia,60,u,68\nia,61,u,68\nia,65,u,69\nia,66,u,69\nia,68,u,69\nia,72,u,70\nia,74,u,71\nia,75,u,71\nia,79,u,71\nia,81,u,72\nia,82,u,72\nia,83,u,72\nia,84,u,73\nia,86,u,73\nia,95,u,74\nia,97,u,80\nia,98,u,80\nia,103,u,80\nia,104,u,80\nia,117,u,80\nia,118,u,80\nia,119,u,80\nia,120,u,80\nia,121,u,80\nia,127,u,80\nia,128,u,80\nia,129,u,80\nia,130,u,80\nia,131,u,80\nia,132,u,80\nia,133,u,80\nia,134,u,80\nia,135,u,80\nia,136,u,80\nia,138,u,81\nia,139,u,81\nia,140,u,81\nia,141,u,81\nia,142,u,81\nia,143,u,83\nia,144,u,83\nia,145,u,83\nia,146,u,83\nia,164,u,92\nia,230,u,92\nia,259,221104,106\nia,281,u,109\nia,289,231221,114\nia,290,231230,114\nia,295,u,115\nia,296,u,115\nia,297,u,115\nia,298,240111,115\nia,299,u,115\nia,300,u,116\nia,301,240112,116\nia,303,u,117\nia,304,u,117\nia,305,u,117\nia,307,u,118\nia,308,240119,118\nia,310,u,119\nia,312,u,120\nia,313,u,120\nia,314,u,120\nia,315,240119,120\nia,316,240125,120\nia,318,240216,121\nia,320,240304,121\nia,321,240307,122\nia,347,240911,127\nia,349,240920,128\nia,366,u,132\nia,367,250215,132\nia,382,250619,137\nia,383,250618,137\nia,384,250616,137\nia,385,250627,137\nia,387,250709,137\nia,392,250812,138\nia,394,250826,139\nia,395,250913,139\nia,396,250920,139\nia,397,250919,139\nia,401,251008,141\nia,404,251031,141\nia,406,251116,141\nia,407,251123,142\nia,408,251128,142\nia,409,251216,143\nia,410,251217,143\nia,411,260107,143\nia,438,260722,150\nia,443,260821,151\nia,444,260827,151\nia,448,261019,154\nia,450,261026,155\n",a=(n,a)=>{if(n===a)return 0;const[e=0,u=0]=n.split(".",2).map(Number),[s=0,o=0]=a.split(".",2).map(Number);if(isNaN(e)||isNaN(u))throw new Error(`Invalid version: ${n}`);if(isNaN(s)||isNaN(o))throw new Error(`Invalid version: ${a}`);return e!==s?e>s?1:-1:u!==o?u>o?1:-1:0},e={c:{longName:"chrome"},ca:{longName:"chrome_android"},e:{longName:"edge"},f:{longName:"firefox"},fa:{longName:"firefox_android"},s:{longName:"safari"},si:{longName:"safari_ios"},o:{longName:"opera",engine:"Blink"},oa:{longName:"opera_android",engine:"Blink"},sa:{longName:"samsunginternet_android",engine:"Blink"},wva:{longName:"webview_android",engine:"Blink"},y:{longName:"ya_android",engine:"Blink"},u:{longName:"uc_android",engine:"Blink"},q:{longName:"qq_android",engine:"Blink"},k:{longName:"kai_os",engine:"Gecko"},fb:{longName:"facebook_android",engine:"Blink"},ia:{longName:"instagram_android",engine:"Blink"}},u=n=>6===n.length&&/^\d{6}$/.test(n)?`20${n.slice(0,2)}-${n.slice(2,4)}-${n.slice(4,6)}`:8===n.length&&/^\d{8}$/.test(n)?`${n.slice(0,4)}-${n.slice(4,6)}-${n.slice(6,8)}`:n;let s;const o=()=>{if(s)return s;const o={},f={};let i="",r=!1;n.split("\n").forEach(n=>{if(n=n.trim())if("releases"!==n){if(r){const a=n.split(",");if(a.length>=3){const[n,e,s,o]=a,i=[n,e,u(s.trim())];o&&i.push(o.trim()),f[n]||(f[n]=[]),f[n].push(i);}return}if(n.startsWith("20")||n.startsWith("pre_baseline"))return i=u(n),void(o[i]=[]);{const a=n.split(",");if(a.length>=3){const[n,e,s,f]=a,r=[n,e,u(s.trim())];if(f&&r.push(f.trim()),!o[i])throw new Error(`Timeline entry for date ${i} is undefined. This should not happen.`);o[i].push(r);}}}else r=!0;});const c={};return Object.keys(e).forEach(n=>{var a;c[n]=[...null!==(a=f[n])&&void 0!==a?a:[]];}),Object.keys(o).forEach(n=>{o[n].forEach(n=>{const a=n[0];c[a]&&(c[a].some(a=>a[1]===n[1])||c[a].push(n));});}),Object.keys(c).forEach(n=>{c[n].sort((n,e)=>a(n[1],e[1]));}),s={timeline:o,mergedReleases:c},s};let f$1=!1;const i=Object.keys(e).filter(n=>void 0===e[n].engine).map(n=>{const{longName:a}=e[n];return {shortName:n,longName:a}}),r=["webview_android","samsunginternet_android","opera_android","opera","ya_android","uc_android","qq_android","kai_os","facebook_android","instagram_android"],c=n=>{const e=[],u=[];return n.forEach(n=>{i.some(a=>a.longName===n.browser)?e.push(n):u.push(n);}),e.sort((n,e)=>n.browser<e.browser?-1:n.browser>e.browser?1:a(n.version,e.version)),u.sort((n,e)=>{const u=r.indexOf(n.browser),s=r.indexOf(e.browser);return u!==s?u-s:a(n.version,e.version)}),[...e,...u]};let t=!1;const b=n=>{if(!1===n.includeDownstreamBrowsers&&!0===n.includeKaiOS)throw new Error("KaiOS is a downstream browser and can only be included if you include other downstream browsers. Please ensure you use `includeDownstreamBrowsers: true`.")},l=(n,a,u,s,o)=>{var f;const i={browser:a,version:u,release_date:"u"===s?"unknown":s};return o&&(i.engine_version=o,i.engine=null===(f=e[n])||void 0===f?void 0:f.engine),i};function w(n){var u,s,r,w,v,y,d;const{timeline:p,mergedReleases:g}=o();let q=null!=n?n:{},m={listAllCompatibleVersions:null!==(u=q.listAllCompatibleVersions)&&void 0!==u&&u,includeDownstreamBrowsers:null!==(s=q.includeDownstreamBrowsers)&&void 0!==s&&s,widelyAvailableOnDate:null!==(r=q.widelyAvailableOnDate)&&void 0!==r?r:void 0,targetYear:null!==(w=q.targetYear)&&void 0!==w?w:void 0,includeKaiOS:null!==(v=q.includeKaiOS)&&void 0!==v&&v,overrideLastUpdated:null!==(y=q.overrideLastUpdated)&&void 0!==y?y:void 0,suppressWarnings:null!==(d=q.suppressWarnings)&&void 0!==d&&d},h=new Date;if(m.widelyAvailableOnDate||m.targetYear){if(m.targetYear&&m.widelyAvailableOnDate)throw new Error("You cannot use targetYear and widelyAvailableOnDate at the same time.  Please remove one of these options and try again.");m.widelyAvailableOnDate?h=new Date(m.widelyAvailableOnDate):m.targetYear&&(h=new Date(`${m.targetYear}-12-31`));}else h=new Date;if((m.widelyAvailableOnDate||void 0===m.targetYear)&&h.setMonth(h.getMonth()-30),!m.suppressWarnings){if(((n,a)=>{if(f$1||"undefined"!=typeof process&&process.env&&(process.env.BROWSERSLIST_IGNORE_OLD_DATA||process.env.BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA))return;const e=new Date;e.setMonth(e.getMonth()-2),n>e&&(null!=a?a:1793659068355)<e.getTime()&&(console.warn("[baseline-browser-mapping] The data in this module is over two months old and you are targetting a recent feature cut off date of "+n.toISOString().slice(0,10)+". To ensure accurate Baseline data, please update to the latest version of this module using the package manager of your choice.You can suppress these warnings using the environment variables `BROWSERSLIST_IGNORE_OLD_DATA=true` or `BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true` or by passing `suppressWarnings: true` when you call `getCompatibleVersions()` or `getAllVersions()`."),f$1=!0);})(h,m.overrideLastUpdated),b(m),h.getFullYear()<2015&&!t&&console.warn(new Error("There are no browser versions compatible with Baseline before 2015.  You may receive unexpected results.")),h.getFullYear()<2002)throw new Error("None of the browsers in the core set were released before 2002.  Please use a date after 2002.");if(h.getFullYear()>(new Date).getFullYear())throw new Error("There are no browser versions compatible with Baseline in the future")}const _=h<new Date("2015-07-29"),O={};Object.keys(e).forEach(n=>{O[n]=void 0;}),Object.keys(p).forEach(n=>{const a=p[n];let e=!1;e="pre_baseline"===n||new Date(n)<=h,e&&a.forEach(a=>{const e=a[0];"pre_baseline"!==n&&(O[e]=a);});});const E=[];return Object.keys(e).forEach(n=>{var u,s;const{longName:o}=e[n];if(!m.includeKaiOS&&"k"===n)return;const f=i.some(a=>a.shortName===n);if(m.includeDownstreamBrowsers||f)if(_)if(m.listAllCompatibleVersions){E.push({browser:o,version:"0",release_date:""});(null!==(u=g[n])&&void 0!==u?u:[]).forEach(a=>{E.push(l(n,o,a[1],a[2],a[3]));});}else E.push({browser:o,version:"0",release_date:""});else {const e=O[n];if(!e)return;const u=e[1];if(m.listAllCompatibleVersions){(null!==(s=g[n])&&void 0!==s?s:[]).forEach(e=>{const s=e[1];a(s,u)>=0&&E.push(l(n,o,s,e[2],e[3]));});}else E.push(l(n,o,u,e[2],e[3]));}}),c(E)}dist._resetHasWarned=function(){f$1=!1;},dist.getAllVersions=function(n){var e,u,s,o,f;t=!0;let r=null!=n?n:{},c={outputFormat:null!==(e=r.outputFormat)&&void 0!==e?e:"array",includeDownstreamBrowsers:null!==(u=r.includeDownstreamBrowsers)&&void 0!==u&&u,useSupports:null!==(s=r.useSupports)&&void 0!==s&&s,includeKaiOS:null!==(o=r.includeKaiOS)&&void 0!==o&&o,suppressWarnings:null!==(f=r.suppressWarnings)&&void 0!==f&&f};b(c);let l=(new Date).getFullYear()+1;const v=[...Array(l).keys()].slice(2015),y={};v.forEach(n=>{y[n]={},w({targetYear:n,suppressWarnings:c.suppressWarnings}).forEach(a=>{y[n]&&(y[n][a.browser]=a);});});const d=w({suppressWarnings:c.suppressWarnings}),p={};d.forEach(n=>{p[n.browser]=n;});const g=new Date;g.setMonth(g.getMonth()+30);const q=w({widelyAvailableOnDate:g.toISOString().slice(0,10),suppressWarnings:c.suppressWarnings}),m={};q.forEach(n=>{m[n.browser]=n;});const h=w({targetYear:2002,listAllCompatibleVersions:!0,suppressWarnings:c.suppressWarnings}),_=[];if(i.map(n=>n.longName).forEach(n=>{var e,u,s,o;let f=h.filter(a=>a.browser==n).sort((n,e)=>a(n.version,e.version)),i=null!==(u=null===(e=p[n])||void 0===e?void 0:e.version)&&void 0!==u?u:"0",r=null!==(o=null===(s=m[n])||void 0===s?void 0:s.version)&&void 0!==o?o:"0";v.forEach(e=>{var u;if(y[e]){let s=(null!==(u=y[e][n])&&void 0!==u?u:{version:"0"}).version,o=f.findIndex(n=>0===a(n.version,s));(e===l-1?f:f.slice(0,o)).forEach(n=>{let u=a(n.version,i)>=0,s=a(n.version,r)>=0,o=Object.assign(Object.assign({},n),{year:e<=2015?"pre_baseline":e-1});c.useSupports?(u&&(o.supports="widely"),s&&(o.supports="newly")):o=Object.assign(Object.assign({},o),{wa_compatible:u}),_.push(o);}),f=f.slice(o,f.length);}});}),c.includeDownstreamBrowsers){w({targetYear:2002,listAllCompatibleVersions:!0,includeDownstreamBrowsers:!0,includeKaiOS:c.includeKaiOS,suppressWarnings:c.suppressWarnings}).filter(n=>!i.map(n=>n.longName).includes(n.browser)).forEach(n=>{const a="Gecko"===n.engine?"firefox":"chrome";let e=_.find(e=>e.browser===a&&e.version===n.engine_version);e&&(c.useSupports?_.push(Object.assign(Object.assign({},n),{year:e.year,supports:e.supports})):_.push(Object.assign(Object.assign({},n),{year:e.year,wa_compatible:e.wa_compatible})));});}if(_.sort((n,e)=>{if("pre_baseline"===n.year&&"pre_baseline"!==e.year)return -1;if("pre_baseline"===e.year&&"pre_baseline"!==n.year)return 1;if("pre_baseline"!==n.year&&"pre_baseline"!==e.year){if(n.year<e.year)return -1;if(n.year>e.year)return 1}return n.browser<e.browser?-1:n.browser>e.browser?1:a(n.version,e.version)}),"object"===c.outputFormat){const n={};return _.forEach(a=>{n[a.browser]||(n[a.browser]={});let e={year:a.year,release_date:a.release_date,engine:a.engine,engine_version:a.engine_version};n[a.browser][a.version]=c.useSupports?a.supports?Object.assign(Object.assign({},e),{supports:a.supports}):e:Object.assign(Object.assign({},e),{wa_compatible:a.wa_compatible});}),null!=n?n:{}}if("csv"===c.outputFormat){let n=`"browser","version","year","${c.useSupports?"supports":"wa_compatible"}","release_date","engine","engine_version"`;return _.forEach(a=>{var e,u,s,o;let f={browser:a.browser,version:a.version,year:a.year,release_date:null!==(e=a.release_date)&&void 0!==e?e:"NULL",engine:null!==(u=a.engine)&&void 0!==u?u:"NULL",engine_version:null!==(s=a.engine_version)&&void 0!==s?s:"NULL"};f=c.useSupports?Object.assign(Object.assign({},f),{supports:null!==(o=a.supports)&&void 0!==o?o:""}):Object.assign(Object.assign({},f),{wa_compatible:a.wa_compatible}),n+=`\n"${f.browser}","${f.version}","${f.year}","${c.useSupports?f.supports:f.wa_compatible}","${f.release_date}","${f.engine}","${f.engine_version}"`;}),n}return _},dist.getCompatibleVersions=w,dist.getTimeline=function(n){var a,u,s,f;const{timeline:r}=o(),t=null!=n?n:{},b=null!==(a=t.groupBy)&&void 0!==a?a:"date",w=null!==(u=t.listAllBrowsers)&&void 0!==u&&u,v=null!==(s=t.includeDownstreamBrowsers)&&void 0!==s&&s,y=null!==(f=t.includeKaiOS)&&void 0!==f&&f;if(!1===v&&!0===y)throw new Error("KaiOS is a downstream browser and can only be included if you include other downstream browsers. Please ensure you use `includeDownstreamBrowsers: true`.");const d={},p=[];if(Object.keys(r).forEach(n=>{const a=r[n];if("pre_baseline"===n)return;const u=new Set;a.forEach(n=>{const a=n[0],e=d[a],s=n[1];e&&e[1]===s||u.add(a),d[a]=n;});const s=[];if(Object.keys(e).forEach(n=>{const{longName:a}=e[n];if(!y&&"k"===n)return;const o=i.some(a=>a.shortName===n);if(!v&&!o)return;const f=u.has(n);if(w||f){const e=d[n];e&&s.push(l(n,a,e[1],e[2],e[3]));}}),s.length>0){const a=c(s);p.push({date:n,browsers:a});}}),"browser"===b){const n={};return Object.keys(e).forEach(a=>{const{longName:u}=e[a];if(!y&&"k"===a)return;const s=i.some(n=>n.shortName===a);(v||s)&&(n[u]=[]);}),p.forEach(a=>{a.browsers.forEach(e=>{const{browser:u}=e,s=function(n,a){var e={};for(var u in n)Object.prototype.hasOwnProperty.call(n,u)&&a.indexOf(u)<0&&(e[u]=n[u]);if(null!=n&&"function"==typeof Object.getOwnPropertySymbols){var s=0;for(u=Object.getOwnPropertySymbols(n);s<u.length;s++)a.indexOf(u[s])<0&&Object.prototype.propertyIsEnumerable.call(n,u[s])&&(e[u[s]]=n[u[s]]);}return e}(e,["browser"]);n[u]&&n[u].push(Object.assign({date:a.date},s));});}),n}return p};
 
   var require$$1 = [
   	{
@@ -14708,6 +14874,14 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   	},
   	{
   		name: "nodejs",
+  		version: "24.22.0",
+  		date: "2026-10-14",
+  		lts: "Krypton",
+  		security: false,
+  		v8: "13.6.233.17"
+  	},
+  	{
+  		name: "nodejs",
   		version: "25.0.0",
   		date: "2025-10-15",
   		lts: false,
@@ -14865,6 +15039,46 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   		lts: false,
   		security: false,
   		v8: "14.6.202.34"
+  	},
+  	{
+  		name: "nodejs",
+  		version: "26.10.0",
+  		date: "2026-09-21",
+  		lts: false,
+  		security: false,
+  		v8: "14.6.202.34"
+  	},
+  	{
+  		name: "nodejs",
+  		version: "26.11.0",
+  		date: "2026-10-07",
+  		lts: false,
+  		security: false,
+  		v8: "14.6.202.34"
+  	},
+  	{
+  		name: "nodejs",
+  		version: "26.12.0",
+  		date: "2026-10-14",
+  		lts: false,
+  		security: false,
+  		v8: "14.6.202.34"
+  	},
+  	{
+  		name: "nodejs",
+  		version: "26.13.0",
+  		date: "2026-10-28",
+  		lts: "Lithium",
+  		security: false,
+  		v8: "14.6.202.34"
+  	},
+  	{
+  		name: "nodejs",
+  		version: "27.0.0-alpha.0.0.0",
+  		date: "2026-10-29",
+  		lts: false,
+  		security: false,
+  		v8: "15.6.75.25"
   	}
   ];
 
@@ -14878,11 +15092,11 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   var browserVersions$1 = {};
 
-  var browserVersions={"0":"116","1":"117","2":"118","3":"119","4":"120","5":"121","6":"122","7":"123","8":"124","9":"125",A:"10",B:"11",C:"12",D:"7",E:"8",F:"9",G:"15",H:"80",I:"151",J:"4",K:"27",L:"6",M:"13",N:"14",O:"16",P:"17",Q:"18",R:"79",S:"81",T:"83",U:"84",V:"85",W:"86",X:"87",Y:"88",Z:"89",a:"90",b:"91",c:"92",d:"93",e:"94",f:"95",g:"96",h:"97",i:"98",j:"99",k:"100",l:"101",m:"102",n:"103",o:"104",p:"105",q:"106",r:"107",s:"108",t:"109",u:"110",v:"111",w:"112",x:"113",y:"114",z:"115",AB:"126",BB:"127",CB:"131",DB:"20",EB:"21",FB:"22",GB:"23",HB:"24",IB:"25",JB:"26",KB:"28",LB:"29",MB:"30",NB:"128",OB:"129",PB:"130",QB:"132",RB:"133",SB:"134",TB:"135",UB:"136",VB:"137",WB:"138",XB:"139",YB:"140",ZB:"141",aB:"142",bB:"143",cB:"144",dB:"145",eB:"146",fB:"147",gB:"148",hB:"149",iB:"150",jB:"5",kB:"19",lB:"31",mB:"32",nB:"33",oB:"34",pB:"35",qB:"36",rB:"37",sB:"38",tB:"39",uB:"40",vB:"41",wB:"42",xB:"43",yB:"44",zB:"45","0B":"46","1B":"47","2B":"48","3B":"49","4B":"50","5B":"51","6B":"52","7B":"53","8B":"54","9B":"55",AC:"56",BC:"57",CC:"58",DC:"60",EC:"62",FC:"63",GC:"64",HC:"65",IC:"66",JC:"67",KC:"68",LC:"69",MC:"70",NC:"71",OC:"72",PC:"73",QC:"74",RC:"75",SC:"76",TC:"77",UC:"78",VC:"153",WC:"11.1",XC:"12.1",YC:"15.5",ZC:"16.0",aC:"17.0",bC:"18.0",cC:"3",dC:"59",eC:"61",fC:"82",gC:"152",hC:"154",iC:"3.2",jC:"10.1",kC:"15.2-15.3",lC:"15.4",mC:"16.1",nC:"16.2",oC:"16.3",pC:"16.4",qC:"16.5",rC:"17.1",sC:"17.2",tC:"17.3",uC:"17.4",vC:"17.5",wC:"18.1",xC:"18.2",yC:"18.3",zC:"18.4","0C":"18.5-18.7","1C":"26.0","2C":"26.1","3C":"26.2","4C":"26.3","5C":"26.4","6C":"26.5","7C":"26.6","8C":"11.5","9C":"4.2-4.3",AD:"5.5",BD:"2",CD:"155",DD:"156",ED:"157",FD:"3.5",GD:"3.6",HD:"3.1",ID:"5.1",JD:"6.1",KD:"7.1",LD:"9.1",MD:"13.1",ND:"14.1",OD:"15.1",PD:"15.6",QD:"16.6",RD:"17.6",SD:"TP",TD:"9.5-9.6",UD:"10.0-10.1",VD:"10.5",WD:"10.6",XD:"11.6",YD:"4.0-4.1",ZD:"5.0-5.1",aD:"6.0-6.1",bD:"7.0-7.1",cD:"8.1-8.4",dD:"9.0-9.2",eD:"9.3",fD:"10.0-10.2",gD:"10.3",hD:"11.0-11.2",iD:"11.3-11.4",jD:"12.0-12.1",kD:"12.2-12.5",lD:"13.0-13.1",mD:"13.2",nD:"13.3",oD:"13.4-13.7",pD:"14.0-14.4",qD:"14.5-14.8",rD:"15.0-15.1",sD:"15.6-15.8",tD:"16.6-16.7",uD:"17.6-17.7",vD:"all",wD:"2.1",xD:"2.2",yD:"2.3",zD:"4.1","0D":"4.4","1D":"4.4.3-4.4.4","2D":"5.0-5.4","3D":"6.2-6.4","4D":"7.2-7.4","5D":"8.2","6D":"9.2","7D":"11.1-11.2","8D":"12.0","9D":"13.0",AE:"14.0",BE:"15.0",CE:"19.0",DE:"14.9",EE:"13.52",FE:"2.5",GE:"3.0-3.1"};
+  var browserVersions={"0":"117","1":"118","2":"119","3":"120","4":"121","5":"122","6":"123","7":"124","8":"125","9":"126",A:"10",B:"11",C:"12",D:"7",E:"8",F:"9",G:"15",H:"80",I:"4",J:"27",K:"6",L:"13",M:"14",N:"16",O:"17",P:"18",Q:"79",R:"81",S:"83",T:"84",U:"85",V:"86",W:"87",X:"88",Y:"89",Z:"90",a:"91",b:"92",c:"93",d:"94",e:"95",f:"96",g:"97",h:"98",i:"99",j:"100",k:"101",l:"102",m:"103",n:"104",o:"105",p:"106",q:"107",r:"108",s:"109",t:"110",u:"111",v:"112",w:"113",x:"114",y:"115",z:"116",AB:"127",BB:"131",CB:"132",DB:"133",EB:"134",FB:"135",GB:"136",HB:"137",IB:"138",JB:"139",KB:"20",LB:"21",MB:"22",NB:"23",OB:"24",PB:"25",QB:"26",RB:"28",SB:"29",TB:"30",UB:"31",VB:"157",WB:"128",XB:"129",YB:"130",ZB:"140",aB:"141",bB:"142",cB:"143",dB:"144",eB:"145",fB:"146",gB:"147",hB:"148",iB:"149",jB:"150",kB:"151",lB:"152",mB:"153",nB:"154",oB:"155",pB:"156",qB:"5",rB:"19",sB:"32",tB:"33",uB:"34",vB:"35",wB:"36",xB:"37",yB:"38",zB:"39","0B":"40","1B":"41","2B":"42","3B":"43","4B":"44","5B":"45","6B":"46","7B":"47","8B":"48","9B":"49",AC:"50",BC:"51",CC:"52",DC:"53",EC:"54",FC:"55",GC:"56",HC:"57",IC:"58",JC:"60",KC:"62",LC:"63",MC:"64",NC:"65",OC:"66",PC:"67",QC:"68",RC:"69",SC:"70",TC:"71",UC:"72",VC:"73",WC:"74",XC:"75",YC:"76",ZC:"77",aC:"78",bC:"159",cC:"11.1",dC:"12.1",eC:"15.5",fC:"16.0",gC:"17.0",hC:"18.0",iC:"3",jC:"59",kC:"61",lC:"82",mC:"158",nC:"160",oC:"3.2",pC:"10.1",qC:"15.2-15.3",rC:"15.4",sC:"16.1",tC:"16.2",uC:"16.3",vC:"16.4",wC:"16.5",xC:"17.1",yC:"17.2",zC:"17.3","0C":"17.4","1C":"17.5","2C":"18.1","3C":"18.2","4C":"18.3","5C":"18.4","6C":"18.5-18.7","7C":"26.0","8C":"26.1","9C":"26.2",AD:"26.3",BD:"26.4",CD:"26.5",DD:"26.6",ED:"27.1",FD:"27.2",GD:"11.5",HD:"4.2-4.3",ID:"5.5",JD:"2",KD:"161",LD:"162",MD:"3.5",ND:"3.6",OD:"3.1",PD:"5.1",QD:"6.1",RD:"7.1",SD:"9.1",TD:"13.1",UD:"14.1",VD:"15.1",WD:"15.6",XD:"16.6",YD:"17.6",ZD:"27.3",aD:"TP",bD:"9.5-9.6",cD:"10.0-10.1",dD:"10.5",eD:"10.6",fD:"11.6",gD:"4.0-4.1",hD:"5.0-5.1",iD:"6.0-6.1",jD:"7.0-7.1",kD:"8.1-8.4",lD:"9.0-9.2",mD:"9.3",nD:"10.0-10.2",oD:"10.3",pD:"11.0-11.2",qD:"11.3-11.4",rD:"12.0-12.1",sD:"12.2-12.5",tD:"13.0-13.1",uD:"13.2",vD:"13.3",wD:"13.4-13.7",xD:"14.0-14.4",yD:"14.5-14.8",zD:"15.0-15.1","0D":"15.6-15.8","1D":"16.6-16.7","2D":"17.6-17.7","3D":"27.0","4D":"all","5D":"2.1","6D":"2.2","7D":"2.3","8D":"4.1","9D":"4.4",AE:"4.4.3-4.4.4",BE:"5.0-5.4",CE:"6.2-6.4",DE:"7.2-7.4",EE:"8.2",FE:"9.2",GE:"11.1-11.2",HE:"12.0",IE:"13.0",JE:"14.0",KE:"15.0",LE:"19.0",ME:"14.9",NE:"13.52",OE:"2.5",PE:"3.0-3.1"};
 
   browserVersions$1.browserVersions = browserVersions;
 
-  var agents$3={A:{A:{L:0,D:0,E:0,F:0,A:0,B:0.266336,AD:0},B:"ms",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","AD","L","D","E","F","A","B","","",""],E:"IE",F:{AD:962323200,L:998870400,D:1161129600,E:1237420800,F:1300060800,A:1346716800,B:1381968000}},B:{A:{"0":0,"1":0,"2":0,"3":0.179088,"4":0.18368,"5":0,"6":0.009184,"7":0,"8":0,"9":0,C:0,M:0,N:0,G:0,O:0,P:0,Q:0,R:0,H:0,S:0,T:0,U:0,V:0,W:0,X:0,Y:0,Z:0,a:0,b:0,c:0.009184,d:0,e:0,f:0,g:0,h:0,i:0,j:0,k:0,l:0,m:0,n:0,o:0,p:0,q:0,r:0,s:0,t:0.027552,u:0,v:0,w:0,x:0,y:0.004592,z:0,AB:0,BB:0,NB:0,OB:0,PB:0,CB:0.013776,QB:0,RB:0.004592,SB:0.004592,TB:0.009184,UB:0.004592,VB:0.004592,WB:0.009184,XB:0.009184,YB:0.009184,ZB:0.009184,aB:0.009184,bB:0.013776,cB:0.013776,dB:0.013776,eB:0.018368,fB:0.059696,gB:0.055104,hB:0.821968,iB:3.58635,I:0.004592},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","C","M","N","G","O","P","Q","R","H","S","T","U","V","W","X","Y","Z","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","AB","BB","NB","OB","PB","CB","QB","RB","SB","TB","UB","VB","WB","XB","YB","ZB","aB","bB","cB","dB","eB","fB","gB","hB","iB","I","","",""],E:"Edge",F:{"0":1692576000,"1":1694649600,"2":1697155200,"3":1698969600,"4":1701993600,"5":1706227200,"6":1708732800,"7":1711152000,"8":1713398400,"9":1715990400,C:1438128000,M:1447286400,N:1470096000,G:1491868800,O:1508198400,P:1525046400,Q:1542067200,R:1579046400,H:1581033600,S:1586736000,T:1590019200,U:1594857600,V:1598486400,W:1602201600,X:1605830400,Y:1611360000,Z:1614816000,a:1618358400,b:1622073600,c:1626912000,d:1630627200,e:1632441600,f:1634774400,g:1637539200,h:1641427200,i:1643932800,j:1646265600,k:1649635200,l:1651190400,m:1653955200,n:1655942400,o:1659657600,p:1661990400,q:1664755200,r:1666915200,s:1670198400,t:1673481600,u:1675900800,v:1678665600,w:1680825600,x:1683158400,y:1685664000,z:1689897600,AB:1718841600,BB:1721865600,NB:1724371200,OB:1726704000,PB:1729123200,CB:1731542400,QB:1737417600,RB:1740614400,SB:1741219200,TB:1743984000,UB:1746316800,VB:1748476800,WB:1750896000,XB:1754611200,YB:1756944000,ZB:1759363200,aB:1761868800,bB:1764806400,cB:1768780800,dB:1770854400,eB:1773446400,fB:1775692800,gB:1778112000,hB:1780531200,iB:1782950400,I:1785369600},D:{C:"ms",M:"ms",N:"ms",G:"ms",O:"ms",P:"ms",Q:"ms"}},C:{A:{"0":0,"1":0,"2":0,"3":0,"4":0.174496,"5":0.348992,"6":0,"7":0,"8":0,"9":0.059696,BD:0,cC:0,J:0,jB:0.009184,L:0,D:0,E:0,F:0,A:0,B:0,C:0,M:0,N:0,G:0,O:0,P:0,Q:0,kB:0,DB:0,EB:0,FB:0,GB:0,HB:0,IB:0,JB:0,K:0,KB:0,LB:0,MB:0,lB:0,mB:0,nB:0,oB:0,pB:0,qB:0,rB:0,sB:0,tB:0,uB:0,vB:0,wB:0,xB:0,yB:0,zB:0,"0B":0,"1B":0,"2B":0,"3B":0,"4B":0,"5B":0,"6B":0.004592,"7B":0,"8B":0,"9B":0,AC:0,BC:0,CC:0,dC:0,DC:0,eC:0,EC:0,FC:0,GC:0,HC:0,IC:0,JC:0,KC:0,LC:0,MC:0,NC:0,OC:0,PC:0,QC:0,RC:0,SC:0,TC:0,UC:0.004592,R:0,H:0,S:0,fC:0,T:0,U:0,V:0,W:0,X:0,Y:0,Z:0,a:0,b:0,c:0,d:0,e:0,f:0,g:0,h:0,i:0,j:0,k:0,l:0,m:0,n:0,o:0,p:0,q:0,r:0,s:0,t:0,u:0,v:0,w:0,x:0.004592,y:0,z:0.119392,AB:0.059696,BB:0.064288,NB:0.050512,OB:0.036736,PB:0.059696,CB:0.064288,QB:0.059696,RB:0.06888,SB:0.041328,TB:0.13776,UB:0.078064,VB:0,WB:0,XB:0,YB:0.06888,ZB:0,aB:0,bB:0,cB:0,dB:0,eB:0.004592,fB:0.009184,gB:0.009184,hB:0.009184,iB:0.027552,I:0.036736,gC:0.982688,VC:0.29848,hC:0,CD:0,DD:0,ED:0,FD:0,GD:0},B:"moz",C:["BD","cC","FD","GD","J","jB","L","D","E","F","A","B","C","M","N","G","O","P","Q","kB","DB","EB","FB","GB","HB","IB","JB","K","KB","LB","MB","lB","mB","nB","oB","pB","qB","rB","sB","tB","uB","vB","wB","xB","yB","zB","0B","1B","2B","3B","4B","5B","6B","7B","8B","9B","AC","BC","CC","dC","DC","eC","EC","FC","GC","HC","IC","JC","KC","LC","MC","NC","OC","PC","QC","RC","SC","TC","UC","R","H","S","fC","T","U","V","W","X","Y","Z","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","AB","BB","NB","OB","PB","CB","QB","RB","SB","TB","UB","VB","WB","XB","YB","ZB","aB","bB","cB","dB","eB","fB","gB","hB","iB","I","gC","VC","hC","CD","DD","ED"],E:"Firefox",F:{"0":1690848000,"1":1693267200,"2":1695686400,"3":1698105600,"4":1700524800,"5":1702944000,"6":1705968000,"7":1708387200,"8":1710806400,"9":1713225600,BD:1161648000,cC:1213660800,FD:1246320000,GD:1264032000,J:1300752000,jB:1308614400,L:1313452800,D:1317081600,E:1317081600,F:1320710400,A:1324339200,B:1327968000,C:1331596800,M:1335225600,N:1338854400,G:1342483200,O:1346112000,P:1349740800,Q:1353628800,kB:1357603200,DB:1361232000,EB:1364860800,FB:1368489600,GB:1372118400,HB:1375747200,IB:1379376000,JB:1386633600,K:1391472000,KB:1395100800,LB:1398729600,MB:1402358400,lB:1405987200,mB:1409616000,nB:1413244800,oB:1417392000,pB:1421107200,qB:1424736000,rB:1428278400,sB:1431475200,tB:1435881600,uB:1439251200,vB:1442880000,wB:1446508800,xB:1450137600,yB:1453852800,zB:1457395200,"0B":1461628800,"1B":1465257600,"2B":1470096000,"3B":1474329600,"4B":1479168000,"5B":1485216000,"6B":1488844800,"7B":1492560000,"8B":1497312000,"9B":1502150400,AC:1506556800,BC:1510617600,CC:1516665600,dC:1520985600,DC:1525824000,eC:1529971200,EC:1536105600,FC:1540252800,GC:1544486400,HC:1548720000,IC:1552953600,JC:1558396800,KC:1562630400,LC:1567468800,MC:1571788800,NC:1575331200,OC:1578355200,PC:1581379200,QC:1583798400,RC:1586304000,SC:1588636800,TC:1591056000,UC:1593475200,R:1595894400,H:1598313600,S:1600732800,fC:1603152000,T:1605571200,U:1607990400,V:1611619200,W:1614038400,X:1616457600,Y:1618790400,Z:1622505600,a:1626134400,b:1628553600,c:1630972800,d:1633392000,e:1635811200,f:1638835200,g:1641859200,h:1644364800,i:1646697600,j:1649116800,k:1651536000,l:1653955200,m:1656374400,n:1658793600,o:1661212800,p:1663632000,q:1666051200,r:1668470400,s:1670889600,t:1673913600,u:1676332800,v:1678752000,w:1681171200,x:1683590400,y:1686009600,z:1688428800,AB:1715644800,BB:1718064000,NB:1720483200,OB:1722902400,PB:1725321600,CB:1727740800,QB:1730160000,RB:1732579200,SB:1736208000,TB:1738627200,UB:1741046400,VB:1743465600,WB:1745884800,XB:1748304000,YB:1750723200,ZB:1753142400,aB:1755561600,bB:1757980800,cB:1760400000,dB:1762819200,eB:1765238400,fB:1768262400,gB:1771891200,hB:1774310400,iB:1776729600,I:1779148800,gC:1781568000,VC:1784592000,hC:1787011200,CD:null,DD:null,ED:null}},D:{A:{"0":0.20664,"1":0.09184,"2":0.211232,"3":0.36736,"4":0.509712,"5":0.013776,"6":0.036736,"7":0.018368,"8":0.174496,"9":0.087248,J:0,jB:0,L:0,D:0,E:0,F:0,A:0,B:0,C:0,M:0,N:0,G:0,O:0,P:0,Q:0,kB:0,DB:0,EB:0,FB:0,GB:0,HB:0,IB:0,JB:0,K:0,KB:0,LB:0,MB:0,lB:0,mB:0,nB:0,oB:0,pB:0,qB:0,rB:0,sB:0,tB:0.02296,uB:0.02296,vB:0.02296,wB:0.02296,xB:0.02296,yB:0.02296,zB:0.02296,"0B":0.02296,"1B":0.02296,"2B":0.027552,"3B":0.027552,"4B":0.02296,"5B":0.02296,"6B":0.027552,"7B":0.02296,"8B":0.02296,"9B":0.02296,AC:0.02296,BC:0.02296,CC:0.02296,dC:0.02296,DC:0.02296,eC:0,EC:0,FC:0,GC:0,HC:0,IC:0,JC:0,KC:0,LC:0.009184,MC:0.06888,NC:0,OC:0,PC:0,QC:0,RC:0,SC:0,TC:0,UC:0,R:0.018368,H:0,S:0,T:0,U:0,V:0,W:0.004592,X:0.02296,Y:0,Z:0,a:0,b:0.009184,c:0,d:0.009184,e:0,f:0,g:0,h:0.004592,i:0.02296,j:0.004592,k:0,l:0.009184,m:0.009184,n:0.146944,o:0.087248,p:0.087248,q:0.09184,r:0.09184,s:0.096432,t:0.583184,u:0.09184,v:0.101024,w:0.09184,x:0,y:0.018368,z:0.009184,AB:0.036736,BB:0.013776,NB:0.064288,OB:0.013776,PB:0.027552,CB:0.270928,QB:0.073472,RB:0.211232,SB:0.04592,TB:0.036736,UB:0.247968,VB:0.073472,WB:0.123984,XB:0.188272,YB:0.036736,ZB:0.04592,aB:0.257152,bB:0.073472,cB:0.101024,dB:0.904624,eB:0.110208,fB:0.220416,gB:0.716352,hB:5.04202,iB:9.15645,I:0.142352,gC:0.009184,VC:0,hC:0},B:"webkit",C:["","","","","","","","","J","jB","L","D","E","F","A","B","C","M","N","G","O","P","Q","kB","DB","EB","FB","GB","HB","IB","JB","K","KB","LB","MB","lB","mB","nB","oB","pB","qB","rB","sB","tB","uB","vB","wB","xB","yB","zB","0B","1B","2B","3B","4B","5B","6B","7B","8B","9B","AC","BC","CC","dC","DC","eC","EC","FC","GC","HC","IC","JC","KC","LC","MC","NC","OC","PC","QC","RC","SC","TC","UC","R","H","S","T","U","V","W","X","Y","Z","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","AB","BB","NB","OB","PB","CB","QB","RB","SB","TB","UB","VB","WB","XB","YB","ZB","aB","bB","cB","dB","eB","fB","gB","hB","iB","I","gC","VC","hC"],E:"Chrome",F:{"0":1692057600,"1":1694476800,"2":1696896000,"3":1698710400,"4":1701993600,"5":1705968000,"6":1708387200,"7":1710806400,"8":1713225600,"9":1715644800,J:1264377600,jB:1274745600,L:1283385600,D:1287619200,E:1291248000,F:1296777600,A:1299542400,B:1303862400,C:1307404800,M:1312243200,N:1316131200,G:1316131200,O:1319500800,P:1323734400,Q:1328659200,kB:1332892800,DB:1337040000,EB:1340668800,FB:1343692800,GB:1348531200,HB:1352246400,IB:1357862400,JB:1361404800,K:1364428800,KB:1369094400,LB:1374105600,MB:1376956800,lB:1384214400,mB:1389657600,nB:1392940800,oB:1397001600,pB:1400544000,qB:1405468800,rB:1409011200,sB:1412640000,tB:1416268800,uB:1421798400,vB:1425513600,wB:1429401600,xB:1432080000,yB:1437523200,zB:1441152000,"0B":1444780800,"1B":1449014400,"2B":1453248000,"3B":1456963200,"4B":1460592000,"5B":1464134400,"6B":1469059200,"7B":1472601600,"8B":1476230400,"9B":1480550400,AC:1485302400,BC:1489017600,CC:1492560000,dC:1496707200,DC:1500940800,eC:1504569600,EC:1508198400,FC:1512518400,GC:1516752000,HC:1520294400,IC:1523923200,JC:1527552000,KC:1532390400,LC:1536019200,MC:1539648000,NC:1543968000,OC:1548720000,PC:1552348800,QC:1555977600,RC:1559606400,SC:1564444800,TC:1568073600,UC:1571702400,R:1575936000,H:1580860800,S:1586304000,T:1589846400,U:1594684800,V:1598313600,W:1601942400,X:1605571200,Y:1611014400,Z:1614556800,a:1618272000,b:1621987200,c:1626739200,d:1630368000,e:1632268800,f:1634601600,g:1637020800,h:1641340800,i:1643673600,j:1646092800,k:1648512000,l:1650931200,m:1653350400,n:1655769600,o:1659398400,p:1661817600,q:1664236800,r:1666656000,s:1669680000,t:1673308800,u:1675728000,v:1678147200,w:1680566400,x:1682985600,y:1685404800,z:1689724800,AB:1718064000,BB:1721174400,NB:1724112000,OB:1726531200,PB:1728950400,CB:1731369600,QB:1736812800,RB:1738627200,SB:1741046400,TB:1743465600,UB:1745884800,VB:1748304000,WB:1750723200,XB:1754352000,YB:1756771200,ZB:1759190400,aB:1761609600,bB:1764633600,cB:1768262400,dB:1770681600,eB:1773100800,fB:1775520000,gB:1777939200,hB:1780358400,iB:1782777600,I:1785196800,gC:null,VC:null,hC:null}},E:{A:{J:0,jB:0,L:0,D:0,E:0,F:0,A:0,B:0,C:0,M:0,N:0.004592,G:0,K:0.009184,HD:0,iC:0,ID:0,JD:0,KD:0,LD:0,jC:0,WC:0,XC:0,MD:0.013776,ND:0.018368,OD:0,kC:0,lC:0,YC:0,PD:0.064288,ZC:0,mC:0.004592,nC:0.004592,oC:0.009184,pC:0.004592,qC:0.009184,QD:0.105616,aC:0.009184,rC:0.087248,sC:0.009184,tC:0.009184,uC:0.018368,vC:0.036736,RD:0.133168,bC:0.004592,wC:0.013776,xC:0.009184,yC:0.027552,zC:0.009184,"0C":0.293888,"1C":0.013776,"2C":0.013776,"3C":0.055104,"4C":0.078064,"5C":0.050512,"6C":1.35005,"7C":0,SD:0},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","HD","iC","J","jB","ID","L","JD","D","KD","E","F","LD","A","jC","B","WC","C","XC","M","MD","N","ND","G","OD","kC","lC","YC","PD","ZC","mC","nC","oC","pC","qC","QD","aC","rC","sC","tC","uC","vC","RD","bC","wC","xC","yC","zC","0C","1C","2C","3C","4C","5C","6C","7C","K","SD",""],E:"Safari",F:{HD:1205798400,iC:1226534400,J:1244419200,jB:1275868800,ID:1311120000,L:1343174400,JD:1382400000,D:1382400000,KD:1410998400,E:1413417600,F:1443657600,LD:1458518400,A:1474329600,jC:1490572800,B:1505779200,WC:1522281600,C:1537142400,XC:1553472000,M:1568851200,MD:1585008000,N:1600214400,ND:1619395200,G:1632096000,OD:1635292800,kC:1639353600,lC:1647216000,YC:1652745600,PD:1658275200,ZC:1662940800,mC:1666569600,nC:1670889600,oC:1674432000,pC:1679875200,qC:1684368000,QD:1690156800,aC:1695686400,rC:1698192000,sC:1702252800,tC:1705881600,uC:1709596800,vC:1715558400,RD:1722211200,bC:1726444800,wC:1730073600,xC:1733875200,yC:1737936000,zC:1743379200,"0C":1747008000,"1C":1757894400,"2C":1762128000,"3C":1762041600,"4C":1770854400,"5C":1774310400,"6C":1778457600,"7C":1785110400,K:null,SD:null}},F:{A:{"0":0,"1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,F:0,B:0,C:0,G:0,O:0,P:0,Q:0,kB:0,DB:0,EB:0,FB:0,GB:0,HB:0,IB:0,JB:0,K:0,KB:0,LB:0,MB:0,lB:0,mB:0,nB:0,oB:0,pB:0,qB:0,rB:0,sB:0,tB:0,uB:0,vB:0,wB:0,xB:0,yB:0,zB:0,"0B":0.004592,"1B":0,"2B":0,"3B":0,"4B":0,"5B":0,"6B":0,"7B":0,"8B":0,"9B":0,AC:0,BC:0,CC:0,DC:0,EC:0,FC:0,GC:0,HC:0,IC:0,JC:0,KC:0,LC:0,MC:0,NC:0,OC:0,PC:0,QC:0,RC:0,SC:0,TC:0,UC:0,R:0,H:0,S:0,fC:0,T:0,U:0,V:0,W:0,X:0,Y:0,Z:0,a:0,b:0,c:0,d:0,e:0,f:0.027552,g:0,h:0,i:0.004592,j:0.02296,k:0.128576,l:0,m:0,n:0,o:0,p:0,q:0,r:0,s:0,t:0,u:0,v:0,w:0,x:0,y:0,z:0,AB:0,BB:0,CB:0.059696,TD:0,UD:0,VD:0,WD:0,WC:0,"8C":0,XD:0,XC:0},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","F","TD","UD","VD","WD","B","WC","8C","XD","C","XC","G","O","P","Q","kB","DB","EB","FB","GB","HB","IB","JB","K","KB","LB","MB","lB","mB","nB","oB","pB","qB","rB","sB","tB","uB","vB","wB","xB","yB","zB","0B","1B","2B","3B","4B","5B","6B","7B","8B","9B","AC","BC","CC","DC","EC","FC","GC","HC","IC","JC","KC","LC","MC","NC","OC","PC","QC","RC","SC","TC","UC","R","H","S","fC","T","U","V","W","X","Y","Z","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","AB","BB","CB","","",""],E:"Opera",F:{"0":1736294400,"1":1739404800,"2":1744675200,"3":1747094400,"4":1751414400,"5":1756339200,"6":1757548800,"7":1761609600,"8":1762992000,"9":1764806400,F:1150761600,TD:1223424000,UD:1251763200,VD:1267488000,WD:1277942400,B:1292457600,WC:1302566400,"8C":1309219200,XD:1323129600,C:1323129600,XC:1352073600,G:1372723200,O:1377561600,P:1381104000,Q:1386288000,kB:1390867200,DB:1393891200,EB:1399334400,FB:1401753600,GB:1405987200,HB:1409616000,IB:1413331200,JB:1417132800,K:1422316800,KB:1425945600,LB:1430179200,MB:1433808000,lB:1438646400,mB:1442448000,nB:1445904000,oB:1449100800,pB:1454371200,qB:1457308800,rB:1462320000,sB:1465344000,tB:1470096000,uB:1474329600,vB:1477267200,wB:1481587200,xB:1486425600,yB:1490054400,zB:1494374400,"0B":1498003200,"1B":1502236800,"2B":1506470400,"3B":1510099200,"4B":1515024000,"5B":1517961600,"6B":1521676800,"7B":1525910400,"8B":1530144000,"9B":1534982400,AC:1537833600,BC:1543363200,CC:1548201600,DC:1554768000,EC:1561593600,FC:1566259200,GC:1570406400,HC:1573689600,IC:1578441600,JC:1583971200,KC:1587513600,LC:1592956800,MC:1595894400,NC:1600128000,OC:1603238400,PC:1613520000,QC:1612224000,RC:1616544000,SC:1619568000,TC:1623715200,UC:1627948800,R:1631577600,H:1633392000,S:1635984000,fC:1638403200,T:1642550400,U:1644969600,V:1647993600,W:1650412800,X:1652745600,Y:1654646400,Z:1657152000,a:1660780800,b:1663113600,c:1668816000,d:1668643200,e:1671062400,f:1675209600,g:1677024000,h:1679529600,i:1681948800,j:1684195200,k:1687219200,l:1690329600,m:1692748800,n:1696204800,o:1699920000,p:1699920000,q:1702944000,r:1707264000,s:1710115200,t:1711497600,u:1716336000,v:1719273600,w:1721088000,x:1724284800,y:1727222400,z:1732665600,AB:1769990400,BB:1772064000,CB:1776124800},D:{F:"o",B:"o",C:"o",TD:"o",UD:"o",VD:"o",WD:"o",WC:"o","8C":"o",XD:"o",XC:"o"}},G:{A:{E:0,iC:0,YD:0,"9C":0.00137471,ZD:0,aD:0,bD:0.00274943,cD:0,dD:0.00137471,eD:0,fD:0,gD:0.0137471,hD:0.14572,iD:0.00274943,jD:0,kD:0.0426161,lD:0,mD:0.00137471,nD:0,oD:0.00274943,pD:0.00824828,qD:0.00962299,rD:0.0123724,kC:0.00687357,lC:0.00962299,YC:0.0109977,sD:0.230952,ZC:0.019246,mC:0.0329931,nC:0.0178713,oC:0.0371173,pC:0.00824828,qC:0.0137471,tD:0.306561,aC:0.0137471,rC:0.0178713,sC:0.0164966,tC:0.0233701,uC:0.0357426,vC:0.0728598,uD:0.178713,bC:0.0412414,wC:0.0783587,xC:0.0426161,yC:0.123724,zC:0.0563633,"0C":1.96309,"1C":0.118225,"2C":0.123724,"3C":0.343678,"4C":0.400042,"5C":0.339554,"6C":8.79954,"7C":0},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","iC","YD","9C","ZD","aD","bD","E","cD","dD","eD","fD","gD","hD","iD","jD","kD","lD","mD","nD","oD","pD","qD","rD","kC","lC","YC","sD","ZC","mC","nC","oC","pC","qC","tD","aC","rC","sC","tC","uC","vC","uD","bC","wC","xC","yC","zC","0C","1C","2C","3C","4C","5C","6C","7C","","",""],E:"Safari on iOS",F:{iC:1270252800,YD:1283904000,"9C":1299628800,ZD:1331078400,aD:1359331200,bD:1394409600,E:1410912000,cD:1413763200,dD:1442361600,eD:1458518400,fD:1473724800,gD:1490572800,hD:1505779200,iD:1522281600,jD:1537142400,kD:1553472000,lD:1568851200,mD:1572220800,nD:1580169600,oD:1585008000,pD:1600214400,qD:1619395200,rD:1632096000,kC:1639353600,lC:1647216000,YC:1652659200,sD:1658275200,ZC:1662940800,mC:1666569600,nC:1670889600,oC:1674432000,pC:1679875200,qC:1684368000,tD:1690156800,aC:1694995200,rC:1698192000,sC:1702252800,tC:1705881600,uC:1709596800,vC:1715558400,uD:1722211200,bC:1726444800,wC:1730073600,xC:1733875200,yC:1737936000,zC:1743379200,"0C":1747008000,"1C":1757894400,"2C":1762128000,"3C":1765497600,"4C":1770854400,"5C":1774310400,"6C":1778457600,"7C":1785110400}},H:{A:{vD:0},B:"o",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","vD","","",""],E:"Opera Mini",F:{vD:1426464000}},I:{A:{cC:0,J:0,I:0.0324156,wD:0,xD:0,yD:0,zD:0.0000032448,"9C":0,"0D":0,"1D":0.0000129792},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","wD","xD","yD","cC","J","zD","9C","0D","1D","I","","",""],E:"Android Browser",F:{wD:1256515200,xD:1274313600,yD:1291593600,cC:1298332800,J:1318896000,zD:1341792000,"9C":1374624000,"0D":1386547200,"1D":1401667200,I:1784073600}},J:{A:{D:0,A:0},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","D","A","","",""],E:"Blackberry Browser",F:{D:1325376000,A:1359504000}},K:{A:{A:0,B:0,C:0,H:0.978848,WC:0,"8C":0,XC:0},B:"o",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","A","B","WC","8C","C","XC","H","","",""],E:"Opera Mobile",F:{A:1287100800,B:1300752000,WC:1314835200,"8C":1318291200,C:1330300800,XC:1349740800,H:1709769600},D:{H:"webkit"}},L:{A:{I:46.3251},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","I","","",""],E:"Chrome for Android",F:{I:1784073600}},M:{A:{VC:0.362336},B:"moz",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","VC","","",""],E:"Firefox for Android",F:{VC:1784592000}},N:{A:{A:0,B:0},B:"ms",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","A","B","","",""],E:"IE Mobile",F:{A:1340150400,B:1353456000}},O:{A:{YC:0.681408},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","YC","","",""],E:"UC Browser for Android",F:{YC:1710115200},D:{YC:"webkit"}},P:{A:{J:0,DB:0,EB:0.00684278,FB:0.00684278,GB:0.00684278,HB:0.00684278,IB:0.0136856,JB:0.0273711,K:0.0205283,KB:0.0547422,LB:0.102642,MB:1.088,"2D":0,"3D":0,"4D":0.00684278,"5D":0,"6D":0,jC:0,"7D":0,"8D":0,"9D":0,AE:0,BE:0,ZC:0,aC:0,bC:0,CE:0},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","J","2D","3D","4D","5D","6D","jC","7D","8D","9D","AE","BE","ZC","aC","bC","CE","DB","EB","FB","GB","HB","IB","JB","K","KB","LB","MB","","",""],E:"Samsung Internet",F:{J:1461024000,"2D":1481846400,"3D":1509408000,"4D":1528329600,"5D":1546128000,"6D":1554163200,jC:1567900800,"7D":1582588800,"8D":1593475200,"9D":1605657600,AE:1618531200,BE:1629072000,ZC:1640736000,aC:1651708800,bC:1659657600,CE:1667260800,DB:1677369600,EB:1684454400,FB:1689292800,GB:1697587200,HB:1711497600,IB:1715126400,JB:1717718400,K:1725667200,KB:1746057600,LB:1761264000,MB:1779235200}},Q:{A:{DE:0.097344},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","DE","","",""],E:"QQ Browser",F:{DE:1710288000}},R:{A:{EE:0},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","EE","","",""],E:"Baidu Browser",F:{EE:1710201600}},S:{A:{FE:0.005408,GE:0},B:"moz",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","FE","GE","","",""],E:"KaiOS Browser",F:{FE:1527811200,GE:1631664000}}};
+  var agents$3={A:{A:{K:0,D:0,E:0,F:0,A:0,B:0.165034,ID:0},B:"ms",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","ID","K","D","E","F","A","B","","",""],E:"IE",F:{ID:962323200,K:998870400,D:1161129600,E:1237420800,F:1300060800,A:1346716800,B:1381968000}},B:{A:{"0":0,"1":0,"2":0.065246,"3":0.069084,"4":0,"5":0.042218,"6":0.011514,"7":0.011514,"8":0,"9":0,C:0,L:0,M:0,G:0,N:0,O:0,P:0.003838,Q:0,H:0,R:0,S:0,T:0,U:0,V:0,W:0,X:0,Y:0,Z:0,a:0,b:0.007676,c:0,d:0,e:0,f:0,g:0,h:0,i:0,j:0,k:0,l:0,m:0,n:0,o:0,p:0,q:0,r:0,s:0.030704,t:0,u:0,v:0,w:0,x:0.003838,y:0,z:0,AB:0,WB:0,XB:0,YB:0,BB:0.007676,CB:0.011514,DB:0.007676,EB:0.007676,FB:0.007676,GB:0.007676,HB:0.003838,IB:0.011514,JB:0.011514,ZB:0.015352,aB:0.007676,bB:0.007676,cB:0.011514,dB:0.007676,eB:0.011514,fB:0.011514,gB:0.011514,hB:0.015352,iB:0.01919,jB:0.05757,kB:0.030704,lB:0.061408,mB:0.149682,nB:1.48531,oB:1.96889,pB:0.859712},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","C","L","M","G","N","O","P","Q","H","R","S","T","U","V","W","X","Y","Z","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","AB","WB","XB","YB","BB","CB","DB","EB","FB","GB","HB","IB","JB","ZB","aB","bB","cB","dB","eB","fB","gB","hB","iB","jB","kB","lB","mB","nB","oB","pB","","",""],E:"Edge",F:{"0":1694649600,"1":1697155200,"2":1698969600,"3":1701993600,"4":1706227200,"5":1708732800,"6":1711152000,"7":1713398400,"8":1715990400,"9":1718841600,C:1438128000,L:1447286400,M:1470096000,G:1491868800,N:1508198400,O:1525046400,P:1542067200,Q:1579046400,H:1581033600,R:1586736000,S:1590019200,T:1594857600,U:1598486400,V:1602201600,W:1605830400,X:1611360000,Y:1614816000,Z:1618358400,a:1622073600,b:1626912000,c:1630627200,d:1632441600,e:1634774400,f:1637539200,g:1641427200,h:1643932800,i:1646265600,j:1649635200,k:1651190400,l:1653955200,m:1655942400,n:1659657600,o:1661990400,p:1664755200,q:1666915200,r:1670198400,s:1673481600,t:1675900800,u:1678665600,v:1680825600,w:1683158400,x:1685664000,y:1689897600,z:1692576000,AB:1721865600,WB:1724371200,XB:1726704000,YB:1729123200,BB:1731542400,CB:1737417600,DB:1740614400,EB:1741219200,FB:1743984000,GB:1746316800,HB:1748476800,IB:1750896000,JB:1754611200,ZB:1756944000,aB:1759363200,bB:1761868800,cB:1764806400,dB:1768780800,eB:1770854400,fB:1773446400,gB:1775692800,hB:1778112000,iB:1780531200,jB:1782950400,kB:1785369600,lB:1787788800,mB:1788998400,nB:1790208000,oB:1791417600,pB:1792627200},D:{C:"ms",L:"ms",M:"ms",G:"ms",N:"ms",O:"ms",P:"ms"}},C:{A:{"0":0,"1":0.003838,"2":0,"3":0.072922,"4":0.142006,"5":0.007676,"6":0.026866,"7":0.049894,"8":0.01919,"9":0,JD:0,iC:0,I:0,qB:0,K:0,D:0,E:0,F:0,A:0,B:0.003838,C:0,L:0,M:0,G:0,N:0,O:0,P:0,rB:0,KB:0,LB:0,MB:0,NB:0,OB:0,PB:0,QB:0,J:0,RB:0,SB:0,TB:0,UB:0,sB:0,tB:0,uB:0,vB:0,wB:0,xB:0,yB:0,zB:0,"0B":0,"1B":0,"2B":0,"3B":0,"4B":0,"5B":0,"6B":0,"7B":0,"8B":0,"9B":0,AC:0,BC:0,CC:0.007676,DC:0,EC:0,FC:0,GC:0,HC:0,IC:0,jC:0,JC:0,kC:0,KC:0,LC:0,MC:0,NC:0,OC:0,PC:0,QC:0,RC:0,SC:0,TC:0,UC:0,VC:0,WC:0,XC:0,YC:0,ZC:0,aC:0.003838,Q:0,H:0,R:0,lC:0,S:0,T:0,U:0,V:0,W:0,X:0,Y:0,Z:0,a:0,b:0,c:0,d:0,e:0,f:0,g:0,h:0,i:0,j:0,k:0,l:0,m:0,n:0,o:0,p:0,q:0,r:0,s:0,t:0,u:0,v:0,w:0,x:0,y:0.122816,z:0,AB:0.003838,WB:0.003838,XB:0,YB:0.007676,BB:0.007676,CB:0.007676,DB:0.007676,EB:0.007676,FB:0.011514,GB:0.011514,HB:0.003838,IB:0.003838,JB:0.003838,ZB:0.061408,aB:0.007676,bB:0.011514,cB:0.007676,dB:0.003838,eB:0,fB:0.003838,gB:0.007676,hB:0.007676,iB:0.003838,jB:0.007676,kB:0.007676,lB:0.01919,mB:0.03838,nB:0.015352,oB:0.023028,pB:0.088274,VB:0.583376,mC:0.583376,bC:0.103626,nC:0,KD:0,LD:0,MD:0,ND:0},B:"moz",C:["JD","iC","MD","ND","I","qB","K","D","E","F","A","B","C","L","M","G","N","O","P","rB","KB","LB","MB","NB","OB","PB","QB","J","RB","SB","TB","UB","sB","tB","uB","vB","wB","xB","yB","zB","0B","1B","2B","3B","4B","5B","6B","7B","8B","9B","AC","BC","CC","DC","EC","FC","GC","HC","IC","jC","JC","kC","KC","LC","MC","NC","OC","PC","QC","RC","SC","TC","UC","VC","WC","XC","YC","ZC","aC","Q","H","R","lC","S","T","U","V","W","X","Y","Z","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","AB","WB","XB","YB","BB","CB","DB","EB","FB","GB","HB","IB","JB","ZB","aB","bB","cB","dB","eB","fB","gB","hB","iB","jB","kB","lB","mB","nB","oB","pB","VB","mC","bC","nC","KD","LD"],E:"Firefox",F:{"0":1693267200,"1":1695686400,"2":1698105600,"3":1700524800,"4":1702944000,"5":1705968000,"6":1708387200,"7":1710806400,"8":1713225600,"9":1715644800,JD:1161648000,iC:1213660800,MD:1246320000,ND:1264032000,I:1300752000,qB:1308614400,K:1313452800,D:1317081600,E:1317081600,F:1320710400,A:1324339200,B:1327968000,C:1331596800,L:1335225600,M:1338854400,G:1342483200,N:1346112000,O:1349740800,P:1353628800,rB:1357603200,KB:1361232000,LB:1364860800,MB:1368489600,NB:1372118400,OB:1375747200,PB:1379376000,QB:1386633600,J:1391472000,RB:1395100800,SB:1398729600,TB:1402358400,UB:1405987200,sB:1409616000,tB:1413244800,uB:1417392000,vB:1421107200,wB:1424736000,xB:1428278400,yB:1431475200,zB:1435881600,"0B":1439251200,"1B":1442880000,"2B":1446508800,"3B":1450137600,"4B":1453852800,"5B":1457395200,"6B":1461628800,"7B":1465257600,"8B":1470096000,"9B":1474329600,AC:1479168000,BC:1485216000,CC:1488844800,DC:1492560000,EC:1497312000,FC:1502150400,GC:1506556800,HC:1510617600,IC:1516665600,jC:1520985600,JC:1525824000,kC:1529971200,KC:1536105600,LC:1540252800,MC:1544486400,NC:1548720000,OC:1552953600,PC:1558396800,QC:1562630400,RC:1567468800,SC:1571788800,TC:1575331200,UC:1578355200,VC:1581379200,WC:1583798400,XC:1586304000,YC:1588636800,ZC:1591056000,aC:1593475200,Q:1595894400,H:1598313600,R:1600732800,lC:1603152000,S:1605571200,T:1607990400,U:1611619200,V:1614038400,W:1616457600,X:1618790400,Y:1622505600,Z:1626134400,a:1628553600,b:1630972800,c:1633392000,d:1635811200,e:1638835200,f:1641859200,g:1644364800,h:1646697600,i:1649116800,j:1651536000,k:1653955200,l:1656374400,m:1658793600,n:1661212800,o:1663632000,p:1666051200,q:1668470400,r:1670889600,s:1673913600,t:1676332800,u:1678752000,v:1681171200,w:1683590400,x:1686009600,y:1688428800,z:1690848000,AB:1718064000,WB:1720483200,XB:1722902400,YB:1725321600,BB:1727740800,CB:1730160000,DB:1732579200,EB:1736208000,FB:1738627200,GB:1741046400,HB:1743465600,IB:1745884800,JB:1748304000,ZB:1750723200,aB:1753142400,bB:1755561600,cB:1757980800,dB:1760400000,eB:1762819200,fB:1765238400,gB:1768262400,hB:1771891200,iB:1774310400,jB:1776729600,kB:1779148800,lB:1781568000,mB:1784592000,nB:1787011200,oB:1788220800,pB:1789430400,VB:1790640000,mC:1791849600,bC:1793059200,nC:null,KD:null,LD:null}},D:{A:{"0":0.072922,"1":0.199576,"2":0.145844,"3":0.222604,"4":0.026866,"5":0.046056,"6":0.049894,"7":0.103626,"8":0.023028,"9":0.030704,I:0,qB:0,K:0,D:0,E:0,F:0,A:0,B:0,C:0,L:0,M:0,G:0,N:0,O:0,P:0,rB:0,KB:0,LB:0,MB:0,NB:0,OB:0,PB:0,QB:0,J:0,RB:0,SB:0,TB:0,UB:0,sB:0,tB:0,uB:0,vB:0,wB:0,xB:0,yB:0,zB:0,"0B":0,"1B":0,"2B":0,"3B":0,"4B":0,"5B":0,"6B":0,"7B":0,"8B":0.007676,"9B":0.003838,AC:0,BC:0,CC:0,DC:0,EC:0,FC:0,GC:0,HC:0,IC:0,jC:0,JC:0,kC:0,KC:0,LC:0,MC:0,NC:0,OC:0,PC:0,QC:0,RC:0,SC:0.007676,TC:0,UC:0,VC:0,WC:0.007676,XC:0,YC:0,ZC:0,aC:0,Q:0.003838,H:0,R:0,S:0,T:0,U:0,V:0.003838,W:0.007676,X:0,Y:0,Z:0,a:0.003838,b:0.003838,c:0.007676,d:0,e:0,f:0,g:0,h:0.011514,i:0,j:0,k:0.011514,l:0.007676,m:0.126654,n:0.069084,o:0.072922,p:0.072922,q:0.069084,r:0.072922,s:0.560348,t:0.072922,u:0.07676,v:0.072922,w:0.003838,x:0.015352,y:0.007676,z:0.168872,AB:0.011514,WB:0.042218,XB:0.007676,YB:0.03838,BB:0.188062,CB:0.023028,DB:0.1919,EB:0.072922,FB:0.072922,GB:0.257146,HB:0.084436,IB:0.157358,JB:0.084436,ZB:0.092112,aB:0.084436,bB:0.353096,cB:0.042218,dB:0.468236,eB:0.042218,fB:1.79235,gB:0.13433,hB:0.130492,iB:0.199576,jB:0.303202,kB:1.65034,lB:0.55651,mB:0.7676,nB:5.76468,oB:6.302,pB:2.54459,VB:0.026866,mC:0.003838,bC:0,nC:0},B:"webkit",C:["","","","","","","","I","qB","K","D","E","F","A","B","C","L","M","G","N","O","P","rB","KB","LB","MB","NB","OB","PB","QB","J","RB","SB","TB","UB","sB","tB","uB","vB","wB","xB","yB","zB","0B","1B","2B","3B","4B","5B","6B","7B","8B","9B","AC","BC","CC","DC","EC","FC","GC","HC","IC","jC","JC","kC","KC","LC","MC","NC","OC","PC","QC","RC","SC","TC","UC","VC","WC","XC","YC","ZC","aC","Q","H","R","S","T","U","V","W","X","Y","Z","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","AB","WB","XB","YB","BB","CB","DB","EB","FB","GB","HB","IB","JB","ZB","aB","bB","cB","dB","eB","fB","gB","hB","iB","jB","kB","lB","mB","nB","oB","pB","VB","mC","bC","nC"],E:"Chrome",F:{"0":1694476800,"1":1696896000,"2":1698710400,"3":1701993600,"4":1705968000,"5":1708387200,"6":1710806400,"7":1713225600,"8":1715644800,"9":1718064000,I:1264377600,qB:1274745600,K:1283385600,D:1287619200,E:1291248000,F:1296777600,A:1299542400,B:1303862400,C:1307404800,L:1312243200,M:1316131200,G:1316131200,N:1319500800,O:1323734400,P:1328659200,rB:1332892800,KB:1337040000,LB:1340668800,MB:1343692800,NB:1348531200,OB:1352246400,PB:1357862400,QB:1361404800,J:1364428800,RB:1369094400,SB:1374105600,TB:1376956800,UB:1384214400,sB:1389657600,tB:1392940800,uB:1397001600,vB:1400544000,wB:1405468800,xB:1409011200,yB:1412640000,zB:1416268800,"0B":1421798400,"1B":1425513600,"2B":1429401600,"3B":1432080000,"4B":1437523200,"5B":1441152000,"6B":1444780800,"7B":1449014400,"8B":1453248000,"9B":1456963200,AC:1460592000,BC:1464134400,CC:1469059200,DC:1472601600,EC:1476230400,FC:1480550400,GC:1485302400,HC:1489017600,IC:1492560000,jC:1496707200,JC:1500940800,kC:1504569600,KC:1508198400,LC:1512518400,MC:1516752000,NC:1520294400,OC:1523923200,PC:1527552000,QC:1532390400,RC:1536019200,SC:1539648000,TC:1543968000,UC:1548720000,VC:1552348800,WC:1555977600,XC:1559606400,YC:1564444800,ZC:1568073600,aC:1571702400,Q:1575936000,H:1580860800,R:1586304000,S:1589846400,T:1594684800,U:1598313600,V:1601942400,W:1605571200,X:1611014400,Y:1614556800,Z:1618272000,a:1621987200,b:1626739200,c:1630368000,d:1632268800,e:1634601600,f:1637020800,g:1641340800,h:1643673600,i:1646092800,j:1648512000,k:1650931200,l:1653350400,m:1655769600,n:1659398400,o:1661817600,p:1664236800,q:1666656000,r:1669680000,s:1673308800,t:1675728000,u:1678147200,v:1680566400,w:1682985600,x:1685404800,y:1689724800,z:1692057600,AB:1721174400,WB:1724112000,XB:1726531200,YB:1728950400,BB:1731369600,CB:1736812800,DB:1738627200,EB:1741046400,FB:1743465600,GB:1745884800,HB:1748304000,IB:1750723200,JB:1754352000,ZB:1756771200,aB:1759190400,bB:1761609600,cB:1764633600,dB:1768262400,eB:1770681600,fB:1773100800,gB:1775520000,hB:1777939200,iB:1780358400,jB:1782777600,kB:1785196800,lB:1787616000,mB:1788825600,nB:1790035200,oB:1791244800,pB:1792454400,VB:1793664000,mC:null,bC:null,nC:null}},E:{A:{I:0,qB:0,K:0,D:0,E:0,F:0,A:0,B:0,C:0,L:0,M:0.003838,G:0,J:0.40299,OD:0,oC:0,PD:0,QD:0,RD:0,SD:0,pC:0,cC:0,dC:0,TD:0.011514,UD:0.015352,VD:0,qC:0,rC:0,eC:0.003838,WD:0.061408,fC:0,sC:0.007676,tC:0.003838,uC:0.007676,vC:0.007676,wC:0.015352,XD:0.145844,gC:0.011514,xC:0.103626,yC:0.023028,zC:0.026866,"0C":0.049894,"1C":0.053732,YD:0.222604,hC:0.015352,"2C":0.015352,"3C":0.007676,"4C":0.026866,"5C":0.007676,"6C":0.264822,"7C":0.015352,"8C":0.015352,"9C":0.042218,AD:0.049894,BD:0.05757,CD:0.1919,DD:1.00172,ED:0,FD:0.023028,ZD:0,aD:0},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","OD","oC","I","qB","PD","K","QD","D","RD","E","F","SD","A","pC","B","cC","C","dC","L","TD","M","UD","G","VD","qC","rC","eC","WD","fC","sC","tC","uC","vC","wC","XD","gC","xC","yC","zC","0C","1C","YD","hC","2C","3C","4C","5C","6C","7C","8C","9C","AD","BD","CD","DD","J","ED","FD","ZD","aD",""],E:"Safari",F:{OD:1205798400,oC:1226534400,I:1244419200,qB:1275868800,PD:1311120000,K:1343174400,QD:1382400000,D:1382400000,RD:1410998400,E:1413417600,F:1443657600,SD:1458518400,A:1474329600,pC:1490572800,B:1505779200,cC:1522281600,C:1537142400,dC:1553472000,L:1568851200,TD:1585008000,M:1600214400,UD:1619395200,G:1632096000,VD:1635292800,qC:1639353600,rC:1647216000,eC:1652745600,WD:1658275200,fC:1662940800,sC:1666569600,tC:1670889600,uC:1674432000,vC:1679875200,wC:1684368000,XD:1690156800,gC:1695686400,xC:1698192000,yC:1702252800,zC:1705881600,"0C":1709596800,"1C":1715558400,YD:1722211200,hC:1726444800,"2C":1730073600,"3C":1733875200,"4C":1737936000,"5C":1743379200,"6C":1747008000,"7C":1757894400,"8C":1762128000,"9C":1762041600,AD:1770854400,BD:1774310400,CD:1778457600,DD:1785110400,J:1789344000,ED:1792713600,FD:1792972800,ZD:null,aD:null}},F:{A:{"0":0,"1":0,"2":0.003838,"3":0.007676,"4":0.007676,"5":0.007676,"6":0,"7":0,"8":0,"9":0,F:0,B:0,C:0,G:0,N:0,O:0,P:0,rB:0,KB:0,LB:0,MB:0,NB:0,OB:0,PB:0,QB:0,J:0,RB:0,SB:0,TB:0,UB:0,sB:0,tB:0,uB:0,vB:0,wB:0,xB:0,yB:0,zB:0,"0B":0,"1B":0,"2B":0,"3B":0,"4B":0,"5B":0,"6B":0.003838,"7B":0,"8B":0,"9B":0,AC:0,BC:0,CC:0,DC:0,EC:0,FC:0,GC:0,HC:0,IC:0,JC:0,KC:0,LC:0,MC:0,NC:0,OC:0,PC:0,QC:0,RC:0,SC:0,TC:0,UC:0,VC:0,WC:0,XC:0,YC:0,ZC:0,aC:0,Q:0,H:0,R:0,lC:0,S:0,T:0,U:0,V:0,W:0,X:0,Y:0.003838,Z:0.003838,a:0,b:0,c:0,d:0,e:0.023028,f:0,g:0,h:0,i:0,j:0,k:0,l:0.011514,m:0,n:0,o:0.01919,p:0.03838,q:0.01919,r:0,s:0,t:0,u:0,v:0,w:0,x:0.007676,y:0.007676,z:0.007676,AB:0,BB:0,CB:0,DB:0,EB:0.003838,FB:0.01919,GB:0.47975,HB:0.184224,IB:0.065246,JB:0,bD:0,cD:0,dD:0,eD:0,cC:0,GD:0,fD:0,dC:0},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","F","bD","cD","dD","eD","B","cC","GD","fD","C","dC","G","N","O","P","rB","KB","LB","MB","NB","OB","PB","QB","J","RB","SB","TB","UB","sB","tB","uB","vB","wB","xB","yB","zB","0B","1B","2B","3B","4B","5B","6B","7B","8B","9B","AC","BC","CC","DC","EC","FC","GC","HC","IC","JC","KC","LC","MC","NC","OC","PC","QC","RC","SC","TC","UC","VC","WC","XC","YC","ZC","aC","Q","H","R","lC","S","T","U","V","W","X","Y","Z","a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","AB","BB","CB","DB","EB","FB","GB","HB","IB","JB","","",""],E:"Opera",F:{"0":1739404800,"1":1744675200,"2":1747094400,"3":1751414400,"4":1756339200,"5":1757548800,"6":1761609600,"7":1762992000,"8":1764806400,"9":1769990400,F:1150761600,bD:1223424000,cD:1251763200,dD:1267488000,eD:1277942400,B:1292457600,cC:1302566400,GD:1309219200,fD:1323129600,C:1323129600,dC:1352073600,G:1372723200,N:1377561600,O:1381104000,P:1386288000,rB:1390867200,KB:1393891200,LB:1399334400,MB:1401753600,NB:1405987200,OB:1409616000,PB:1413331200,QB:1417132800,J:1422316800,RB:1425945600,SB:1430179200,TB:1433808000,UB:1438646400,sB:1442448000,tB:1445904000,uB:1449100800,vB:1454371200,wB:1457308800,xB:1462320000,yB:1465344000,zB:1470096000,"0B":1474329600,"1B":1477267200,"2B":1481587200,"3B":1486425600,"4B":1490054400,"5B":1494374400,"6B":1498003200,"7B":1502236800,"8B":1506470400,"9B":1510099200,AC:1515024000,BC:1517961600,CC:1521676800,DC:1525910400,EC:1530144000,FC:1534982400,GC:1537833600,HC:1543363200,IC:1548201600,JC:1554768000,KC:1561593600,LC:1566259200,MC:1570406400,NC:1573689600,OC:1578441600,PC:1583971200,QC:1587513600,RC:1592956800,SC:1595894400,TC:1600128000,UC:1603238400,VC:1613520000,WC:1612224000,XC:1616544000,YC:1619568000,ZC:1623715200,aC:1627948800,Q:1631577600,H:1633392000,R:1635984000,lC:1638403200,S:1642550400,T:1644969600,U:1647993600,V:1650412800,W:1652745600,X:1654646400,Y:1657152000,Z:1660780800,a:1663113600,b:1668816000,c:1668643200,d:1671062400,e:1675209600,f:1677024000,g:1679529600,h:1681948800,i:1684195200,j:1687219200,k:1690329600,l:1692748800,m:1696204800,n:1699920000,o:1699920000,p:1702944000,q:1707264000,r:1710115200,s:1711497600,t:1716336000,u:1719273600,v:1721088000,w:1724284800,x:1727222400,y:1732665600,z:1736294400,AB:1772064000,BB:1776124800,CB:1779926400,DB:1782691200,EB:1785974400,FB:1787184000,GB:1789603200,HB:1791331200,IB:1792454400,JB:1793750400},D:{F:"o",B:"o",C:"o",bD:"o",cD:"o",dD:"o",eD:"o",cC:"o",GD:"o",fD:"o",dC:"o"}},G:{A:{E:0,oC:0,gD:0,HD:0.00134846,hD:0.00134846,iD:0,jD:0.00269693,kD:0,lD:0,mD:0,nD:0,oD:0.0121362,pD:0.00134846,qD:0.00269693,rD:0,sD:0.0323631,tD:0,uD:0.00269693,vD:0,wD:0.00134846,xD:0.00404539,yD:0.00809079,zD:0.00943925,qC:0.00539386,rC:0.00674232,eC:0.00809079,"0D":0.172603,fC:0.0134846,sC:0.0215754,tC:0.0121362,uC:0.0256208,vC:0.00674232,wC:0.0107877,"1D":0.23733,gC:0.00943925,xC:0.0121362,yC:0.0121362,zC:0.01753,"0C":0.0269693,"1C":0.0512416,"2D":0.133498,hC:0.0283178,"2C":0.055287,"3C":0.0863017,"4C":0.14024,"5C":0.093044,"6C":1.73547,"7C":0.0809079,"8C":0.0836048,"9C":0.213057,AD:0.226542,BD:0.163164,CD:1.01809,DD:6.12203,"3D":2.1926,ED:0,FD:0.126756},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","oC","gD","HD","hD","iD","jD","E","kD","lD","mD","nD","oD","pD","qD","rD","sD","tD","uD","vD","wD","xD","yD","zD","qC","rC","eC","0D","fC","sC","tC","uC","vC","wC","1D","gC","xC","yC","zC","0C","1C","2D","hC","2C","3C","4C","5C","6C","7C","8C","9C","AD","BD","CD","DD","3D","ED","FD",""],E:"Safari on iOS",F:{oC:1270252800,gD:1283904000,HD:1299628800,hD:1331078400,iD:1359331200,jD:1394409600,E:1410912000,kD:1413763200,lD:1442361600,mD:1458518400,nD:1473724800,oD:1490572800,pD:1505779200,qD:1522281600,rD:1537142400,sD:1553472000,tD:1568851200,uD:1572220800,vD:1580169600,wD:1585008000,xD:1600214400,yD:1619395200,zD:1632096000,qC:1639353600,rC:1647216000,eC:1652659200,"0D":1658275200,fC:1662940800,sC:1666569600,tC:1670889600,uC:1674432000,vC:1679875200,wC:1684368000,"1D":1690156800,gC:1694995200,xC:1698192000,yC:1702252800,zC:1705881600,"0C":1709596800,"1C":1715558400,"2D":1722211200,hC:1726444800,"2C":1730073600,"3C":1733875200,"4C":1737936000,"5C":1743379200,"6C":1747008000,"7C":1757894400,"8C":1762128000,"9C":1765497600,AD:1770854400,BD:1774310400,CD:1778457600,DD:1785110400,"3D":1789344000,ED:null,FD:null}},H:{A:{"4D":0},B:"o",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","4D","","",""],E:"Opera Mini",F:{"4D":1426464000}},I:{A:{iC:0,I:0,VB:0.0246372,"5D":0,"6D":0,"7D":0,"8D":0,HD:0,"9D":0,AE:0.0000073956},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","5D","6D","7D","iC","I","8D","HD","9D","AE","VB","","",""],E:"Android Browser",F:{"5D":1256515200,"6D":1274313600,"7D":1291593600,iC:1298332800,I:1318896000,"8D":1341792000,HD:1374624000,"9D":1386547200,AE:1401667200,VB:1793664000}},J:{A:{D:0,A:0},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","D","A","","",""],E:"Blackberry Browser",F:{D:1325376000,A:1359504000}},K:{A:{A:0,B:0,C:0,H:1.15864,cC:0,GD:0,dC:0},B:"o",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","A","B","cC","GD","C","dC","H","","",""],E:"Opera Mobile",F:{A:1287100800,B:1300752000,cC:1314835200,GD:1318291200,C:1330300800,dC:1349740800,H:1709769600},D:{H:"webkit"}},L:{A:{VB:44.0246},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","VB","","",""],E:"Chrome for Android",F:{VB:1793664000}},M:{A:{bC:0.375943},B:"moz",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","bC","","",""],E:"Firefox for Android",F:{bC:1793059200}},N:{A:{A:0,B:0},B:"ms",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","A","B","","",""],E:"IE Mobile",F:{A:1340150400,B:1353456000}},O:{A:{eC:0.579322},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","eC","","",""],E:"UC Browser for Android",F:{eC:1710115200},D:{eC:"webkit"}},P:{A:{I:0,KB:0,LB:0,MB:0.00985454,NB:0.00985454,OB:0.00985454,PB:0.00985454,QB:0.0394182,J:0.0197091,RB:0.0689818,SB:0.0886909,TB:1.66542,UB:0.00985454,BE:0,CE:0,DE:0.00985454,EE:0,FE:0,pC:0,GE:0,HE:0,IE:0,JE:0,KE:0,fC:0,gC:0,hC:0,LE:0},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","I","BE","CE","DE","EE","FE","pC","GE","HE","IE","JE","KE","fC","gC","hC","LE","KB","LB","MB","NB","OB","PB","QB","J","RB","SB","TB","UB","","",""],E:"Samsung Internet",F:{I:1461024000,BE:1481846400,CE:1509408000,DE:1528329600,EE:1546128000,FE:1554163200,pC:1567900800,GE:1582588800,HE:1593475200,IE:1605657600,JE:1618531200,KE:1629072000,fC:1640736000,gC:1651708800,hC:1659657600,LE:1667260800,KB:1677369600,LB:1684454400,MB:1689292800,NB:1697587200,OB:1711497600,PB:1715126400,QB:1717718400,J:1725667200,RB:1746057600,SB:1761264000,TB:1779235200,UB:1790121600}},Q:{A:{ME:0.092445},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","ME","","",""],E:"QQ Browser",F:{ME:1710288000}},R:{A:{NE:0},B:"webkit",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","NE","","",""],E:"Baidu Browser",F:{NE:1710201600}},S:{A:{OE:0,PE:0},B:"moz",C:["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","OE","PE","","",""],E:"KaiOS Browser",F:{OE:1527811200,PE:1631664000}}};
 
   const browsers$5 = browsers$7.browsers;
   const versions$2 = browserVersions$1.browserVersions;
@@ -15201,12 +15415,22 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   	"43.5": "150",
   	"43.6": "150",
   	"43.7": "150",
+  	"43.8": "150",
   	"44.0": "152",
   	"44.1": "152",
   	"44.2": "152",
   	"44.3": "152",
   	"44.4": "152",
-  	"45.0": "155"
+  	"44.5": "152",
+  	"44.6": "152",
+  	"44.7": "152",
+  	"44.8": "152",
+  	"44.9": "152",
+  	"44.10": "152",
+  	"45.0": "156",
+  	"45.1": "156",
+  	"45.2": "156",
+  	"46.0": "159"
   };
 
   var v4 = {
@@ -15346,12 +15570,12 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   	lts: "2026-10-28",
   	maintenance: "2027-10-20",
   	end: "2029-04-30",
-  	codename: ""
+  	codename: "Lithium"
   };
   var v27 = {
   	alpha: "2026-10-28",
   	start: "2027-04-22",
-  	maintenance: "2027-10-20",
+  	lts: "2027-10-20",
   	end: "2030-04-30",
   	codename: ""
   };
@@ -15524,9 +15748,10 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   function matchQuery(all, query) {
     var node = { query: query };
-    if (query.indexOf('not ') === 0) {
+    var not = query.match(/^not\s+(?!\s)/i);
+    if (not) {
       node.not = true;
-      query = query.slice(4);
+      query = query.slice(not[0].length);
     }
 
     for (var name in all) {
@@ -15666,7 +15891,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   var YEAR = 365.259641 * 24 * 60 * 60 * 1000;
   var ANDROID_EVERGREEN_FIRST = '37';
   var OP_MOB_BLINK_FIRST = 14;
-  var FIREFOX_ESR_VERSION = '140';
+  var FIREFOX_ESR_VERSION = '153';
 
   // Helpers
 
@@ -15734,6 +15959,26 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     }
   }
 
+  function filterUsage(usage, sign, popularity) {
+    return Object.keys(usage).filter(function (version) {
+      var percentage = usage[version];
+      if (percentage == null) {
+        return false
+      }
+
+      switch (sign) {
+        case '<':
+          return percentage < popularity
+        case '<=':
+          return percentage <= popularity
+        case '>':
+          return percentage > popularity
+        default:
+          return percentage >= popularity
+      }
+    })
+  }
+
   function generateFilter(sign, version) {
     if (sign === '>') {
       return function (v) {
@@ -15752,10 +15997,10 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         return parseFloat(v) <= parseFloat(version)
       }
     }
+  }
 
-    function parseLatestFloat(v) {
-      return parseFloat(v.split('-')[1] || v)
-    }
+  function parseLatestFloat(v) {
+    return parseFloat(v.split('-')[1] || v)
   }
 
   function generateSemverFilter(sign, version) {
@@ -15997,31 +16242,18 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         }
       });
 
-      if (node.compose === 'and') {
-        if (node.not) {
-          return result.filter(function (j) {
-            return array.indexOf(j) === -1
-          })
-        } else {
-          return result.filter(function (j) {
-            return array.indexOf(j) !== -1
-          })
-        }
-      } else {
-        if (node.not) {
-          var filter = {};
-          array.forEach(function (j) {
-            filter[j] = true;
-          });
-          return result.filter(function (j) {
-            return !filter[j]
-          })
-        }
+      if (!node.not && node.compose === 'or') {
         for (var i = 0; i < array.length; i++) {
           result.push(array[i]);
         }
         return result
       }
+
+      var filter = new Set(array);
+      var filterKeep = !node.not;
+      return result.filter(function (j) {
+        return filter.has(j) === filterKeep
+      })
     }, [])
   }
 
@@ -16205,7 +16437,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     } else if (stats === 'my stats') {
       var opts = {};
       opts.path = path.resolve ? path.resolve('.') : '.';
-      var customStats = env.getStat(opts);
+      var customStats = env.getStat(opts, browserslist$3.data);
       if (!customStats) {
         throw new BrowserslistError('Custom usage statistics was not provided')
       }
@@ -16225,6 +16457,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       if ('dataByBrowser' in stats) {
         stats = stats.dataByBrowser;
       }
+      stats = env.getStat({ stats: stats }, browserslist$3.data);
       data = {};
       for (var name in stats) {
         for (var version in stats[name]) {
@@ -16322,7 +16555,9 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     var version;
     for (var i = 0; i < versions.length; i++) {
       version = versions[i];
-      if (usage[version] === 0) break
+      // Region data has `null` for versions without usage data. Like zero usage,
+      // they add nothing to the coverage and sort together with the zeros.
+      if (!usage[version]) break
       covered += usage[version];
       result.push(version);
       if (covered >= coverage) break
@@ -16466,17 +16701,17 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     },
     since_y: {
       matches: ['year'],
-      regexp: /^since (\d+)$/i,
+      regexp: /^since\s+(\d+)$/i,
       select: sinceQuery
     },
     since_y_m: {
       matches: ['year', 'month'],
-      regexp: /^since (\d+)-(\d+)$/i,
+      regexp: /^since\s+(\d+)-(\d+)$/i,
       select: sinceQuery
     },
     since_y_m_d: {
       matches: ['year', 'month', 'day'],
-      regexp: /^since (\d+)-(\d+)-(\d+)$/i,
+      regexp: /^since\s+(\d+)-(\d+)-(\d+)$/i,
       select: sinceQuery
     },
     baseline: {
@@ -16539,94 +16774,33 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       select: function (context, node) {
         var popularity = parseFloat(node.popularity);
         var usage = browserslist$3.usage.global;
-        return Object.keys(usage).reduce(function (result, version) {
-          if (node.sign === '>') {
-            if (usage[version] > popularity) {
-              result.push(version);
-            }
-          } else if (node.sign === '<') {
-            if (usage[version] < popularity) {
-              result.push(version);
-            }
-          } else if (node.sign === '<=') {
-            if (usage[version] <= popularity) {
-              result.push(version);
-            }
-          } else if (usage[version] >= popularity) {
-            result.push(version);
-          }
-          return result
-        }, [])
+        return filterUsage(usage, node.sign, popularity)
       }
     },
     popularity_in_my_stats: {
       matches: ['sign', 'popularity'],
-      regexp: /^(>=?|<=?)\s*(\d+|\d+\.\d+|\.\d+)%\s+in\s+my\s+stats$/,
+      regexp: /^(>=?|<=?)\s*(\d+|\d+\.\d+|\.\d+)%\s+in\s+my\s+stats$/i,
       select: function (context, node) {
         var popularity = parseFloat(node.popularity);
         if (!context.customUsage) {
           throw new BrowserslistError('Custom usage statistics was not provided')
         }
         var usage = context.customUsage;
-        return Object.keys(usage).reduce(function (result, version) {
-          var percentage = usage[version];
-          if (percentage == null) {
-            return result
-          }
-
-          if (node.sign === '>') {
-            if (percentage > popularity) {
-              result.push(version);
-            }
-          } else if (node.sign === '<') {
-            if (percentage < popularity) {
-              result.push(version);
-            }
-          } else if (node.sign === '<=') {
-            if (percentage <= popularity) {
-              result.push(version);
-            }
-          } else if (percentage >= popularity) {
-            result.push(version);
-          }
-          return result
-        }, [])
+        return filterUsage(usage, node.sign, popularity)
       }
     },
     popularity_in_config_stats: {
       matches: ['sign', 'popularity', 'config'],
-      regexp: /^(>=?|<=?)\s*(\d+|\d+\.\d+|\.\d+)%\s+in\s+(\S+)\s+stats$/,
+      regexp: /^(>=?|<=?)\s*(\d+|\d+\.\d+|\.\d+)%\s+in\s+(\S+)\s+stats$/i,
       select: function (context, node) {
         var popularity = parseFloat(node.popularity);
         var usage = loadCustomUsage(context, node.config);
-        return Object.keys(usage).reduce(function (result, version) {
-          var percentage = usage[version];
-          if (percentage == null) {
-            return result
-          }
-
-          if (node.sign === '>') {
-            if (percentage > popularity) {
-              result.push(version);
-            }
-          } else if (node.sign === '<') {
-            if (percentage < popularity) {
-              result.push(version);
-            }
-          } else if (node.sign === '<=') {
-            if (percentage <= popularity) {
-              result.push(version);
-            }
-          } else if (percentage >= popularity) {
-            result.push(version);
-          }
-          return result
-        }, [])
+        return filterUsage(usage, node.sign, popularity)
       }
     },
     popularity_in_place: {
       matches: ['sign', 'popularity', 'place'],
-      regexp: /^(>=?|<=?)\s*(\d+|\d+\.\d+|\.\d+)%\s+in\s+((alt-)?\w\w)$/,
+      regexp: /^(>=?|<=?)\s*(\d+|\d+\.\d+|\.\d+)%\s+in\s+((alt-)?\w\w)$/i,
       select: function (context, node) {
         var popularity = parseFloat(node.popularity);
         var place = node.place;
@@ -16637,29 +16811,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         }
         env.loadCountry(browserslist$3.usage, place, browserslist$3.data);
         var usage = browserslist$3.usage[place];
-        return Object.keys(usage).reduce(function (result, version) {
-          var percentage = usage[version];
-          if (percentage == null) {
-            return result
-          }
-
-          if (node.sign === '>') {
-            if (percentage > popularity) {
-              result.push(version);
-            }
-          } else if (node.sign === '<') {
-            if (percentage < popularity) {
-              result.push(version);
-            }
-          } else if (node.sign === '<=') {
-            if (percentage <= popularity) {
-              result.push(version);
-            }
-          } else if (percentage >= popularity) {
-            result.push(version);
-          }
-          return result
-        }, [])
+        return filterUsage(usage, node.sign, popularity)
       }
     },
     cover: {
@@ -16679,10 +16831,11 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     },
     supports: {
       matches: ['supportType', 'feature'],
-      regexp: /^(?:(fully|partially)\s+)?supports\s+([\w-]+)$/,
+      regexp: /^(?:(fully|partially)\s+)?supports\s+([\w-]+)$/i,
       select: function (context, node) {
         env.loadFeature(browserslist$3.cache, node.feature);
-        var withPartial = node.supportType !== 'fully';
+        var supportType = node.supportType && node.supportType.toLowerCase();
+        var withPartial = supportType !== 'fully';
         var features = browserslist$3.cache[node.feature];
         var result = [];
         for (var name in features) {
@@ -16752,8 +16905,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         var from = parseFloat(normalizeVersion(data, node.from) || node.from);
         var to = parseFloat(normalizeVersion(data, node.to) || node.to);
         function filter(v) {
-          var parsed = parseFloat(v);
-          return parsed >= from && parsed <= to
+          return parseLatestFloat(v) >= from && parseFloat(v) <= to
         }
         return data.released.filter(filter).map(nameMapper(data.name))
       }
@@ -16788,7 +16940,9 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         var version = node.version;
         var data = checkName(node.browser, context);
         var alias = browserslist$3.versionAliases[data.name][version.toLowerCase()];
-        if (alias) version = alias;
+        // Keep numbers as is: a joined range like `15.6-15.8` would move
+        // the bound to its other end
+        if (alias && !/^[\d.]+$/.test(version)) version = alias;
         if (!/[\d.]+/.test(version)) {
           throw new BrowserslistError(
             'Unknown version ' + version + ' of ' + node.browser
@@ -16916,7 +17070,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     },
     browserslist_config: {
       matches: [],
-      regexp: /^browserslist config$/i,
+      regexp: /^browserslist\s+config$/i,
       needsPath: true,
       select: function (context) {
         return browserslist$3(undefined, context)
@@ -16924,7 +17078,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     },
     extends: {
       matches: ['config'],
-      regexp: /^extends (.+)$/i,
+      regexp: /^extends\s+(?!\s)(.+)$/i,
       needsPath: true,
       select: function (context, node) {
         return resolve(env.loadQueries(context, node.config), context)
@@ -17034,7 +17188,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   var versionGroups$2 = {};
 
-  var versionGroups$1={"0":"_I _IB","1":"_d ZD","2":"_qS _uI","3":"_4 _e","4":"J jB","5":"B C","6":"_Y _RF","7":"_vS _qI","8":"_BE _AB","9":"gD _AB",A:"A B",B:"D A",C:"FE GE",D:"_DE _aP",E:"_PC AD",F:"J _U",G:"_FD _rS",H:"_NC _JP",I:"_v _UB",J:"_YH _tI",K:"_H _tI",L:"FD GD",M:"_2 _p",N:"_DE _sS",O:"_KG _rS",P:"_TH _tE",Q:"_wI _BC",R:"_3T _WH",S:"_tS _xE",T:"_h _P",U:"_EB _vE",V:"F _A",W:"_FD _pK",X:"I _w",Y:"_4 _dC",Z:"_OC AD",a:"_H _pM",b:"_SC _uS",c:"_FB AD",d:"iC _HG",e:"HD iC",f:"_g _L",g:"BD cC",h:"F _5",i:"J _e",j:"_eM _hE",k:"wD xD",l:"_k yD",m:"_g _6",n:"_g _Y",o:"_d _wC",p:"_HD _AB",q:"_j _pE",r:"E _wS",s:"_4 _VH",t:"_q _SF",u:"_6 _cC",v:"C _AC",w:"0D 1D",x:"_wI _tB",y:"_1E AD",z:"_TC _p",AB:"_qK _jB",BB:"_5 _sS",CB:"_qM _sM",DB:"_o bD",EB:"_HH _NB",FB:"_dD E",GB:"_dD AD",HB:"_zI _WH",IB:"R _3D",JB:"C M",KB:"cC _l",LB:"_rM _WH",MB:"_4D _LP",NB:"_CG _qB",OB:"_2 _eC",PB:"F _ND",QB:"_0I _XH",RB:"_KG _0S",SB:"_RC _XH",TB:"_QG _vM",UB:"_9B _8B",VB:"_cC fC",WB:"_2 _HD",XB:"_4T _sM",YB:"H XC",ZB:"_v _9B",aB:"_m _VB",bB:"_DE _sB",cB:"_4T _cP",dB:"_2S _wS",eB:"F _jK",fB:"_A _sB",gB:"_EB _mU",hB:"_OB fD",iB:"_6T _cP",jB:"_oK _gD",kB:"_wE _tB",lB:"F TD",mB:"jB _XB",nB:"_tM _uS",oB:"_zI _xS",pB:"_QB jC",qB:"LB MB",rB:"EC FC",sB:"WC 8C",tB:"_VB _oM",uB:"_7D _hD",vB:"_4 L",wB:"_EB _5T",xB:"_EB _BU",yB:"_sE LD",zB:"FB _CC","0B":"_aC _aK","1B":"J _SH","2B":"_vS DC","3B":"_v G","4B":"EB _zB","5B":"_VP _CU","6B":"_KG _xI","7B":"_jC _p","8B":"P Q","9B":"G O",AC:"M N",BC:"_cC _rE",CC:"_GH _NB",DC:"_Y G",EC:"_wE _BC",FC:"_RF _BC",GC:"_Y _iD",HC:"_4 _dD",IC:"_RF _tB",JC:"_vC _A",KC:"_iK _kC",LC:"_g FD",MC:"_rK _xS",NC:"_KF _CH",OC:"_dD _vC",PC:"_OC _A",QC:"_fK _jI",RC:"_4 _OC",SC:"_H _h",TC:"E _mM",UC:"_EE _gE",VC:"_JD _oM",WC:"_xC _qE",XC:"_vB _hP",YC:"vB wB",ZC:"xB yB",aC:"_UB kB",bC:"_NF _QF",cC:"_lE _PF",dC:"_PC _v",eC:"dD eD",fC:"_mE _ED",gC:"D _vC",hC:"kB _EB",iC:"_PF _rE",jC:"E cD",kC:"_bP _jB",lC:"6B _iE",mC:"_AD IC",nC:"_1B 4D",oC:"_tS _VB",pC:"F _TH",qC:"J 2D",rC:"iC YD",sC:"_PH _qI",tC:"_wI _xE",uC:"_AT _uE",vC:"E F",wC:"ZD aD",xC:"_WB _qK",yC:"_n _iD",zC:"_WB hD","0C":"K _uE","1C":"_g _EU","2C":"_MG _FU","3C":"_vB _VH","4C":"_HC _hP","5C":"_OD _sB","6C":"_6T _AU","7C":"_QD _p","8C":"_jP _tI","9C":"_1K _gD",AD:"_rB _tT",BD:"_LF _j",CD:"dC DC",DD:"_oE _fS",ED:"_CD eC",FD:"cC J",GD:"jC WC",HD:"_eC _BE",ID:"_NH _ED",JD:"_PF fC",KD:"_LG _NF",LD:"_WB _IG",MD:"J _rI",ND:"_rM _dP",OD:"_uM _TH",PD:"_NH _vI",QD:"E _7T",RD:"_mI _IE",SD:"ID _yB",TD:"_TF _eP",UD:"C _YB",VD:"I 1D",WD:"_H _FC",XD:"_Y _bH",YD:"_5 _aP",ZD:"_HE _qE",aD:"_gP _xK",bD:"_yK _3I",cD:"_nU _xE",dD:"L D",eD:"sB tB",fD:"_kE _iE",gD:"_DD _9D",hD:"_mE _vI",iD:"_8D _6D",jD:"_ID _BC",kD:"_OF _ED",lD:"_A _v",mD:"_JD _pI",nD:"_FE _cM",oD:"_4D V",pD:"_4D _KP",qD:"_rB GC",rD:"E _uI",sD:"_NC 4",tD:"_EB _pU",uD:"_ZC zB",vD:"_OD _kK",wD:"_4S _0E",xD:"_lP _zS",yD:"_fH R",zD:"_7M _zS","0D":"_GU _FC","1D":"_IU _L","2D":"_oU _mK","3D":"H S","4D":"T U","5D":"_LH _jE","6D":"_MH _QC","7D":"_5D _bC","8D":"_nE _7D","9D":"_vT _FG",AE:"XC MD",BE:"fD gD",CE:"_mS _oS",DE:"_A C",EE:"_MB _cK",FE:"_AD _TP",GE:"O _8B",HE:"_DC _lU",IE:"_lK _jB",JE:"_fC _BC",KE:"_hE _pE",LE:"_Y _8D",ME:"_sK CB",NE:"_7D _6D",OE:"_GD _AE",PE:"_nK _gD",QE:"J _KU",RE:"K _MT",SE:"_H _zS",TE:"_fD 9B",UE:"_hS _RD",VE:"_0T _gD",WE:"_h _EJ",XE:"_aH 9D",YE:"_VF _YG",ZE:"_4I _9T",aE:"_SG _tI",bE:"_4S _jD",cE:"_oP _9T",dE:"_IT _jB",eE:"_LU _uE",fE:"AB BB",gE:"_qT _aI",hE:"_YS _JH",iE:"7B 8B",jE:"oB pB",kE:"5B 6B",lE:"_AD _hK",mE:"_6D _NH",nE:"_aC _EB",oE:"bC wC",pE:"gC _eS",qE:"ZC _lI",rE:"_BD _pE",sE:"JD KD",tE:"_kK XC",uE:"_nK _mK",vE:"_rI _nM",wE:"_7D _fC",xE:"_tB _L",yE:"_aC _HH",zE:"_MB _ZK","0E":"_ID _tB","1E":"_OC A","2E":"_IB fC","3E":"_fD _KH","4E":"_TF M","5E":"_Y _LG","6E":"_Y _KD","7E":"_H _PG","8E":"_H _xM","9E":"_EB _nM",AF:"_eC fD",BF:"_FD _QH",CF:"_n _OU",DF:"_LD kD",EF:"_mC JC",FF:"_4I _fP",GF:"_7S _0E",HF:"_pP _PD",IF:"_5M _EC",JF:"W X",KF:"0 1",LF:"_MB _ZM",MF:"_bM _SP",NF:"qB rB",OF:"_KH _dM",PF:"_fM _IB",QF:"_kI _YC",RF:"_PH _ED",SF:"_kU ED",TF:"_MG C",UF:"_yE IB",VF:"_LD _oI",WF:"HB _NB",XF:"_JP _fE",YF:"_MB _VS",ZF:"_fC _tB",aF:"_h _iD",bF:"_uK oB",cF:"_hC _uB",dF:"_aC DB",eF:"_9B P",fF:"_MB _GP",gF:"_jM QD",hF:"_Y _1S",iF:"_EE _qT",jF:"_GC _3E",kF:"_aH _YP",lF:"KD LD",mF:"_MD jC",nF:"_xC _oK",oF:"J _QH",pF:"_H _0E",qF:"_H _DU",rF:"_EB _kS",sF:"_EB _QU",tF:"_Y _1M",uF:"_Y _dF",vF:"_UH _yS",wF:"_wI _cC",xF:"_a XC",yF:"_x GD",zF:"_gP _7K","0F":"_2B _P","1F":"_ZB P","2F":"_VF qD","3F":"_iP _uB","4F":"_nC 5D","5F":"_6S _jD","6F":"_WG _QS","7F":"_9S _kB","8F":"_GT _mD","9F":"_qU _ZP",AG:"v w",BG:"_RS _IP",CG:"IB _rT",DG:"QC RC",EG:"_gI _sT",FG:"_jU 7C",GG:"_gM _hM",HG:"YD 9C",IG:"hD _iK",JG:"_GD _sI",KG:"_FD I",LG:"_nE _5D",MG:"_4 _PC",NG:"_aS _QC",OG:"KB _qB",PG:"_bC _hD",QG:"_4 _FB",RG:"_dM _ED",SG:"_H _GE",TG:"_yI _BC",UG:"_lE _DG",VG:"_kE 7B",WG:"_wM _EH",XG:"_oT _fE",YG:"_lS kC",ZG:"_vK 3B",aG:"_H _zB",bG:"_MH _fK",cG:"_wK mB",dG:"_sK _t",eG:"_lE QC",fG:"_HE _nK",gG:"_KE _SF",hG:"B _sB",iG:"L ID",jG:"1 _CH",kG:"eD _8",lG:"_NC _DH",mG:"_IB _oD",nG:"_IB _pD",oG:"_H _WM",pG:"_NH DC",qG:"_Y _aC",rG:"_Y _yE",sG:"_Y _vK",tG:"_oE _uT",uG:"_n _L",vG:"_wE _cC",wG:"_qM _rU",xG:"_W 0D",yG:"_u _UC",zG:"_HE _gF","0G":"_gP _AN","1G":"_aB _WT","2G":"_eB VD","3G":"_XF _q","4G":"_iP _EC","5G":"_YF _HP","6G":"_4M _uB","7G":"_fF d","8G":"_lH _kI","9G":"_HU _P",AH:"_ST _BC",BH:"_sU _0K",CH:"2 3",DH:"4 _mT",EH:"p _SS",FH:"DB EB",GH:"GB HB",HH:"_aK _GH",IH:"eB fB",JH:"_IH _hI",KH:"9B AC",LH:"lB _bS",MH:"_ZC _aS",NH:"_fD _OF",OH:"pC qC",PH:"_8D _mE",QH:"zD 9C",RH:"kD _hS",SH:"2D 3D",TH:"_jK _nI",UH:"G K",VH:"_e ID",WH:"_JG _uE",XH:"_VH _yB",YH:"_H _I",ZH:"_8D _MH",aH:"_MD _lM",bH:"_KD _kI",cH:"_XM _bK",dH:"_aC _FH",eH:"_zE _RS",fH:"_lE _fM",gH:"_h _8D",hH:"_1I _q",iH:"_1I _j",jH:"K _OG",kH:"_vC _lD",lH:"_5D _NF",mH:"_jM tD",nH:"u _bK",oH:"tB _2I",pH:"0B _QC",qH:"_mT _XG",rH:"_HC _vM",sH:"N G",tH:"pD _IE",uH:"_fE _t",vH:"_IB _rE",wH:"_IB _UC",xH:"_ZK _BG",yH:"_H h",zH:"_H _jD","0H":"_H _IC","1H":"_H _5S","2H":"_H _TG","3H":"_H _hH","4H":"_H _iH","5H":"_H _nH","6H":"_vC A","7H":"_LH oB","8H":"_Y _CJ","9H":"_6 _lE",AI:"_2 dD",BI:"_rK _fP",CI:"_RC _vM",DI:"_1E _SD",EI:"_3E BC",FI:"_SG _EN",GI:"_XF _j",HI:"_6S _PD",II:"_eH k",JI:"_zC iD",KI:"_4E _vU",LI:"_8M _q",MI:"_hF ND",NI:"_jF BC",OI:"_5K _tI",PI:"_BN _PG",QI:"_CN _xM",RI:"_aG _kB",SI:"_rP _6I",TI:"_KJ _hD",UI:"_LT _JE",VI:"_ZT _AU",WI:"_SU _L",XI:"_TU _P",YI:"_tU _P",ZI:"_uU _L",aI:"y z",bI:"7 8",cI:"n o",dI:"Z a",eI:"_QS u",fI:"RB SB",gI:"NB OB",hI:"_MP I",iI:"_QP PC",jI:"3B 4B",kI:"_eD uB",lI:"mC _cS",mI:"oD pD",nI:"VD WD",oI:"_RH _mI",pI:"_LF CB",qI:"DC _VB",rI:"_SH _pS",sI:"_AE _CE",tI:"_IB _BD",uI:"_wC _mM",vI:"_qI _pI",wI:"_H _6",xI:"_QH _w",yI:"_bC _fC",zI:"B _rK","0I":"_RC A","1I":"_dI _ZM","2I":"uB _YC","3I":"XD XC","4I":"_AC _UH","5I":"_bS _jE","6I":"_OF _vI","7I":"_kD _tB","8I":"_tK LB","9I":"jB _dC",AJ:"rB _QF",BJ:"_OH _1T",CJ:"_ZH 1B",DJ:"_HD _IG",EJ:"_TH _kK",FJ:"CC _ED",GJ:"HC _hK",HJ:"_Y _PH",IJ:"_n _8D",JJ:"_pT _YK",KJ:"_H wB",LJ:"DC eC",MJ:"_H _3S",NJ:"_H _2I",OJ:"_7D _mE",PJ:"_PH DC",QJ:"D E",RJ:"kB _HH",SJ:"K _CT",TJ:"RC _eK",UJ:"ID _sE",VJ:"jD _kC",WJ:"_H _3D",XJ:"_H _7I",YJ:"_H _ME",ZJ:"_H _pH",aJ:"_H _PT",bJ:"_H _LN",cJ:"_EB _xU",dJ:"_sT _MF",eJ:"_5D qB",fJ:"_6D 5B",gJ:"_dC G",hJ:"_Y _0B",iJ:"_Y _tK",jJ:"_Y _UF",kJ:"_Y _8I",lJ:"_Y _9M",mJ:"_pE _SF",nJ:"_DD _vT",oJ:"_SH 4D",pJ:"_FD _xI",qJ:"_DE M",rJ:"_YH _IB",sJ:"_gC _A",tJ:"_LD _RH",uJ:"_u _4D",vJ:"_GC _VG",wJ:"_0 _4D",xJ:"_sK _j",yJ:"_jC _DJ",zJ:"_gP _tE","0J":"_nD NC","1J":"_yC _UU","2J":"_yC _wU","3J":"_jP _cF","4J":"_YF f","5J":"_UG SC","6J":"_LE _ZC","7J":"_mP _JE","8J":"_mP _ZF","9J":"_2M _JE",AK:"_TD XC",BK:"_BT _PG",CK:"_5E qB",DK:"_6K _EC",EK:"_DT _j",FK:"_DT _q",GK:"_GN _jD",HK:"_OT _iC",IK:"_AL _oK",JK:"_BL q",KK:"_DL _XS",LK:"_MN _mD",MK:"_uP _DU",NK:"_xP n",OK:"_aT _vE",PK:"_bT _FC",QK:"_cT CB",RK:"_VU _L",SK:"_yU _P",TK:"_zU _P",UK:"_0U _P",VK:"_1U _L",WK:"_2U _L",XK:"_3U _P",YK:"_HP h",ZK:"_VS _YK",aK:"_FH FB",bK:"_gE _fE",cK:"_ZK _YM",dK:"_OP _WS",eK:"_RP UC",fK:"1B 2B",gK:"_cM _iI",hK:"_TP _gK",iK:"iD jD",jK:"TD UD",kK:"_sB XD",lK:"_lS _nS",mK:"_gD SD",nK:"_jM _1T",oK:"_jM _2T",pK:"_l _QH",qK:"_IG _bP",rK:"_v _UH",sK:"_YM _bK",tK:"_yE _CG",uK:"_nE _LH",vK:"_ZH _fK",wK:"_nE lB",xK:"_nI _tE",yK:"_yM _pM",zK:"_rT _qB","0K":"_mS kC","1K":"_OH _2T","2K":"_kD _BC","3K":"_LF _EG","4K":"_2E _pI","5K":"_H Q","6K":"_H MB","7K":"WD _tE","8K":"KC _gK","9K":"_RH oD",AL:"_HD _qK",BL:"_wM p",CL:"_nD _QP",DL:"_3K _bM",EL:"_H _cH",FL:"F A",GL:"B _v",HL:"_UG _RP",IL:"_sP _YS",JL:"C XC",KL:"C _aP",LL:"C _3I",ML:"Q _hC",NL:"J _xI",OL:"J _WU",PL:"8C _3I",QL:"_nT _cI",RL:"_EH _QS",SL:"_H _YK",TL:"_H _tB",UL:"_H _n",VL:"_H _hD",WL:"_H _2K",XL:"_H _VT",YL:"_H _yP",ZL:"_H _4U",aL:"_H _5U",bL:"_vC _ND",cL:"_EB _ZP",dL:"_LF _gI",eL:"_OF DC",fL:"_PF _oD",gL:"_Y _UB",hL:"_Y _wK",iL:"_Y _dH",jL:"_Y _eF",kL:"_Y _ZG",lL:"_fS _9D",mL:"_FD _ON",nL:"_IG _oI",oL:"_wC bD",pL:"_GD XC",qL:"_JG _nK",rL:"_fC _cC",sL:"_n _PH",tL:"_n _dT",uL:"_n _YU",vL:"_n _ZU",wL:"_m _6U",xL:"_hC _EC",yL:"_FE LC",zL:"_0 _wM","0L":"_sK _q","1L":"_GE _hC","2L":"_yK XC","3L":"_6S _0E","4L":"_7S _jD","5L":"_lP _FC","6L":"_mP _hD","7L":"_oP _yS","8L":"_2M _ZF","9L":"_pP _0E",AM:"_4M _EC",BM:"_8M _j",CM:"_rP _7I",DM:"_DN _6I",EM:"_DN _2K",FM:"_ET _7I",GM:"_FT _uB",HM:"_FN _0E",IM:"_NT _IC",JM:"_NJ _hD",KM:"_OJ DC",LM:"_NU _P",MM:"_NU _XU",NM:"_UT _VC",OM:"_NN _vE",PM:"_PN _L",QM:"_zP _BC",RM:"_0P _iC",SM:"_7U _pI",TM:"_8U _P",UM:"_9U _P",VM:"_AV _L",WM:"_JF Y",XM:"_EH _eI",YM:"_BG _XM",ZM:"_cK _bK",aM:"TB UB",bM:"_fI _aM",cM:"LC MC",dM:"BC CC",eM:"_EG _MF",fM:"_DG _eK",gM:"aC rC",hM:"sC tC",iM:"3C 4C",jM:"_qE _OH",kM:"aC _yT",lM:"jC _zT",mM:"bD cD",nM:"_lM _ZP",oM:"_rE _SF",pM:"_PH _vI",qM:"_Y _UH",rM:"_A _rK",sM:"ID _cP",tM:"_H _5",uM:"F B",vM:"_VH _sE",wM:"_zE _BG",xM:"_yI _tB",yM:"_H C",zM:"_tT _hK","0M":"2B _jI","1M":"_0B GB","2M":"_H _YC","3M":"_ZS _gK","4M":"_H _WF","5M":"_H _zK","6M":"OD _oS","7M":"_H N","8M":"_H _8T","9M":"_UF _US",AN:"UD _xK",BN:"_H pB",CN:"_H _jE",DN:"_H 8B",EN:"_hC _kB",FN:"_H _QC",GN:"_H _NG",HN:"_H _hK",IN:"_H _8S",JN:"_UF JB",KN:"_2E _oM",LN:"PC _mD",MN:"_H _iI",NN:"J _HH",ON:"yD _QH",PN:"_n _KD",QN:"_H _JU",RN:"_MH 1B",SN:"_V _v",TN:"_xC _mH",UN:"WC _sI",VN:"_H _8K",WN:"_H _XT",XN:"_OE _0K",YN:"C _sS",ZN:"N _UB",aN:"J _vE",bN:"EB _eT",cN:"IB JB",dN:"K _mK",eN:"yB _aS",fN:"UD VD",gN:"9C _w",hN:"pD _lK",iN:"_8B _hC",jN:"_XM _gE",kN:"_H _IB",lN:"_H _iC",mN:"_H _4B",nN:"_H _cF",oN:"_H _SN",pN:"_H _1P",qN:"_H _BV",rN:"_PC C",sN:"_dM _vI",tN:"_NF _kI",uN:"_7D _RN",vN:"_mE DC",wN:"_Y _9B",xN:"_Y _ZH",yN:"_Y _uK",zN:"_dS _9D","0N":"_FD _l","1N":"_FD _0S","2N":"_6 EC","3N":"_n _GV","4N":"_3T _cU","5N":"_zE i","6N":"_EE v","7N":"_LD _9K","8N":"_u _MB","9N":"_GC 5B",AO:"_GC _kE",BO:"_GC _fD",CO:"_0 _UC",DO:"_0 _iF",EO:"_GE kB",FO:"_lD G",GO:"_pD Z",HO:"_iP _kB",IO:"_LE xB",JO:"_2M _hD",KO:"_NE 5B",LO:"_NE _fD",MO:"_8S _bC",NO:"_9S _uB",OO:"_BT _xM",PO:"_BT _TG",QO:"_6K _uB",RO:"_BN _xM",SO:"_CN _PG",TO:"_ET _6I",UO:"_FT _EC",VO:"_HJ dC",WO:"_HJ _CD",XO:"_HT _EV",YO:"_IJ _L",ZO:"_IJ _FV",aO:"_JJ _dG",bO:"_tP CB",cO:"_JT _kB",dO:"_JT _EC",eO:"_FN _jD",fO:"_KT _uB",gO:"_KT _EC",hO:"_LT _hD",iO:"_HU _DV",jO:"_mF 7D",kO:"_HN _iC",lO:"_HN _VC",mO:"_IN _xM",nO:"_IN _TG",oO:"_qH _t",pO:"_NT _FC",qO:"_QT _uI",rO:"_QT _wS",sO:"_TT _iC",tO:"_TT _VC",uO:"_YT _hH",vO:"_EL _j",wO:"_QN _t",xO:"_TN _GG",yO:"_2P _KN",zO:"_3P 3B","0O":"_4P aC","1O":"_gT _aU","2O":"_hT _gD","3O":"_iT iD","4O":"_bU _FC","5O":"_dU _P","6O":"_CV _vE","7O":"_HV _P","8O":"_IV _P","9O":"_JV _P",AP:"_KV _P",BP:"_LV _L",CP:"_MV _L",DP:"_NV _L",EP:"_OV _L",FP:"_PV _P",GP:"b c",HP:"f g",IP:"_TS _cI",JP:"_DH _oT",KP:"V _WM",LP:"_KP _dI",MP:"_iU iB",NP:"WB XB",OP:"YB ZB",PP:"CB QB",QP:"NC OC",RP:"SC TC",SP:"_XS _dK",TP:"IC _ZS",UP:"1C 2C",VP:"lC YC",WP:"uC vC",XP:"mD nD",YP:"9D AE",ZP:"_YP _kS",aP:"_sB XC",bP:"_oI _lK",cP:"_yB _WH",dP:"LD _WH",eP:"_XH _GD",fP:"_sI _uE",gP:"_tM _pM",hP:"_VH JD",iP:"_H _NB",jP:"_H _8B",kP:"yB _NG",lP:"_H _AC",mP:"_H _QF",nP:"_VP PD",oP:"N _UH",pP:"_H _kP",qP:"cC _6",rP:"_H _lC",sP:"_LF _eM",tP:"_H _ZM",uP:"_H AC",vP:"_H _jH",wP:"_H _PU",xP:"_eH _TS",yP:"TC UC",zP:"_H _FJ","0P":"_H _GJ","1P":"X Y","2P":"_H UC","3P":"_7D _bG","4P":"_kF _gS","5P":"B _3B","6P":"g h","7P":"OC PC","8P":"WC XC","9P":"_H _ED",AQ:"_H _oH",BQ:"_H _LJ",CQ:"L AD",DQ:"9 _fE",EQ:"C H",FQ:"C _tE",GQ:"R H",HQ:"m _cI",IQ:"J iC",JQ:"jB ID",KQ:"kB _aK",LQ:"IB _US",MQ:"K _kT",NQ:"K _hU",OQ:"lB mB",PQ:"pB _bC",QQ:"pB _yI",RQ:"6B 7B",SQ:"fC _oM",TQ:"8C XC",UQ:"xD yD",VQ:"_3D _rE",WQ:"_KF 2",XQ:"_IB _4D",YQ:"_H _v",ZQ:"_H _JE",aQ:"_H _ZF",bQ:"_H _KN",cQ:"_H _GL",dQ:"_H _6P",eQ:"_H _QV",fQ:"_H _RV",gQ:"_H _UV",hQ:"_AC _UB",iQ:"_vC _lF",jQ:"_EB _yT",kQ:"_EB _kM",lQ:"_dK _gG",mQ:"_SP _hE",nQ:"_SP _KE",oQ:"_NF sB",pQ:"_iE _OF",qQ:"_AD _L",rQ:"_4 ID",sQ:"_7D xB",tQ:"_dC _LG",uQ:"_Y _bF",vQ:"_WP _eU",wQ:"_DD _UP",xQ:"_5 _AN",yQ:"_5 _8P",zQ:"_lM _YP","0Q":"_nI _kK","1Q":"_6 _AD","2Q":"_6 _FE","3Q":"_6 _mC","4Q":"_6 _qD","5Q":"_6 _eG","6Q":"_yB jC","7Q":"_yB _XN","8Q":"_h _XV","9Q":"_KG _fU",AR:"_wE _VB",BR:"_iD 5B",CR:"_V AD",DR:"_EE _AG",ER:"_MG _eP",FR:"_u _WG",GR:"_u _iF",HR:"_HE ZC",IR:"_1I CB",JR:"_OD WC",KR:"_2B _ZV",LR:"_7 _WV",MR:"_7 _iV",NR:"_yC _L",OR:"_oD _JF",PR:"_2S _uI",QR:"_RG _tB",RR:"_yK _tE",SR:"_aF _TV",TR:"_aF _YV",UR:"_7S _PD",VR:"_4E _1S",WR:"_9S _EC",XR:"_3M _lT",YR:"_DJ _oI",ZR:"_DJ _9K",aR:"_gH _P",bR:"_oC _IL",cR:"_5M _kB",dR:"_lF jC",eR:"_5K _EN",fR:"_ET _2K",gR:"_FT _kB",hR:"_GT _VC",iR:"_sP cB",jR:"_HT _P",kR:"_JJ _YM",lR:"_tP _j",mR:"_tP _q",nR:"_JT _uB",oR:"_GN _PD",pR:"_KT _kB",qR:"_6E sB",rR:"_MJ _j",sR:"_MJ _q",tR:"_nF _DD",uR:"_OT _VC",vR:"_fG _DD",wR:"_UT _iC",xR:"_VT G",yR:"_rH SD",zR:"_YT _iH","0R":"_vP _uB","1R":"_vP _kB","2R":"_wP _j","3R":"_wP _q","4R":"_PJ _CL","5R":"_FL _jT","6R":"_HL _L","7R":"_VN _VC","8R":"_WN _ME","9R":"_5P _UN",AS:"_7P _JD",BS:"_9P _BC",CS:"_AQ _JE",DS:"_BQ _tB",ES:"_gU _iC",FS:"_SV _CT",GS:"_VV CB",HS:"_aV _L",IS:"_bV _P",JS:"_cV _P",KS:"_dV _P",LS:"_eV _L",MS:"_fV _L",NS:"_gV _L",OS:"_hV _L",PS:"_jV _P",QS:"s t",RS:"i j",SS:"q r",TS:"k _nT",US:"JB K",VS:"_GP _pT",WS:"aB bB",XS:"VB _NP",YS:"cB dB",ZS:"JC KC",aS:"zB 0B",bS:"mB nB",cS:"nC oC",dS:"zC 0C",eS:"VC hC",fS:"_uT _dS",gS:"BE ZC",hS:"lD _XP",iS:"_wT RD",jS:"5D 6D",kS:"_gS _kM",lS:"qD rD",mS:"ND OD",nS:"_xT sD",oS:"_xT PD",pS:"4D _jS",qS:"E _d",rS:"_pK _w",sS:"H _aP",tS:"_H _m",uS:"_pM _P",vS:"_h _PH",wS:"_uI _p",xS:"WC _fP",yS:"_CE _uE",zS:"_UB _tI","0S":"yD _xI","1S":"_eP _AE","2S":"E _HG","3S":"_aI _fE","4S":"_H _jI","5S":"_eI _bK","6S":"_H _0M","7S":"_H 4B","8S":"nB _jE","9S":"_H _qB",AT:"K _nP",BT:"_H _5I",CT:"_9D SD",DT:"_H _bK",ET:"_H _iE",FT:"_H _CC",GT:"_H _zM",HT:"_h _KD",IT:"rD _nS",JT:"_H _EB",KT:"_H _OG",LT:"_H _AJ",MT:"_BJ _mK",NT:"_H _dC",OT:"_H _3M",PT:"_eK _4K",QT:"E 9C",RT:"_SS _5S",ST:"_H eC",TT:"_H _gK",UT:"_H _MU",VT:"_gC _lD",WT:"_UC _L",XT:"e _YK",YT:"_H Y",ZT:"_vC _rM",aT:"J _aK",bT:"_H _kH",cT:"_H _RT",dT:"_ZH _L",eT:"FB _GH",fT:"MC _iI",gT:"_vC _DE",hT:"_WP uD",iT:"_HD hD",jT:"LD jC",kT:"_FG SD",lT:"_mD _P",mT:"5 6",nT:"l m",oT:"_bI 9",pT:"d e",qT:"_AG x",rT:"_US KB",sT:"PB _PP",tT:"GC HC",uT:"xC yC",vT:"_UP _iM",wT:"_GG _WP",xT:"kC _VP",yT:"bC CE",zT:"7D 8D","0T":"_wT uD","1T":"QD _iS","2T":"tD _0T","3T":"_qM _XH","4T":"_dC _UH","5T":"_pS _nM","6T":"_gC _rM","7T":"aD _mM","8T":"_LP _ZM","9T":"MD _yS",AU:"KD _dP",BU:"_jS _nM",CU:"sD _jB",DU:"_RG _BC",EU:"_4 _L",FU:"_XH jC",GU:"_H _9I",HU:"_h _LG",IU:"_n _tK",JU:"x _3S",KU:"I _xI",LU:"_UH _6M",MU:"FC _zM",NU:"_h _bH",OU:"_dH _L",PU:"U _8T",QU:"6D _nM",RU:"_IP _cH",SU:"_n _LG",TU:"_gH xB",UU:"_kE _L",VU:"_g _RC",WU:"DB _vE",XU:"vB _P",YU:"_UB _L",ZU:"_nE _L",aU:"LD _GD",bU:"_H _lD",cU:"_JG _PE",dU:"_HT _eD",eU:"RD _mK",fU:"xD _0S",gU:"_H _fT",hU:"_fS _CT",iU:"gB hB",jU:"5C 6C",kU:"CD DD",lU:"_XH _JG",mU:"3D _5T",nU:"_H _qP",oU:"K _iS",pU:"AE _kS",qU:"_EB _zT",rU:"iC _sM",sU:"_DC _1S",tU:"_h _yE",uU:"_n _cG",vU:"_eP XC",wU:"5B _L",xU:"8D _ZP",yU:"_h _1M",zU:"_h _bF","0U":"_h _9M","1U":"_n _yE","2U":"_n _CJ","3U":"_aF _VG","4U":"a _ZM","5U":"r _5S","6U":"EC _L","7U":"_H _VB","8U":"_h _wK","9U":"_h _8I",AV:"_n _vK",BV:"j _RU",CV:"J _FH",DV:"qB _P",EV:"sB _P",FV:"xB _L",GV:"_9B _L",HV:"_h _0B",IV:"_h _uK",JV:"_h _ZG",KV:"_h _JN",LV:"_n _UF",MV:"_n _uK",NV:"_n _wK",OV:"_n _8I",PV:"_2B _nD",QV:"o _cH",RV:"w _JU",SV:"K _dS",TV:"5B _P",UV:"RC _PT",VV:"_H _RU",WV:"_MB _P",XV:"_UB _P",YV:"_kE _P",ZV:"_AD _P",aV:"_g _HC",bV:"_h _ZH",cV:"_h _tK",dV:"_h _dH",eV:"_n _1M",fV:"_n _bF",gV:"_n _eF",hV:"_n _JN",iV:"_zE _P",jV:"_2B _CL"};
+  var versionGroups$1={"0":"_9E ID","1":"_I _CB","2":"_d hD","3":"_IC _s","4":"_1S _jI","5":"_6S _JG","6":"_7 _e","7":"I qB","8":"B C","9":"_j _WF",A:"A B",B:"D A",C:"OE PE",D:"_EE _PP",E:"_QC ID",F:"I _U",G:"_GD _2S",H:"_ZC _fS",I:"_y _ZB",J:"_lI _iI",K:"_H _iI",L:"MD ND",M:"_4 _s",N:"_EE _3S",O:"_LG _2S",P:"_HH _2E",Q:"_mI _6E",R:"_HU _KH",S:"_4S _fK",T:"_2B _P",U:"_IB _4E",V:"F _A",W:"_GD _dK",X:"VB _z",Y:"_PC ID",Z:"_H _aM",a:"_KB ID",b:"_oD _5S",c:"JD iC",d:"oC _HG",e:"OD oC",f:"_c _L",g:"_JG _fI",h:"_AB _KG",i:"_AB _6E",j:"_7 _bC",k:"_ZI _AH",l:"_k _FC",m:"I _e",n:"_l _UK",o:"5D 6D",p:"_o 7D",q:"_3O _0O",r:"_d _wC",s:"_ID _DB",t:"_c _9",u:"E _7S",v:"_7 _JH",w:"_9 _wE",x:"_mI _KG",y:"C _DC",z:"9D AE",AB:"_ED kC",BB:"oD _DB",CB:"Q _7D",DB:"_kI _oB",EB:"_nD _DB",FB:"_8 _3S",GB:"_bM _eM",HB:"_r jD",IB:"_UF _EC",JB:"_uC _UF",KB:"_hD E",LB:"_hD ID",MB:"_nI _KH",NB:"C L",OB:"iC _p",PB:"_lE _7O",QB:"_4 _cC",RB:"F _RD",SB:"_cM _KH",TB:"_uC _IB",UB:"_0B _CH",VB:"_pI _LH",WB:"_LG _BT",XB:"_RC _LH",YB:"_PG _hM",ZB:"_CC _zB",aB:"_j _TB",bB:"_4 _ID",cB:"_IU _eM",dB:"H dC",eB:"_t _vC",fB:"_y _CC",gB:"_EE _uB",hB:"_IU _RP",iB:"_ET _7S",jB:"F _XK",kB:"_A _uB",lB:"_IB _1U",mB:"_QB nD",nB:"_KU _RP",oB:"_cK _0E",pB:"F bD",qB:"qB _cB",rB:"_fM _5S",sB:"_nI _8S",tB:"_VB pC",uB:"cC GD",vB:"_aB _0B",wB:"_7 K",xB:"_IB _JU",yB:"_IB _QU",zB:"O P","0B":"_DD _sE","1B":"_1E SD","2B":"F _8","3B":"_vB _vE","4B":"MB _EC","5B":"I _GH","6B":"_y G","7B":"LB _4B","8B":"_FC _UK","9B":"_JP _RU",AC:"_LG _MH",BC:"_gC _s",CC:"G N",DC:"L M",EC:"_oE _nE",FC:"_pS nC",GC:"_j _JB",HC:"_WF _6E",IC:"E _XM",JC:"_7 _hD",KC:"_6S JC",LC:"_tC _A",MC:"_VK _hC",NC:"_c MD",OC:"_eK _8S",PC:"_hD _tC",QC:"_PC _A",RC:"_7 _PC",SC:"_j G",TC:"rB _IB",UC:"_KD _ZM",VC:"_WF _KG",WC:"_WI _nE",XC:"_yC _zE",YC:"_wB _ZP",ZC:"_rC 3",aC:"3B 4B",bC:"_QC _y",cC:"lD mD",dC:"D _tC",eC:"_UB _h",fC:"_VF _GG",gC:"E kD",hC:"_QP _oB",iC:"SB _TF",jC:"_kD 7B",kC:"_5B DE",lC:"F _HH",mC:"I BE",nC:"oC gD",oC:"_BE _JG",pC:"_mI _fK",qC:"_OT _3E",rC:"0 _QI",sC:"NB OB",tC:"E F",uC:"_ZB rB",vC:"_wE lC",wC:"hD iD",xC:"_0B _vE",yC:"_bB _kI",zC:"_kD _OM","0C":"_c _3B","1C":"_bB pD","2C":"J _3E","3C":"_c _VU","4C":"_MG _WU","5C":"_wB _JH","6C":"_JC _ZP","7C":"_SD _uB","8C":"_KU _PU","9C":"_UD _s",AD:"_cP _iI",BD:"_nK _0E",CD:"_PB _KM",DD:"_iD _BH",ED:"jC JC",FD:"_xE _qS",GD:"iC I",HD:"pC cC",ID:"_cC _nD",JD:"_2B _TB",KD:"_VF lC",LD:"_bB _IG",MD:"I _gI",ND:"_SC _0U",OD:"N _zB",PD:"_c _aB",QD:"_FE _mE",RD:"_cM _SP",SD:"_gM _HH",TD:"_JD _0B",UD:"E _LU",VD:"_cI _IE",WD:"PD _1B",XD:"_XF _TP",YD:"_AB _wE",ZD:"C _dB",aD:"VB AE",bD:"_H _HC",cD:"_8 _PP",dD:"_ND _zE",eD:"_YP _kK",fD:"_lK _rI",gD:"_2U _fK",hD:"K D",iD:"sB tB",jD:"HC IC",kD:"_aC _NK",lD:"_pE _9G",mD:"_CD _k",nD:"nD oD",oD:"_H _2B",pD:"_UB _g",qD:"_A _y",rD:"_KD _fI",sD:"_c _vB",tD:"_oI _MM",uD:"_lE U",vD:"_lE _5O",wD:"_DD wB",xD:"E _jI",yD:"_IB _4U",zD:"_aC 5B","0D":"_SD _YK","1D":"_HT _h","2D":"_dP _AT","3D":"_rM _AT","4D":"_YU _L","5D":"_3U _aK","6D":"_5U _HC","7D":"H R","8D":"_AP YB","9D":"KC LC",AE:"_7G _jD",BE:"_TB _UB",CE:"dC TD",DE:"_xS _zS",EE:"_A C",FE:"_PB _LK",GE:"_rE _tE",HE:"_c _GC",IE:"_ZK _oB",JE:"_7E _QK",KE:"_sC PB",LE:"_UB _i",ME:"_iD uB",NE:"_zC 9B",OE:"_HD _CE",PE:"_FE _dS",QE:"_4S _vC",RE:"_TB _0B",SE:"_yC _cK",TE:"_kP _LP",UE:"J _ZT",VE:"_H _AT",WE:"_lD FC",XE:"_AB _vC",YE:"_sS _VD",ZE:"_EU _0E",aE:"_2B _yI",bE:"_aB _JE",cE:"_OH IE",dE:"_aF _XG",eE:"_sI _NU",fE:"_QG _iI",gE:"_HT _i",hE:"_gP _NU",iE:"_VT _oB",jE:"_bU _MH",kE:"_cU _3E",lE:"S T",mE:"_dS _RI",nE:"_6O _TF",oE:"_sC _WI",pE:"BC CC",qE:"_9D _6T",rE:"_OM _PK",sE:"_8G _FG",tE:"_lD _AE",uE:"_qE _SK",vE:"_kD _rE",wE:"_uE _VF",xE:"hC 2C",yE:"_QM _RM",zE:"fC _aI","0E":"_TK _bI","1E":"QD RD","2E":"_YK dC","3E":"_bK _aK","4E":"_gI _YM","5E":"_HD _hI","6E":"_wE _GG","7E":"_DD _8G","8E":"_PB _IK","9E":"_PC A",AF:"_2B _JB",BF:"_CB lC",CF:"_lD _7G",DF:"_XF L",EF:"_UM XD",FF:"rB _UF",GF:"_IB _YM",HF:"_cC nD",IF:"_GD _EH",JF:"_LD sD",KF:"_YF _fU",LF:"_eB _eU",MF:"_CT _g",NF:"_CT _h",OF:"_sI _UP",PF:"_LT _h",QF:"_jP _g",RF:"_pM _i",SF:"V W",TF:"TB UB",UF:"_6G MB",VF:"_PM _CB",WF:"_BE _AB",XF:"_MG C",YF:"_c _j",ZF:"_oE RB",aF:"_LD _eI",bF:"_PB _gS",cF:"_JD _xC",dF:"_TC _pD",eF:"_CC O",fF:"_PB _zO",gF:"_j _DT",hF:"_3B _CF",iF:"_OH _NP",jF:"RD SD",kF:"_7E _FP",lF:"_JE 1B",mF:"_MD pC",nF:"_TB _xC",oF:"I _EH",pF:"_H _UU",qF:"_IB _vS",rF:"_IB _gU",sF:"_j _wI",tF:"_IH _9S",uF:"_aB _DD",vF:"_GC NB",wF:"_Z dC",xF:"_w _QD",yF:"_x ND",zF:"_KC _P","0F":"_YP _rK","1F":"_fB O","2F":"_aF yD","3F":"_kC EE","4F":"_JT _i","5F":"_WG _ZS","6F":"_NT _eC","7F":"_TU _h","8F":"_ST _rD","9F":"_6U _OP",AG:"u v",BG:"_aS _4O",CG:"WC XC",DG:"_MK _XI",EG:"1B 2B",FG:"_QK _EG",GG:"_mD _FC",HG:"gD HD",IG:"pD _VK",JG:"JC _vC",KG:"_vC _ZM",LG:"_GD VB",MG:"_7 _QC",NG:"_EG _CH",OG:"_fS AB",PG:"_7 _KB",QG:"_H _OD",RG:"_CD _ZI",SG:"CC _NH",TG:"EC _AE",UG:"_uE _CG",VG:"_pE DC",WG:"_iM _5G",XG:"_wS qC",YG:"_TM _bI",ZG:"_UM 1D",aG:"_H _4B",bG:"_7E yB",cG:"_KE QB",dG:"_0O _AH",eG:"_uE WC",fG:"_ND _bK",gG:"B _uB",hG:"K PD",iG:"JC _9D",jG:"mD _EB",kG:"_CB _uD",lG:"_H _IM",mG:"_j _uC",nG:"_xE _7T",oG:"_mI _wE",pG:"_vB _zC",qG:"_bM _7U",rG:"_JD _hU",sG:"_GC _sC",tG:"_W 9D",uG:"_ND _EF",vG:"_YF _L",wG:"_YP _sM",xG:"_jB dD",yG:"_lM _g",zG:"_lM _i","0G":"_bF _1O","1G":"_oM _g","2G":"_fF c","3G":"_gT _6E","4G":"_8U _mK","5G":"o _bS","6G":"KB LB","7G":"FC GC","8G":"wB xB","9G":"DC EC",AH:"_NM _DG",BH:"uB vB",CH:"_vE _tE",DH:"vC wC",EH:"8D HD",FH:"sD _sS",GH:"BE CE",HH:"_XK _dI",IH:"G J",JH:"_e PD",KH:"_5E _3E",LH:"_JH _1B",MH:"_EH _z",NH:"_9G _AE",OH:"_MD _WM",PH:"_qE OC",QH:"_JK _KK",RH:"_uC _6G",SH:"_8E _aS",TH:"vB _gK",UH:"_uE _PM",VH:"I _UF",WH:"_qI _l",XH:"_qI _k",YH:"_tC _qD",ZH:"_9D MC",aH:"t _KK",bH:"_yO AB",cH:"_H _WP",dH:"_jK TB",eH:"_CD _8D",fH:"_JC _hM",gH:"_PH PC",hH:"M G",iH:"0B _EG",jH:"xD _IE",kH:"_2T _bH",lH:"_CB _GG",mH:"_CB _vD",nH:"_IK _BG",oH:"_H _VC",pH:"_H _IT",qH:"_H _WH",rH:"_H _XH",sH:"_H _aH",tH:"_H _UT",uH:"_tC A",vH:"_AB _oI",wH:"_9 _uE",xH:"_4 lD",yH:"_eK _UP",zH:"_vB _jC","0H":"_RC _hM","1H":"_9E _WD","2H":"_AF _BV","3H":"_PD _AV","4H":"_PD _CV","5H":"_CF HC","6H":"_CT _i","7H":"_QG _wM","8H":"_JT _g","9H":"_SH j",AI:"_1C qD",BI:"_DF _DV",CI:"_tI _l",DI:"_TU _i",EI:"_gF UD",FI:"_hF HC",GI:"_qK _iI",HI:"_aG _eC",II:"_tM _h",JI:"_mP _g",KI:"_pP _g",LI:"_2I _g",MI:"_YT _i",NI:"_uK _cK",OI:"_lT _PU",PI:"_mT _P",QI:"1 2",RI:"_xO z",SI:"m n",TI:"Y Z",UI:"_1O g",VI:"_ZS t",WI:"PB _eS",XI:"_jS _kS",YI:"_DP VC",ZI:"_8D _q",aI:"sC _nS",bI:"3D _8T",cI:"wD xD",dI:"dD eD",eI:"_FH _cI",fI:"_CD _q",gI:"_GH _0S",hI:"_CE _DE",iI:"_CB _mD",jI:"_wC _XM",kI:"_IG _QP",lI:"_H _I",mI:"_H _9",nI:"B _eK",oI:"_qE _GP",pI:"_RC A",qI:"_TI _KM",rI:"fD dC",sI:"_DC _IH",tI:"3 _OG",uI:"_DH _FU",vI:"qB _bC",wI:"_uC KB",xI:"_ID _IG",yI:"_HH _YK",zI:"_H _TF","0I":"NC _SK","1I":"_j _BE","2I":"_H _oK","3I":"JC kC","4I":"_H _FT","5I":"_UH Q","6I":"_H _OU","7I":"_RG _NM","8I":"_ZC _4T","9I":"D E",AJ:"AB _n",BJ:"YB _uP",CJ:"CC _9G",DJ:"XC _OK",EJ:"PD _1E",FJ:"rD _hC",GJ:"_H UB",HJ:"_H _7D",IJ:"_H _pD",JJ:"_H _dT",KJ:"_H _3M",LJ:"_H _tP",MJ:"_IB _GV",NJ:"_vE BC",OJ:"_bC G",PJ:"_FD _9T",QJ:"_AB _5I",RJ:"_GH DE",SJ:"_GD _MH",TJ:"_EE L",UJ:"_aB _7E",VJ:"_aB _wD",WJ:"_lI _CB",XJ:"_vB _aC",YJ:"_GC _oE",ZJ:"_GC _KE",aJ:"_GC _jK",bJ:"_GC _ZF",cJ:"_3B _VG",dJ:"_dC _A",eJ:"_LD _FH",fJ:"_w _lE",gJ:"_1 _lE",hJ:"_HE _HV",iJ:"_AF _EV",jJ:"_AF _IV",kJ:"_gC _xI",lJ:"_YP _2E",mJ:"_tD TC",nJ:"_0C _jU",oJ:"_0C _FV",pJ:"_cP _dF",qJ:"_bF e",rJ:"_eP _i",sJ:"_eP _h",tJ:"_tI _k",uJ:"_iP _i",vJ:"_iP _h",wJ:"_XD dC",xJ:"_VH _4E",yJ:"_zI _LE",zJ:"_uM _l","0J":"_PT _k","1J":"_PT _l","2J":"_nP _h","3J":"_cH _q","4J":"_yM _i","5J":"_cT _fC","6J":"_vK p","7J":"_4M _rD","8J":"_vP _UU","9J":"_xP m",AK:"_nT _HC",BK:"_oT _q",CK:"_kU _L",DK:"_lU _P",EK:"_JV _L",FK:"_KV _P",GK:"BB CB",HK:"_1T _GM",IK:"_gS _UI",JK:"_5G _VI",KK:"_mE AB",LK:"_IK _JM",MK:"_LM _9O",NK:"5B 6B",OK:"_EP aC",PK:"9B AC",QK:"_FP 0B",RK:"_MM _YI",SK:"_GP _RK",TK:"_FD _TM",UK:"KD LD",VK:"qD rD",WK:"_LP aD",XK:"bD cD",YK:"_uB fD",ZK:"_wS _yS",aK:"_TK _WK",bK:"_UM _FU",cK:"_UM _GU",dK:"_p _EH",eK:"_y _IH",fK:"_KG _L",gK:"_sE _CH",hK:"_WI _dM",iK:"_NK _GE",jK:"_oE _6O",kK:"_dI _2E",lK:"_jM _aM",mK:"_xS qC",nK:"_DH _GU",oK:"2B _CH",pK:"_BF _fI",qK:"_H P",rK:"eD _2E",sK:"QC _RK",tK:"_FH wD",uK:"_ID _kI",vK:"_iM o",wK:"_H _QH",xK:"F A",yK:"B _y",zK:"_UG _EP","0K":"C dC","1K":"C _PP","2K":"C _rI","3K":"I _MH","4K":"I _mU","5K":"LB MB","6K":"OB _WC","7K":"J _TT","8K":"4B _NK","9K":"GD _rI",AL:"_3T _SI",BL:"_GK _1T",CL:"_5G _ZS",DL:"_CB _QD",EL:"_ZC _HM",FL:"_H _KG",GL:"_H _jT",HL:"_H _yP",IL:"_H _LV",JL:"_tC _RD",KL:"_IB _OP",LL:"_5T _DG",ML:"_VF _uD",NL:"_j _ZB",OL:"_j _RH",PL:"_j _eF",QL:"_UB _YD",RL:"_IP _bI",SL:"_qS _YG",TL:"_AB _ZH",UL:"_GD _5M",VL:"_IG _eI",WL:"_wC jD",XL:"_HD dC",YL:"_5E _bK",ZL:"_t _MV",aL:"_JB _sC",bL:"_vB _NE",cL:"_JD _P",dL:"_TC _LE",eL:"_1 _QD",fL:"_1 _iM",gL:"_HE _oU",hL:"_qD G",iL:"_YF _BE",jL:"_YF _nU",kL:"_PD _RV",lL:"_sD _pT",mL:"_sD _SV",nL:"_lK dC",oL:"_JT _h",pL:"_dP _HC",qL:"_eP _g",rL:"_LT _i",sL:"_gP _9S",tL:"_VH _NV",uL:"_jP _h",vL:"_oM _i",wL:"_uM _k",xL:"_mP _h",yL:"_QT _pD",zL:"_nP _i","0L":"_oP _g","1L":"_RT _h","2L":"_vM _g","3L":"_vM _i","4L":"_dG _FC","5L":"_xM _h","6L":"_bT _VC","7L":"_6I _g","8L":"_iT _UC","9L":"_6M _i",AM:"_zP _fC",BM:"_qT _0E",CM:"_OV _fI",DM:"_PV _P",EM:"_QV _P",FM:"_TV _P",GM:"FB GB",HM:"4 5",IM:"_SF X",JM:"_BG _JK",KM:"_LK _KK",LM:"fB gB",MM:"RC SC",NM:"_CP _5T",OM:"7B 8B",PM:"_CG _OK",QM:"gC xC",RM:"yC zC",SM:"9C AD",TM:"_9T _IP",UM:"_zE _DH",VM:"gC _CU",WM:"pC _DU",XM:"jD kD",YM:"_WM _OP",ZM:"_GG _UK",aM:"_BE _g",bM:"_j _IH",cM:"_A _eK",dM:"_nE _UB",eM:"PD _RP",fM:"_H _8",gM:"F B",hM:"_JH _1E",iM:"_8E _BG",jM:"_H C",kM:"_6T _SK",lM:"_H _hK",mM:"_lS _RK",nM:"xB _XP",oM:"_H _MT",pM:"_H _SU",qM:"VD _zS",rM:"_H M",sM:"cD _kK",tM:"_H _aP",uM:"_H _MU",vM:"_H _TG",wM:"_TC _eC",xM:"_H _GE",yM:"_H _iK",zM:"_H _SK","0M":"_H _XU","1M":"_BF _ZM","2M":"zB _OU","3M":"VC _rD","4M":"_H _YI","5M":"7D _EH","6M":"_H IC","7M":"_H _aU","8M":"_V _y","9M":"_yC _ZG",AN:"cC _hI",BN:"_2O _UI",CN:"_H _sK",DN:"_H _9U",EN:"_TC _0B",FN:"_OE _mK",GN:"C _3S",HN:"M _ZB",IN:"I _4E",JN:"J _nE",KN:"J _aK",LN:"JC _PH",MN:"cD dD",NN:"HD _z",ON:"xD _ZK",PN:"_2O _uT",QN:"_H _CB",RN:"_H _jD",SN:"_H _eC",TN:"_H _fC",UN:"_H _LE",VN:"_H _7B",WN:"_H _dF",XN:"_H _8M",YN:"_H _0P",ZN:"_H _UV",aN:"_H _VV",bN:"_QC C",cN:"_TB _7E",dN:"_TB _ME",eN:"_j _CC",fN:"_oS _YG",gN:"_KP _qU",hN:"_AB _PH",iN:"_GD _p",jN:"_GD _BT",kN:"_9 KC",lN:"_g _P",mN:"_aB _iD",nN:"_vB 3B",oN:"_vB _kD",pN:"_JD _bV",qN:"_3B BC",rN:"_3B _pE",sN:"_3B _lD",tN:"_8E h",uN:"_FE u",vN:"_LD _tK",wN:"_w _PB",xN:"_xC BC",yN:"_xC _lD",zN:"_1 _PE","0N":"_YF _ZV","1N":"_OD rB","2N":"_AF _P","3N":"_PD _L","4N":"_PD _aV","5N":"_sD _L","6N":"_sD _YV","7N":"_OG _n","8N":"_lM _h","9N":"_vD Y",AO:"_iP _g",BO:"_NT _pD",CO:"_tM _g",DO:"_RE _NE",EO:"_QT _LE",FO:"_RT _g",GO:"_pP _h",HO:"_1I jC",IO:"_1I _ED",JO:"_qP _q",KO:"_WT _eC",LO:"_WT _LE",MO:"_XT _g",NO:"_XT _i",OO:"_xM _i",PO:"_YT _g",QO:"_mF GE",RO:"_zM _fC",SO:"_zM _UC",TO:"_0M _i",UO:"_0M _h",VO:"_bT _HC",WO:"_rP _k",XO:"_rP _l",YO:"_eH _3O",ZO:"_eT _jI",aO:"_eT _7S",bO:"_hT _fC",cO:"_hT _UC",dO:"_kT _WH",eO:"_wK _k",fO:"_7M _n",gO:"_9M _yE",hO:"_1P _1M",iO:"_2P gC",jO:"_sT _pU",kO:"_tT qD",lO:"_rU _HC",mO:"_sU _P",nO:"_WV _4E",oO:"_XV _sE",pO:"_cV _P",qO:"_dV _P",rO:"_eV _L",sO:"_fV _L",tO:"_gV _P",uO:"_hV _P",vO:"_iV _P",wO:"IB JB",xO:"x y",yO:"8 9",zO:"a b","0O":"HB _wO","1O":"e f","2O":"c d","3O":"_GK _HK","4O":"_cS _SI","5O":"U _IM","6O":"RB SB","7O":"_5O _TI","8O":"oB pB","9O":"_yU jB",AP:"WB XB",BP:"ZB aB",CP:"_BP _iS",DP:"TC UC",EP:"YC ZC",FP:"yB zB",GP:"OC _lS",HP:"7C 8C",IP:"_zU DD",JP:"rC eC",KP:"0C 1C",LP:"_8T ZD",MP:"uD vD",NP:"IE JE",OP:"_NP _vS",PP:"_uB dC",QP:"_eI _ZK",RP:"_1B _KH",SP:"SD _KH",TP:"_LH _HD",UP:"_hI _3E",VP:"_PK _tE",WP:"_JM _KK",XP:"_FG _CH",YP:"_fM _aM",ZP:"_JH QD",aP:"_BH _gK",bP:"AC _tE",cP:"_H _zB",dP:"_H _DC",eP:"_H _XP",fP:"_JP WD",gP:"M _IH",hP:"_UI _WP",iP:"_H _NG",jP:"_H _KT",kP:"_bK _TK",lP:"iC _9",mP:"_H _SG",nP:"_H _AE",oP:"_H _CH",pP:"_H _TH",qP:"_H _KM",rP:"_H _ZU",sP:"_tD _DP",tP:"6B _GE",uP:"_q _AH",vP:"_H GC",wP:"_H _aT",xP:"_SH _cS",yP:"ZC aC",zP:"_H _0I","0P":"W X","1P":"_H aC","2P":"_iF _rS","3P":"B _6B","4P":"UC VC","5P":"cC dC","6P":"_H _3I","7P":"_H _2M","8P":"_TB _DD","9P":"_UG YC",AQ:"K ID",BQ:"0 1",CQ:"C H",DQ:"C _2E",EQ:"P _TC",FQ:"Q H",GQ:"l _SI",HQ:"AB _q",IQ:"AB _k",JQ:"CB _HK",KQ:"I oC",LQ:"qB PD",MQ:"J _xT",NQ:"J _wU",OQ:"vB _sE",PQ:"6B _rE",QQ:"CC DC",RQ:"GC _jD",SQ:"lC _ZM",TQ:"GD dC",UQ:"6D 7D",VQ:"_7D _GG",WQ:"_eS _nE",XQ:"_CB _lE",YQ:"_zB _EN",ZQ:"_JK _mE",aQ:"_H _y",bQ:"_H _i",cQ:"_H _hP",dQ:"_H _1M",eQ:"_H _yK",fQ:"_H _tU",gQ:"_H _jV",hQ:"_H _kV",iQ:"_H _oV",jQ:"_DC _ZB",kQ:"_tC _jF",lQ:"_IB _CU",mQ:"_IB _VM",nQ:"_CD _AP",oQ:"_9O _XI",pQ:"_8G yB",qQ:"_8G _QK",rQ:"_AH _8B",sQ:"_qE _L",tQ:"_7 PD",uQ:"_bC _8P",vQ:"_FD _HP",wQ:"_AB _qE",xQ:"_AB _gH",yQ:"_BE _vT",zQ:"_8 _sM","0Q":"_8 _5P","1Q":"_WM _NP","2Q":"_dI _YK","3Q":"_9 _qE","4Q":"_9 _oI","5Q":"_9 _PH","6Q":"_9 _ZH","7Q":"_9 _eG","8Q":"_1B pC","9Q":"_1B _FN",AR:"_2B _rV",BR:"_aB _ME",CR:"_aB _bG",DR:"_t _oI",ER:"_JB _KE",FR:"_JB _jK",GR:"_LG _uU",HR:"_HU _xV",IR:"_V ID",JR:"_FE _AG",KR:"_SC _L",LR:"_MG _TP",MR:"_w _WG",NR:"_w _PE",OR:"_HE _lV",PR:"_ND fC",QR:"_YF _wI",RR:"_OD _TC",SR:"_qI _q",TR:"_SD cC",UR:"_KC _9P",VR:"_KC _tV",WR:"_5 _qV",XR:"_5 _zV",YR:"_TD _P",ZR:"_TD _uV",aR:"_0C _L",bR:"_uD _SF",cR:"_ET _jI",dR:"_lK _2E",eR:"_cF _nV",fR:"_cF _sV",gR:"_LT _g",hR:"_DF _DT",iR:"_NT _LE",jR:"_mM _yT",kR:"_xI _eI",lR:"_xI _tK",mR:"_pM _h",nR:"_jF pC",oR:"_qK _wM",pR:"_zI _pD",qR:"_QT _eC",rR:"_oP _i",sR:"_oP _h",tR:"_RT _i",uR:"_ST _UC",vR:"_SE _FD",wR:"_qP _k",xR:"_qP _l",yR:"_WT _pD",zR:"_XT _h","0R":"_yM _g","1R":"_4I _k","2R":"_4I _l","3R":"_nF BC","4R":"_cT _UC","5R":"_fG _FD","6R":"_iT _fC","7R":"_jT G","8R":"_fH aD","9R":"_8I 8",AS:"_kT _XH",BS:"_wP _g",CS:"_wP _h",DS:"_xK _wT",ES:"_zK _L",FS:"_BN _JM",GS:"_CN _UC",HS:"_DN _q",IS:"_3P _AN",JS:"_4P _KD",KS:"_6P _KG",LS:"_7P _i",MS:"_zT dB",NS:"_0T _MK",OS:"_vU _fC",PS:"_xU _L",QS:"_mV _TT",RS:"_pV _q",SS:"_vV _L",TS:"_wV _P",US:"_yV _P",VS:"_0V _L",WS:"_1V _L",XS:"_2V _P",YS:"_3V _P",ZS:"r s",aS:"h i",bS:"p q",cS:"j _3T",dS:"_AG w",eS:"QB J",fS:"_4T _yO",gS:"_zO _2O",hS:"mB nB",iS:"bB cB",jS:"kB lB",kS:"_hS _8O",lS:"PC QC",mS:"mC bC",nS:"tC uC",oS:"5C 6C",pS:"VB _mS",qS:"_7T _oS",rS:"KE fC",sS:"tD _MP",tS:"_AU YD",uS:"EE FE",vS:"_rS _VM",wS:"yD zD",xS:"UD VD",yS:"_BU 0D",zS:"_BU WD","0S":"DE _uS","1S":"E _d","2S":"_dK _z","3S":"H _PP","4S":"_H _t","5S":"_aM _P","6S":"_2B _BE","7S":"_jI _s","8S":"cC _UP","9S":"_DE _3E",AT:"_ZB _iI",BT:"7D _MH",CT:"_H _gK",DT:"_TP _CE",ET:"E _HG",FT:"_RI AB",GT:"8B _VP",HT:"_H _VP",IT:"_VI _KK",JT:"_H _GT",KT:"4B _iK",LT:"_H _bP",MT:"OB _hK",NT:"_H _iC",OT:"J _fP",PT:"_H _KK",QT:"_H _EC",RT:"_H _NH",ST:"_H _kM",TT:"_TM _WK",UT:"g _WP",VT:"zD _yS",WT:"_H _IB",XT:"_H _dM",YT:"_H _nM",ZT:"_uI _aK",aT:"J _dM",bT:"_H _bC",cT:"_H _mM",dT:"_OK _pK",eT:"E HD",fT:"_bS _IT",gT:"_H kC",hT:"_H _RK",iT:"_H _dU",jT:"_dC _qD",kT:"_H X",lT:"_tC _cM",mT:"_TD 3B",nT:"_H _YH",oT:"_H _fT",pT:"_kD _L",qT:"_KP 2D",rT:"SC _YI",sT:"_tC _EE",tT:"_ID pD",uT:"_hP _n",vT:"JC _sP",wT:"SD pC",xT:"_IP _WK",yT:"_rD _P",zT:"_RG _CP","0T":"_QE _7I","1T":"DB EB","2T":"6 7","3T":"k l","4T":"_HM _2T","5T":"dB eB","6T":"MC NC","7T":"3C 4C","8T":"ED FD","9T":"_HP _SM",AU:"_yE _KP",BU:"qC _JP",CU:"hC LE",DU:"GE HE",EU:"_AU 2D",FU:"XD _tS",GU:"1D _EU",HU:"_bM _LH",IU:"_bC _IH",JU:"_0S _YM",KU:"_dC _cM",LU:"iD _XM",MU:"_7O _KM",NU:"TD _9S",OU:"0B _NG",PU:"RD _SP",QU:"_uS _YM",RU:"0D _oB",SU:"_eS _dM",TU:"_H _tE",UU:"_jD _i",VU:"_7 _L",WU:"_LH pC",XU:"tB _aP",YU:"_HE _ZF",ZU:"T _MU",aU:"w _FT",bU:"I VB",cU:"_IH _qM",dU:"LC _kM",eU:"_QD _L",fU:"_RH _L",gU:"FE _YM",hU:"_DD _P",iU:"_4O _QH",jU:"_pE _L",kU:"_c _RC",lU:"_JD _ME",mU:"KB _4E",nU:"_ZB _L",oU:"_dH _L",pU:"SD _HD",qU:"YD _aK",rU:"_H _qD",sU:"_JD _kF",tU:"f _UT",uU:"6D _BT",vU:"_H _rT",wU:"_qS _TT",xU:"_PD _ME",yU:"hB iB",zU:"BD CD","0U":"_LH _5E","1U":"CE _JU","2U":"_H _lP","3U":"J _tS","4U":"JE _vS","5U":"_H _vI","6U":"_IB _DU","7U":"oC _eM","8U":"_SC _DT","9U":"d _hP",AV:"sB _L",BV:"_sC _P",CV:"_DD _L",DV:"_TP dC",EV:"NB _P",FV:"BC _L",GV:"HE _OP",HV:"_sC _L",IV:"_oE _P",JV:"_sD _jC",KV:"_cF _VG",LV:"q _IT",MV:"KC _L",NV:"_sC _4E",OV:"_H _vC",PV:"_JD _JE",QV:"_JD _lF",RV:"_7E _L",SV:"_zC _L",TV:"_AF _jK",UV:"Z _KM",VV:"i _iU",WV:"I _6G",XV:"tB _BH",YV:"3B _L",ZV:"_CC _L",aV:"_iD _L",bV:"_iD _P",cV:"_JD _wD",dV:"_JD _bG",eV:"_HE _KE",fV:"_HE _jK",gV:"_AF _cG",hV:"_KC _tD",iV:"_TD _NE",jV:"n _QH",kV:"v _aU",lV:"NB _L",mV:"J _oS",nV:"BC _P",oV:"XC _dT",pV:"_H _iU",qV:"_PB _P",rV:"_ZB _P",sV:"_pE _P",tV:"_qE _P",uV:"_kD _P",vV:"_c _JC",wV:"_2B _RH",xV:"_5E _TE",yV:"_JD _7E",zV:"_8E _P","0V":"_HE _cG","1V":"_YF _eF","2V":"_AF _ZF","3V":"_KC _sP"};
 
   versionGroups$2.versionGroups = versionGroups$1;
 
@@ -17124,7 +17278,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireBorderRadius () {
   	if (hasRequiredBorderRadius) return borderRadius$1;
   	hasRequiredBorderRadius = 1;
-  	borderRadius$1={A:{A:{"1":"_V","2":"_c"},B:{"1":"_J"},C:{"1":"_GF","257":"_kL","289":"cC _L","292":"BD"},D:{"1":"_0D","33":"J"},E:{"1":"jB _6C","33":"_i","129":"_iG JD"},F:{"1":"_aD","2":"_eB"},G:{"1":"_dB","33":"iC"},H:{"2":"vD"},I:{"1":"_9Q","33":"wD"},J:{"1":"_B"},K:{"1":"_BB","2":"A"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","257":"FE"}},B:4,C:"CSS3 Border-radius (rounded corners)",D:true};
+  	borderRadius$1={A:{A:{"1":"_V","2":"_a"},B:{"1":"_J"},C:{"1":"_PF","257":"_bL","289":"iC _L","292":"JD"},D:{"1":"_6D","33":"I"},E:{"1":"qB _8C","33":"_m","129":"_hG QD"},F:{"1":"_eD","2":"_jB"},G:{"1":"_iB","33":"oC"},H:{"2":"4D"},I:{"1":"_GR","33":"5D"},J:{"1":"_B"},K:{"1":"_FB","2":"A"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","257":"OE"}},B:4,C:"CSS3 Border-radius (rounded corners)",D:true};
   	return borderRadius$1;
   }
 
@@ -17134,7 +17288,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssBoxshadow () {
   	if (hasRequiredCssBoxshadow) return cssBoxshadow;
   	hasRequiredCssBoxshadow = 1;
-  	cssBoxshadow={A:{A:{"1":"_V","2":"_c"},B:{"1":"_J"},C:{"1":"_x","2":"_g","33":"_L"},D:{"1":"_4O","33":"_RC"},E:{"1":"_XB","33":"jB","164":"_i"},F:{"1":"_aD","2":"_eB"},G:{"1":"_r","33":"_HG","164":"iC"},H:{"2":"vD"},I:{"1":"_QE","164":"_KB"},J:{"1":"A","33":"D"},K:{"1":"_BB","2":"A"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"CSS3 Box-shadow",D:true};
+  	cssBoxshadow={A:{A:{"1":"_V","2":"_a"},B:{"1":"_J"},C:{"1":"_x","2":"_c","33":"_L"},D:{"1":"_lO","33":"_RC"},E:{"1":"_cB","33":"qB","164":"_m"},F:{"1":"_eD","2":"_jB"},G:{"1":"_u","33":"_HG","164":"oC"},H:{"2":"4D"},I:{"1":"_jE","164":"_OB"},J:{"1":"A","33":"D"},K:{"1":"_FB","2":"A"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"CSS3 Box-shadow",D:true};
   	return cssBoxshadow;
   }
 
@@ -17144,7 +17298,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssAnimation () {
   	if (hasRequiredCssAnimation) return cssAnimation;
   	hasRequiredCssAnimation = 1;
-  	cssAnimation={A:{A:{"1":"_A","2":"_Z"},B:{"1":"_J"},C:{"1":"_FI","2":"_g J _L","33":"_9I G"},D:{"1":"_ZQ","33":"_LE"},E:{"1":"_PB","2":"_e","33":"_FB _UJ","292":"_4"},F:{"1":"_QO XC","2":"_vD","33":"C _8I"},G:{"1":"_p","33":"_QD","164":"_1"},H:{"2":"vD"},I:{"1":"I","33":"_NL","164":"_KB"},J:{"33":"_B"},K:{"1":"_YB","2":"_bB"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:5,C:"CSS Animation",D:true};
+  	cssAnimation={A:{A:{"1":"_A","2":"_Y"},B:{"1":"_J"},C:{"1":"_7H","2":"_c I _L","33":"_vI G"},D:{"1":"_rR","33":"_vB"},E:{"1":"_RB","2":"_e","33":"_KB _EJ","292":"_7"},F:{"1":"_pR dC","2":"_0D","33":"C _FR"},G:{"1":"_s","33":"_UD","164":"_2"},H:{"2":"4D"},I:{"1":"VB","33":"_3K","164":"_OB"},J:{"33":"_B"},K:{"1":"_dB","2":"_gB"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:5,C:"CSS Animation",D:true};
   	return cssAnimation;
   }
 
@@ -17154,7 +17308,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssTransitions () {
   	if (hasRequiredCssTransitions) return cssTransitions;
   	hasRequiredCssTransitions = 1;
-  	cssTransitions={A:{A:{"1":"_A","2":"_Z"},B:{"1":"_J"},C:{"1":"_FI","2":"_f","33":"_9I G","164":"J"},D:{"1":"_IF","33":"_jJ"},E:{"1":"_iB","33":"_iG","164":"_3"},F:{"1":"_xF","2":"_eB","33":"C","164":"B _0Q"},G:{"1":"_z","33":"aD","164":"_1"},H:{"2":"vD"},I:{"1":"_X","33":"_W"},J:{"1":"A","33":"D"},K:{"1":"_YB","33":"C","164":"_fB"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:5,C:"CSS3 Transitions",D:true};
+  	cssTransitions={A:{A:{"1":"_A","2":"_Y"},B:{"1":"_J"},C:{"1":"_7H","2":"_f","33":"_vI G","164":"I"},D:{"1":"_RF","33":"_ZJ"},E:{"1":"_nB","33":"_hG","164":"_6"},F:{"1":"_wF","2":"_jB","33":"C","164":"B _2Q"},G:{"1":"_3","33":"iD","164":"_2"},H:{"2":"4D"},I:{"1":"_X","33":"_W"},J:{"1":"A","33":"D"},K:{"1":"_dB","33":"C","164":"_kB"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:5,C:"CSS3 Transitions",D:true};
   	return cssTransitions;
   }
 
@@ -17164,7 +17318,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireTransforms2d () {
   	if (hasRequiredTransforms2d) return transforms2d;
   	hasRequiredTransforms2d = 1;
-  	transforms2d={A:{A:{"2":"AD","8":"_FB","129":"_A","161":"F"},B:{"1":"_8C","129":"_ZB"},C:{"1":"_FI","2":"_g","33":"_DC _L"},D:{"1":"_2H","33":"_5E"},E:{"1":"_PB","33":"_TB"},F:{"1":"_GM XC","2":"_eB","33":"_5 _0B _0Q"},G:{"1":"_p","33":"_2"},H:{"2":"vD"},I:{"1":"I","33":"_G"},J:{"33":"_B"},K:{"1":"_BB","2":"A"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"CSS3 2D Transforms",D:true};
+  	transforms2d={A:{A:{"2":"ID","8":"_KB","129":"_A","161":"F"},B:{"1":"_AD","129":"_fB"},C:{"1":"_7H","2":"_c","33":"_KR"},D:{"1":"_6H","33":"_uF"},E:{"1":"_RB","33":"_YB"},F:{"1":"_yL dC","2":"_jB","33":"_8 _JB _2Q"},G:{"1":"_s","33":"_4"},H:{"2":"4D"},I:{"1":"VB","33":"_G"},J:{"33":"_B"},K:{"1":"_FB","2":"A"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"CSS3 2D Transforms",D:true};
   	return transforms2d;
   }
 
@@ -17174,7 +17328,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireTransforms3d () {
   	if (hasRequiredTransforms3d) return transforms3d;
   	hasRequiredTransforms3d = 1;
-  	transforms3d={A:{A:{"2":"_Z","132":"_A"},B:{"1":"_J"},C:{"1":"_FI","2":"_RK","33":"_FO"},D:{"1":"_2H","2":"_MG","33":"_v _LG"},E:{"1":"_uC","2":"_e","33":"_QG _UJ","257":"_V _3B LD _XN"},F:{"1":"_GM","2":"_T","33":"_0B"},G:{"1":"_5B","33":"_2","257":"_YR _YG"},H:{"2":"vD"},I:{"1":"I","2":"_l","33":"_pJ"},J:{"33":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"132":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:5,C:"CSS3 3D Transforms",D:true};
+  	transforms3d={A:{A:{"2":"_Y","132":"_A"},B:{"1":"_J"},C:{"1":"_7H","2":"_CK","33":"_hL"},D:{"1":"_6H","2":"_MG","33":"_y _8P"},E:{"1":"_qC","2":"_e","33":"_PG _EJ","257":"_V _6B SD _FN"},F:{"1":"_yL","2":"_T","33":"_JB"},G:{"1":"_9B","33":"_4","257":"_kR _XG"},H:{"2":"4D"},I:{"1":"VB","2":"_p","33":"_SJ"},J:{"33":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"132":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:5,C:"CSS3 3D Transforms",D:true};
   	return transforms3d;
   }
 
@@ -17184,7 +17338,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssGradients () {
   	if (hasRequiredCssGradients) return cssGradients;
   	hasRequiredCssGradients = 1;
-  	cssGradients={A:{A:{"1":"_A","2":"_Z"},B:{"1":"_J"},C:{"1":"_8E","2":"_LC","260":"_1L _5D","292":"_DC GD"},D:{"1":"_IF","33":"_lD _UF","548":"_RC"},E:{"1":"_uC","2":"_e","260":"_xR _7Q","292":"_iG","804":"_4"},F:{"1":"_xF","2":"_OD","33":"C XD","164":"_sB"},G:{"1":"_5B","260":"_TC _YR _YG","292":"_wC","804":"_d"},H:{"2":"vD"},I:{"1":"_X","33":"_oF","548":"_KB"},J:{"1":"A","548":"D"},K:{"1":"_YB","2":"_A","33":"C","164":"_sB"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"CSS Gradients",D:true};
+  	cssGradients={A:{A:{"1":"_A","2":"_Y"},B:{"1":"_J"},C:{"1":"_NF","2":"_NC","260":"_RR _DD","292":"_SC ND"},D:{"1":"_RF","33":"_qD _ER","548":"_RC"},E:{"1":"_qC","2":"_e","260":"_7R _9Q","292":"_hG","804":"_7"},F:{"1":"_wF","2":"_SD","33":"C fD","164":"_uB"},G:{"1":"_9B","260":"_IC _kR _XG","292":"_wC","804":"_d"},H:{"2":"4D"},I:{"1":"_X","33":"_oF","548":"_OB"},J:{"1":"A","548":"D"},K:{"1":"_dB","2":"_A","33":"C","164":"_uB"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"CSS Gradients",D:true};
   	return cssGradients;
   }
 
@@ -17194,7 +17348,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCss3Boxsizing () {
   	if (hasRequiredCss3Boxsizing) return css3Boxsizing;
   	hasRequiredCss3Boxsizing = 1;
-  	css3Boxsizing={A:{A:{"1":"_JC","8":"_GB"},B:{"1":"_J"},C:{"1":"_7F","33":"_1D"},D:{"1":"_4O","33":"_RC"},E:{"1":"_XB","33":"_3"},F:{"1":"_nB","2":"F"},G:{"1":"_r","33":"_d"},H:{"1":"vD"},I:{"1":"_QE","33":"_KB"},J:{"1":"A","33":"D"},K:{"1":"_N"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:5,C:"CSS3 Box-sizing",D:true};
+  	css3Boxsizing={A:{A:{"1":"_LC","8":"_LB"},B:{"1":"_J"},C:{"1":"_6F","33":"_4D"},D:{"1":"_lO","33":"_RC"},E:{"1":"_cB","33":"_6"},F:{"1":"_rB","2":"F"},G:{"1":"_u","33":"_d"},H:{"1":"4D"},I:{"1":"_jE","33":"_OB"},J:{"1":"A","33":"D"},K:{"1":"_N"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:5,C:"CSS3 Box-sizing",D:true};
   	return css3Boxsizing;
   }
 
@@ -17204,7 +17358,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssFilters () {
   	if (hasRequiredCssFilters) return cssFilters;
   	hasRequiredCssFilters = 1;
-  	cssFilters={A:{A:{"2":"_E"},B:{"1":"_K","1028":"_hQ","1346":"C"},C:{"1":"_RO","2":"_LC","196":"oB","516":"_yN GD"},D:{"1":"_fR","2":"_jL","33":"_ML _NE _kE"},E:{"1":"_ND","2":"_s","33":"_OC _sE"},F:{"1":"_JM","2":"_T","33":"_KD _eD"},G:{"1":"_kG","2":"_1","33":"_QD dD"},H:{"2":"vD"},I:{"1":"I","2":"_W","33":"_w"},J:{"2":"D","33":"A"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_wB","33":"_1B"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:5,C:"CSS Filter Effects",D:true};
+  	cssFilters={A:{A:{"2":"_E"},B:{"1":"_K","1028":"_jQ","1346":"C"},C:{"1":"_GO","2":"_NC","196":"uB","516":"_mN ND"},D:{"1":"_tR","2":"_PL","33":"_EQ _xC _pE"},E:{"1":"_RD","2":"_v","33":"_PC _1E"},F:{"1":"_7L","2":"_T","33":"_TB _kF"},G:{"1":"_jG","2":"_2","33":"_UD lD"},H:{"2":"4D"},I:{"1":"VB","2":"_W","33":"_z"},J:{"2":"D","33":"A"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_xB","33":"_5B"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:5,C:"CSS Filter Effects",D:true};
   	return cssFilters;
   }
 
@@ -17214,7 +17368,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssFilterFunction () {
   	if (hasRequiredCssFilterFunction) return cssFilterFunction;
   	hasRequiredCssFilterFunction = 1;
-  	cssFilterFunction={A:{A:{"2":"_E"},B:{"2":"_J"},C:{"2":"_S"},D:{"2":"_Q"},E:{"1":"_ND","2":"_TB","33":"F"},F:{"2":"_b"},G:{"1":"_8","2":"_2","33":"_eC"},H:{"2":"vD"},I:{"2":"_O"},J:{"2":"_B"},K:{"2":"_N"},L:{"2":"I"},M:{"2":"VC"},N:{"2":"_A"},O:{"2":"YC"},P:{"2":"_F"},Q:{"2":"DE"},R:{"2":"EE"},S:{"2":"_C"}},B:5,C:"CSS filter() function",D:true};
+  	cssFilterFunction={A:{A:{"2":"_E"},B:{"2":"_J"},C:{"2":"_S"},D:{"2":"_Q"},E:{"1":"_RD","2":"_YB","33":"F"},F:{"2":"_b"},G:{"1":"_EB","2":"_4","33":"_cC"},H:{"2":"4D"},I:{"2":"_O"},J:{"2":"_B"},K:{"2":"_N"},L:{"2":"VB"},M:{"2":"bC"},N:{"2":"_A"},O:{"2":"eC"},P:{"2":"_F"},Q:{"2":"ME"},R:{"2":"NE"},S:{"2":"_C"}},B:5,C:"CSS filter() function",D:true};
   	return cssFilterFunction;
   }
 
@@ -17224,7 +17378,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssBackdropFilter () {
   	if (hasRequiredCssBackdropFilter) return cssBackdropFilter;
   	hasRequiredCssBackdropFilter = 1;
-  	cssBackdropFilter={A:{A:{"2":"_E"},B:{"1":"_K","2":"_ZB","257":"_8B"},C:{"1":"_H _cI _cH _t","2":"_m _yL _L","578":"_fT _JD _xP"},D:{"1":"_H _eK _vH","2":"_xN","194":"_QC _ID _UG"},E:{"1":"_dN","2":"_TB","33":"_V _3B LD _qL"},F:{"1":"_8F","2":"_8O","194":"_jE _bC _vN _rB"},G:{"1":"_gD","2":"_2","33":"_IK"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_cJ","2":"J","194":"_rI jC 7D"},Q:{"2":"DE"},R:{"1":"EE"},S:{"2":"_C"}},B:7,C:"CSS Backdrop Filter",D:true};
+  	cssBackdropFilter={A:{A:{"2":"_E"},B:{"1":"_K","2":"_fB","257":"_zB"},C:{"1":"_H _SI _QH _n","2":"_DR RC _L","578":"_rT _KD _xP"},D:{"1":"_H _OK _lH","2":"_oN","194":"_GE _AB _UG"},E:{"1":"_KN","2":"_YB","33":"_V _6B SD _YL"},F:{"1":"_8F","2":"_pN","194":"_aP _iG"},G:{"1":"_0E","2":"_4","33":"_NI"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_MJ","2":"I","194":"_gI pC GE"},Q:{"2":"ME"},R:{"1":"NE"},S:{"2":"_C"}},B:7,C:"CSS Backdrop Filter",D:true};
   	return cssBackdropFilter;
   }
 
@@ -17234,7 +17388,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssElementFunction () {
   	if (hasRequiredCssElementFunction) return cssElementFunction;
   	hasRequiredCssElementFunction = 1;
-  	cssElementFunction={A:{A:{"2":"_E"},B:{"2":"_J"},C:{"33":"_x","164":"_f"},D:{"2":"_Q"},E:{"2":"_R"},F:{"2":"_b"},G:{"2":"_M"},H:{"2":"vD"},I:{"2":"_O"},J:{"2":"_B"},K:{"2":"_N"},L:{"2":"I"},M:{"33":"VC"},N:{"2":"_A"},O:{"2":"YC"},P:{"2":"_F"},Q:{"2":"DE"},R:{"2":"EE"},S:{"33":"_C"}},B:5,C:"CSS element() function",D:true};
+  	cssElementFunction={A:{A:{"2":"_E"},B:{"2":"_J"},C:{"33":"_x","164":"_f"},D:{"2":"_Q"},E:{"2":"_R"},F:{"2":"_b"},G:{"2":"_M"},H:{"2":"4D"},I:{"2":"_O"},J:{"2":"_B"},K:{"2":"_N"},L:{"2":"VB"},M:{"33":"bC"},N:{"2":"_A"},O:{"2":"eC"},P:{"2":"_F"},Q:{"2":"ME"},R:{"2":"NE"},S:{"33":"_C"}},B:5,C:"CSS element() function",D:true};
   	return cssElementFunction;
   }
 
@@ -17244,7 +17398,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireMulticolumn () {
   	if (hasRequiredMulticolumn) return multicolumn;
   	hasRequiredMulticolumn = 1;
-  	multicolumn={A:{A:{"1":"_A","2":"_Z"},B:{"1":"_I","516":"_K"},C:{"132":"_lC _kD _qD","164":"_2J","516":"_GJ _JD _MB b","1028":"_H c _aO"},D:{"420":"_kL","516":"_4L"},E:{"1":"_LB","132":"F LD","164":"_QJ KD","420":"_XC"},F:{"1":"_FQ","2":"_OD","420":"_LG qB","516":"_hO"},G:{"1":"_8","132":"_eC","164":"_TC","420":"_o"},H:{"1":"vD"},I:{"420":"_G","516":"I"},J:{"420":"_B"},K:{"1":"_KL","2":"_A","516":"H"},L:{"516":"I"},M:{"1028":"VC"},N:{"1":"_A"},O:{"516":"YC"},P:{"420":"J","516":"_U"},Q:{"516":"DE"},R:{"516":"EE"},S:{"164":"_C"}},B:4,C:"CSS3 Multiple column layout",D:true};
+  	multicolumn={A:{A:{"1":"_A","2":"_Y"},B:{"1":"_I","516":"_K"},C:{"132":"_SG _TL","164":"_oJ","516":"_0I _KD _PB a","1028":"_H b _PN"},D:{"420":"_bL","516":"_rL"},E:{"1":"_SB","132":"F SD","164":"_9I RD","420":"_YC"},F:{"1":"_DQ","2":"_SD","420":"_TB _wD","516":"_PO"},G:{"1":"_EB","132":"_cC","164":"_IC","420":"_r"},H:{"1":"4D"},I:{"420":"_G","516":"VB"},J:{"420":"_B"},K:{"1":"_1K","2":"_A","516":"H"},L:{"516":"VB"},M:{"1028":"bC"},N:{"1":"_A"},O:{"516":"eC"},P:{"420":"I","516":"_U"},Q:{"516":"ME"},R:{"516":"NE"},S:{"164":"_C"}},B:4,C:"CSS3 Multiple column layout",D:true};
   	return multicolumn;
   }
 
@@ -17254,7 +17408,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireUserSelectNone () {
   	if (hasRequiredUserSelectNone) return userSelectNone;
   	hasRequiredUserSelectNone = 1;
-  	userSelectNone={A:{A:{"2":"_Z","33":"_A"},B:{"1":"_K","33":"_I"},C:{"1":"_tO","33":"_m _FE _L"},D:{"1":"_EM","33":"_vJ"},E:{"33":"_R"},F:{"1":"_JO","2":"_T","33":"_bH"},G:{"33":"_M"},H:{"2":"vD"},I:{"1":"I","33":"_G"},J:{"33":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"33":"_A"},O:{"1":"YC"},P:{"1":"_gB","33":"_qC"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","33":"FE"}},B:5,C:"CSS user-select: none",D:true};
+  	userSelectNone={A:{A:{"2":"_Y","33":"_A"},B:{"1":"_K","33":"_I"},C:{"1":"_cO","33":"_DR _L"},D:{"1":"_3L","33":"_cJ"},E:{"1":"aD","33":"_HR"},F:{"1":"_AO","2":"_T","33":"_TB _JE"},G:{"33":"_M"},H:{"2":"4D"},I:{"1":"VB","33":"_G"},J:{"33":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"33":"_A"},O:{"1":"eC"},P:{"1":"_lB","33":"_mC"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","33":"OE"}},B:5,C:"CSS user-select: none",D:true};
   	return userSelectNone;
   }
 
@@ -17264,7 +17418,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireFlexbox () {
   	if (hasRequiredFlexbox) return flexbox;
   	hasRequiredFlexbox = 1;
-  	flexbox={A:{A:{"2":"_Z","1028":"B","1316":"A"},B:{"1":"_J"},C:{"1":"_pR","164":"_CF","516":"_eT _LQ"},D:{"1":"_WR","33":"_bN _CG","164":"_uF"},E:{"1":"_PB","33":"_QJ _sE","164":"_3C"},F:{"1":"_3J XC","2":"_WE","33":"_9B"},G:{"1":"_p","33":"_TC","164":"_o"},H:{"1":"vD"},I:{"1":"_X","164":"_W"},J:{"1":"A","164":"D"},K:{"1":"_YB","2":"_bB"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"B","292":"A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"CSS Flexible Box Layout Module",D:true};
+  	flexbox={A:{A:{"2":"_Y","1028":"B","1316":"A"},B:{"1":"_J"},C:{"1":"_zR","164":"_KF","516":"MB _oE"},D:{"1":"_iR","33":"_5K _ZF","164":"_sF"},E:{"1":"_RB","33":"_9I _1E","164":"_5C"},F:{"1":"_pJ dC","2":"_aE","33":"_CC"},G:{"1":"_s","33":"_IC","164":"_r"},H:{"1":"4D"},I:{"1":"_X","164":"_W"},J:{"1":"A","164":"D"},K:{"1":"_dB","2":"_gB"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"B","292":"A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"CSS Flexible Box Layout Module",D:true};
   	return flexbox;
   }
 
@@ -17274,7 +17428,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCalc () {
   	if (hasRequiredCalc) return calc;
   	hasRequiredCalc = 1;
-  	calc={A:{A:{"2":"_c","260":"F","516":"_A"},B:{"1":"_J"},C:{"1":"_FI","2":"_f","33":"_DC"},D:{"1":"_IF","2":"_gL","33":"_RJ IB"},E:{"1":"_iB","2":"_s","33":"L"},F:{"1":"_a","2":"_T"},G:{"1":"_z","2":"_1","33":"aD"},H:{"2":"vD"},I:{"1":"I","2":"_W","132":"_w"},J:{"1":"A","2":"D"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"calc() as CSS unit value",D:true};
+  	calc={A:{A:{"2":"_a","260":"F","516":"_A"},B:{"1":"_J"},C:{"1":"_7H","2":"_f","33":"_SC"},D:{"1":"_RF","2":"_NL","33":"_FF _KE"},E:{"1":"_nB","2":"_v","33":"K"},F:{"1":"_Z","2":"_T"},G:{"1":"_3","2":"_2","33":"iD"},H:{"2":"4D"},I:{"1":"VB","2":"_W","132":"_z"},J:{"1":"A","2":"D"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"calc() as CSS unit value",D:true};
   	return calc;
   }
 
@@ -17284,7 +17438,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireBackgroundImgOpts () {
   	if (hasRequiredBackgroundImgOpts) return backgroundImgOpts;
   	hasRequiredBackgroundImgOpts = 1;
-  	backgroundImgOpts={A:{A:{"1":"_V","2":"_c"},B:{"1":"_J"},C:{"1":"_x","2":"_LC","36":"GD"},D:{"1":"_WD","516":"_Y"},E:{"1":"_6C","772":"_XC"},F:{"1":"_aD","2":"_lB","36":"UD"},G:{"1":"_z","4":"_d aD","516":"ZD"},H:{"132":"vD"},I:{"1":"_X","36":"wD","516":"_BF","548":"_UQ"},J:{"1":"_B"},K:{"1":"_N"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"CSS3 Background-image options",D:true};
+  	backgroundImgOpts={A:{A:{"1":"_V","2":"_a"},B:{"1":"_J"},C:{"1":"_x","2":"_NC","36":"ND"},D:{"1":"_bD","516":"_j"},E:{"1":"_8C","772":"_YC"},F:{"1":"_eD","2":"_pB","36":"cD"},G:{"1":"_3","4":"_d iD","516":"hD"},H:{"132":"4D"},I:{"1":"_X","36":"5D","516":"_IF","548":"_UQ"},J:{"1":"_B"},K:{"1":"_N"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"CSS3 Background-image options",D:true};
   	return backgroundImgOpts;
   }
 
@@ -17294,7 +17448,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireBackgroundClipText () {
   	if (hasRequiredBackgroundClipText) return backgroundClipText;
   	hasRequiredBackgroundClipText = 1;
-  	backgroundClipText={A:{A:{"2":"_E"},B:{"1":"_UB","33":"_v","129":"_GI","161":"_NC _wH"},C:{"1":"_wD","2":"_VM"},D:{"129":"_3G","161":"_NC _yG"},E:{"2":"HD","129":"K YC PD _uE","388":"_9I G _SD _XN lC","420":"_IQ"},F:{"2":"_T","129":"_QK","161":"_sC _BL"},G:{"129":"YC _CU","388":"_YE lC"},H:{"2":"vD"},I:{"16":"_KB","129":"I","161":"_NL"},J:{"161":"_B"},K:{"16":"_D","129":"H"},L:{"129":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"161":"YC"},P:{"1":"_NB","161":"_OM"},Q:{"161":"DE"},R:{"161":"EE"},S:{"1":"_C"}},B:7,C:"Background-clip: text",D:true};
+  	backgroundClipText={A:{A:{"2":"_E"},B:{"1":"_ZB","33":"_y","129":"_tJ","161":"_rC _DL"},C:{"1":"_1D","2":"_mL"},D:{"129":"_CI","161":"_rC _xF"},E:{"2":"OD","129":"J eC WD _3E","388":"_vI G _WD _FN rC","420":"_KQ"},F:{"2":"_T","129":"_BK","161":"_oC _vK"},G:{"129":"eC _RU","388":"_dE rC"},H:{"2":"4D"},I:{"16":"_OB","129":"VB","161":"_3K"},J:{"161":"_B"},K:{"16":"_D","129":"H"},L:{"129":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"161":"eC"},P:{"1":"_WC","161":"_tL"},Q:{"161":"ME"},R:{"161":"NE"},S:{"1":"_C"}},B:7,C:"Background-clip: text",D:true};
   	return backgroundClipText;
   }
 
@@ -17304,7 +17458,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireFontFeature () {
   	if (hasRequiredFontFeature) return fontFeature;
   	hasRequiredFontFeature = 1;
-  	fontFeature={A:{A:{"1":"_A","2":"_Z"},B:{"1":"_J"},C:{"1":"_QI","2":"_f","33":"_uK","164":"_Y"},D:{"1":"_5F","2":"_DC","33":"_4B _uN","292":"_EO DB"},E:{"1":"_ND","2":"_gC _e _sE","4":"_vB ID"},F:{"1":"_PI","2":"_T","33":"_bF"},G:{"1":"_kG","2":"_TC dD","4":"_o"},H:{"2":"vD"},I:{"1":"I","2":"_W","33":"_w"},J:{"2":"D","33":"A"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_U","33":"J"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:2,C:"CSS font-feature-settings",D:true};
+  	fontFeature={A:{A:{"1":"_A","2":"_Y"},B:{"1":"_J"},C:{"1":"_II","2":"_f","33":"_TB _iD","164":"_j"},D:{"1":"_4F","2":"_SC","33":"_7B _0B _jC","292":"_1N KB"},E:{"1":"_RD","2":"_dC _e _1E","4":"_wB PD"},F:{"1":"_KI","2":"_T","33":"_dN"},G:{"1":"_jG","2":"_IC lD","4":"_r"},H:{"2":"4D"},I:{"1":"VB","2":"_W","33":"_z"},J:{"2":"D","33":"A"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_U","33":"I"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:2,C:"CSS font-feature-settings",D:true};
   	return fontFeature;
   }
 
@@ -17314,7 +17468,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireFontKerning () {
   	if (hasRequiredFontKerning) return fontKerning;
   	hasRequiredFontKerning = 1;
-  	fontKerning={A:{A:{"2":"_E"},B:{"1":"_K","2":"_I"},C:{"1":"_QI","2":"_LS","194":"_WF _LH"},D:{"1":"_nO","2":"_iJ","33":"_qB _OQ"},E:{"1":"_ND","2":"_XC","33":"_gC KD"},F:{"1":"_nR","2":"_h G _P","33":"_EO"},G:{"1":"_VJ","2":"_DB","33":"_jC _3O"},H:{"2":"vD"},I:{"1":"_VD","2":"_W","33":"0D"},J:{"2":"D","33":"A"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"CSS3 font-kerning",D:true};
+  	fontKerning={A:{A:{"2":"_E"},B:{"1":"_K","2":"_I"},C:{"1":"_II","2":"_OR","194":"_6K _iD"},D:{"1":"_TO","2":"_bJ","33":"_iC sB"},E:{"1":"_RD","2":"_YC","33":"_dC RD"},F:{"1":"_yR","2":"_2B G _P","33":"_1N"},G:{"1":"_FJ","2":"_HB","33":"_gC _kO"},H:{"2":"4D"},I:{"1":"_aD","2":"_W","33":"9D"},J:{"2":"D","33":"A"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"CSS3 font-kerning",D:true};
   	return fontKerning;
   }
 
@@ -17324,7 +17478,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireBorderImage () {
   	if (hasRequiredBorderImage) return borderImage$1;
   	hasRequiredBorderImage = 1;
-  	borderImage$1={A:{A:{"1":"B","2":"_y"},B:{"1":"_zD","129":"_JB"},C:{"1":"_GF","2":"_g","260":"_ZG","804":"_Y _L"},D:{"1":"_MK","260":"_TE","388":"MB _NE","1412":"_8I","1956":"_Y"},E:{"1":"_uC","129":"_FO LD _XN","1412":"_OC _sE","1956":"_s"},F:{"1":"_VL","2":"_eB","260":"_QF","388":"_KD","1796":"_nI","1828":"_5 _tE"},G:{"1":"_5B","129":"eD _BE _nL _YG","1412":"_QD dD","1956":"_1"},H:{"1828":"vD"},I:{"1":"I","388":"_w","1956":"_W"},J:{"1412":"A","1924":"D"},K:{"1":"H","2":"A","1828":"_YD"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"B","2":"A"},O:{"1":"YC"},P:{"1":"_wB","260":"_SH","388":"J"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","260":"FE"}},B:4,C:"CSS3 Border images",D:true};
+  	borderImage$1={A:{A:{"1":"B","2":"_0"},B:{"1":"_3D","129":"_NB"},C:{"1":"_PF","2":"_c","260":"_DO","804":"_j _L"},D:{"1":"_8J","260":"_WE","388":"_TF _xC","1412":"_FR","1956":"_j"},E:{"1":"_qC","129":"_hL SD _FN","1412":"_PC _1E","1956":"_v"},F:{"1":"_0L","2":"_jB","260":"_FG","388":"_cN","1796":"_dI","1828":"_8 _2E"},G:{"1":"_9B","129":"mD _nD _VL _XG","1412":"_UD lD","1956":"_2"},H:{"1828":"4D"},I:{"1":"VB","388":"_z","1956":"_W"},J:{"1412":"A","1924":"D"},K:{"1":"H","2":"A","1828":"_cD"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"B","2":"A"},O:{"1":"eC"},P:{"1":"_xB","260":"_GH","388":"I"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","260":"OE"}},B:4,C:"CSS3 Border images",D:true};
   	return borderImage$1;
   }
 
@@ -17334,7 +17488,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssSelection () {
   	if (hasRequiredCssSelection) return cssSelection;
   	hasRequiredCssSelection = 1;
-  	cssSelection={A:{A:{"1":"_V","2":"_c"},B:{"1":"_J"},C:{"1":"_TL","33":"_m _L"},D:{"1":"_Q"},E:{"1":"_R"},F:{"1":"_nB","2":"F"},G:{"2":"_M"},H:{"2":"vD"},I:{"1":"_X","2":"_W"},J:{"1":"A","2":"D"},K:{"1":"_EQ _TQ","16":"_A WC"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","33":"FE"}},B:5,C:"::selection CSS pseudo-element",D:true};
+  	cssSelection={A:{A:{"1":"_V","2":"_a"},B:{"1":"_J"},C:{"1":"_FL","33":"_t _L"},D:{"1":"_Q"},E:{"1":"_R"},F:{"1":"_rB","2":"F"},G:{"2":"_M"},H:{"2":"4D"},I:{"1":"_X","2":"_W"},J:{"1":"A","2":"D"},K:{"1":"_CQ _TQ","16":"_A cC"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","33":"OE"}},B:5,C:"::selection CSS pseudo-element",D:true};
   	return cssSelection;
   }
 
@@ -17344,7 +17498,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssPlaceholder () {
   	if (hasRequiredCssPlaceholder) return cssPlaceholder;
   	hasRequiredCssPlaceholder = 1;
-  	cssPlaceholder={A:{A:{"2":"_E"},B:{"1":"_K","36":"_I"},C:{"1":"_pF","33":"_hC _NE","130":"_uL"},D:{"1":"_qF","36":"_jF"},E:{"1":"_HB","2":"_i","36":"jB _DI"},F:{"1":"_HF","2":"_T","36":"_8D xB"},G:{"1":"_9","2":"_rC","36":"_qO _AF"},H:{"2":"vD"},I:{"1":"I","36":"_G"},J:{"36":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"36":"_A"},O:{"1":"YC"},P:{"1":"_wB","36":"_1B"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","33":"FE"}},B:5,C:"::placeholder CSS pseudo-element",D:true};
+  	cssPlaceholder={A:{A:{"2":"_E"},B:{"1":"_K","36":"_I"},C:{"1":"_7F","33":"_TC _xC","130":"_jL"},D:{"1":"_pF","36":"_hF"},E:{"1":"_MB","2":"_m","36":"qB _1H"},F:{"1":"_QF","2":"_T","36":"_RE 3B"},G:{"1":"_BB","2":"_nC","36":"_ZO _HF"},H:{"2":"4D"},I:{"1":"VB","36":"_G"},J:{"36":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"36":"_A"},O:{"1":"eC"},P:{"1":"_xB","36":"_5B"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","33":"OE"}},B:5,C:"::placeholder CSS pseudo-element",D:true};
   	return cssPlaceholder;
   }
 
@@ -17354,7 +17508,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssPlaceholderShown () {
   	if (hasRequiredCssPlaceholderShown) return cssPlaceholderShown;
   	hasRequiredCssPlaceholderShown = 1;
-  	cssPlaceholderShown={A:{A:{"2":"_Z","292":"_A"},B:{"1":"_K","2":"_I"},C:{"1":"_pF","2":"_f","164":"_GC"},D:{"1":"_eO","2":"_xN"},E:{"1":"_PB","2":"_TB"},F:{"1":"_SO","2":"_8O"},G:{"1":"_p","2":"_2"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_U","2":"J"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","164":"FE"}},B:5,C:":placeholder-shown CSS pseudo-class",D:true};
+  	cssPlaceholderShown={A:{A:{"2":"_Y","292":"_A"},B:{"1":"_K","2":"_I"},C:{"1":"_7F","2":"_f","164":"_3B"},D:{"1":"_OO","2":"_oN"},E:{"1":"_RB","2":"_YB"},F:{"1":"_CO","2":"_pN"},G:{"1":"_s","2":"_4"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_U","2":"I"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","164":"OE"}},B:5,C:":placeholder-shown CSS pseudo-class",D:true};
   	return cssPlaceholderShown;
   }
 
@@ -17364,7 +17518,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssHyphens () {
   	if (hasRequiredCssHyphens) return cssHyphens;
   	hasRequiredCssHyphens = 1;
-  	cssHyphens={A:{A:{"2":"_Z","33":"_A"},B:{"1":"_vO","33":"_I","132":"_mG _JF","260":"Y _dI _xH"},C:{"1":"_aQ","2":"_1C","33":"_dC _8D"},D:{"1":"_uO","2":"_BO","132":"_kD _cC _OR"},E:{"1":"_2D","2":"_3","33":"_gJ _SD _JG _gF"},F:{"1":"_bO","2":"_MM","132":"wB _mE _qI _MB"},G:{"1":"_VE","2":"_rC","33":"_qO _AL _mH"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_gB","2":"J","132":"2D"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"CSS Hyphenation",D:true};
+  	cssHyphens={A:{A:{"2":"_Y","33":"_A"},B:{"1":"_eO","33":"_I","132":"_kG _SF","260":"X _TI _nH"},C:{"1":"_sR","2":"_3C","33":"_bC _RE"},D:{"1":"_dO","2":"_sN","132":"_AE _YD _bR"},E:{"1":"_5D","2":"_6","33":"_OJ _WD _5E _EF"},F:{"1":"_JO","2":"_EM","132":"_oK _JG _PB"},G:{"1":"_ZE","2":"_nC","33":"_ZO _uK _ZG"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_lB","2":"I","132":"BE"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"CSS Hyphenation",D:true};
   	return cssHyphens;
   }
 
@@ -17374,7 +17528,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireFullscreen () {
   	if (hasRequiredFullscreen) return fullscreen$1;
   	hasRequiredFullscreen = 1;
-  	fullscreen$1={A:{A:{"2":"_y","548":"B"},B:{"1":"_K","516":"_I"},C:{"1":"_hR","2":"_RK","676":"_lD _ZH","1700":"_QC _ID _rB"},D:{"1":"_MN _iC","2":"_Y","676":"_aC","804":"_EB _wE _nD"},E:{"1":"_RE","2":"_3","548":"_nP _qE","676":"ID","804":"_gJ _7Q"},F:{"1":"_8F XC","2":"_WE","804":"_PJ _rB"},G:{"2":"_JI","2052":"_VJ"},H:{"2":"vD"},I:{"2":"_O"},J:{"2":"D","292":"A"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"A","548":"B"},O:{"1":"YC"},P:{"1":"_9E","804":"_MD"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:1,C:"Fullscreen API",D:true};
+  	fullscreen$1={A:{A:{"2":"_0","548":"B"},B:{"1":"_K","516":"_I"},C:{"1":"_uR","2":"_CK","676":"_qD _RE _kD","1700":"_GE _AB _9D"},D:{"1":"_4M _fC","2":"_j","676":"_uC","804":"_IB _UB _AB _tD"},E:{"1":"_UE","2":"_6","548":"_fP _zE","676":"PD","804":"_OJ _9Q"},F:{"1":"_8F dC","2":"_aE","804":"_BE _iG"},G:{"2":"_AI","2052":"_FJ"},H:{"2":"4D"},I:{"2":"_O"},J:{"2":"D","292":"A"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"A","548":"B"},O:{"1":"eC"},P:{"1":"_GF","804":"_MD"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:1,C:"Fullscreen API",D:true};
   	return fullscreen$1;
   }
 
@@ -17384,7 +17538,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireMdnCssBackdropPseudoElement () {
   	if (hasRequiredMdnCssBackdropPseudoElement) return mdnCssBackdropPseudoElement;
   	hasRequiredMdnCssBackdropPseudoElement = 1;
-  	mdnCssBackdropPseudoElement={A:{D:{"1":"_UI","2":"_hL","33":"_5I qB"},L:{"1":"I"},B:{"1":"_K","33":"_I"},C:{"1":"_HM","2":"_tL"},M:{"1":"VC"},A:{"2":"_y","33":"B"},F:{"1":"_6G","2":"_8Q","33":"_KQ GB"},K:{"1":"H","2":"_D"},E:{"1":"_AT _PE","2":"_BH SD"},G:{"1":"_5B","2":"_YE"},P:{"1":"_F"},I:{"1":"I","2":"_W","33":"_w"}},B:6,C:"CSS ::backdrop pseudo-element",D:undefined};
+  	mdnCssBackdropPseudoElement={A:{D:{"1":"_MI","2":"_aB","33":"_wD"},L:{"1":"VB"},B:{"1":"_K","33":"_I"},C:{"1":"_5L","2":"_lL"},M:{"1":"bC"},A:{"2":"_0","33":"B"},F:{"1":"_1G","2":"_AR","33":"_FF NB"},K:{"1":"H","2":"_D"},E:{"1":"_OT _TE","2":"_4G aD"},G:{"1":"_9B","2":"_dE"},P:{"1":"_F"},I:{"1":"VB","2":"_W","33":"_z"}},B:6,C:"CSS ::backdrop pseudo-element",D:undefined};
   	return mdnCssBackdropPseudoElement;
   }
 
@@ -17394,7 +17548,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssFileSelectorButton () {
   	if (hasRequiredCssFileSelectorButton) return cssFileSelectorButton;
   	hasRequiredCssFileSelectorButton = 1;
-  	cssFileSelectorButton={A:{D:{"1":"_3H","33":"_u _pD"},L:{"1":"I"},B:{"1":"_4H","33":"_0 _pD"},C:{"1":"_H _SQ","2":"_m _cC _L"},M:{"1":"VC"},A:{"2":"_Z","33":"_A"},F:{"1":"_gQ","2":"_T","33":"_PJ _eG"},K:{"1":"H","2":"_D"},E:{"1":"_UH _CE _PE","2":"SD","33":"_hF"},G:{"1":"_IE","33":"_VF"},P:{"1":"_rF","33":"_kF"},I:{"1":"I","2":"_W","33":"_w"}},B:6,C:"::file-selector-button CSS pseudo-element",D:undefined};
+  	cssFileSelectorButton={A:{D:{"1":"_qH","33":"_w _vD"},L:{"1":"VB"},B:{"1":"_rH","33":"_1 _vD"},C:{"1":"_H _SQ","2":"_t _wE _L"},M:{"1":"bC"},A:{"2":"_Y","33":"_A"},F:{"1":"_iQ","2":"_T","33":"_BE JC _eG"},K:{"1":"H","2":"_D"},E:{"1":"_IH _DE _TE","2":"aD","33":"_gF"},G:{"1":"_IE","33":"_aF"},P:{"1":"_qF","33":"_iF"},I:{"1":"VB","2":"_W","33":"_z"}},B:6,C:"::file-selector-button CSS pseudo-element",D:undefined};
   	return cssFileSelectorButton;
   }
 
@@ -17404,7 +17558,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssAutofill () {
   	if (hasRequiredCssAutofill) return cssAutofill;
   	hasRequiredCssAutofill = 1;
-  	cssAutofill={A:{D:{"1":"_5H _q","33":"_u _6F"},L:{"1":"I"},B:{"1":"_5H _j","2":"_I","33":"_IB _6F"},C:{"2":"_S"},M:{"2":"VC"},A:{"2":"_E"},F:{"1":"_dQ _ME","2":"_T","33":"_sC _4J"},K:{"1":"H","2":"_D"},E:{"1":"_LU _PE","2":"SD","33":"_MI"},G:{"1":"_dE","33":"_2F"},P:{"1":"_4B","33":"_OL"},I:{"1":"I","2":"_W","33":"_w"}},B:6,C:":autofill CSS pseudo-class",D:undefined};
+  	cssAutofill={A:{D:{"1":"_sH _l","33":"_w _5F"},L:{"1":"VB"},B:{"1":"_sH _k","2":"_I","33":"_CB _5F"},C:{"2":"_S"},M:{"2":"bC"},A:{"2":"_E"},F:{"1":"_fQ _q","2":"_T","33":"_oC _qJ"},K:{"1":"H","2":"_D"},E:{"1":"_cU _TE","2":"aD","33":"_EI"},G:{"1":"_iE","33":"_2F"},P:{"1":"_7B","33":"_4K"},I:{"1":"VB","2":"_W","33":"_z"}},B:6,C:":autofill CSS pseudo-class",D:undefined};
   	return cssAutofill;
   }
 
@@ -17414,7 +17568,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCss3Tabsize () {
   	if (hasRequiredCss3Tabsize) return css3Tabsize;
   	hasRequiredCss3Tabsize = 1;
-  	css3Tabsize={A:{A:{"2":"_E"},B:{"1":"_K","2":"_I"},C:{"1":"_tP _t","2":"_f","33":"_iE _kD _VB _MB","164":"_AO"},D:{"1":"_KJ _JE","2":"_uF","132":"_4B _8G vB"},E:{"1":"_cE","2":"_3C","132":"_gC _qJ _yB _pL"},F:{"1":"_NO","2":"_2G","132":"_tK","164":"_5 _7K"},G:{"1":"_RD","2":"_o","132":"_TC _DJ _RH"},H:{"164":"vD"},I:{"1":"I","2":"_W","132":"_w"},J:{"132":"_B"},K:{"1":"H","2":"A","164":"_YD"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"164":"_C"}},B:4,C:"CSS3 tab-size",D:true};
+  	css3Tabsize={A:{A:{"2":"_E"},B:{"1":"_K","2":"_I"},C:{"1":"_qP _n","2":"_f","33":"_NH _XE _PB","164":"_rN"},D:{"1":"_2I _i","2":"_sF","132":"_7B _lF"},E:{"1":"_hE","2":"_5C","132":"_dC _TJ _1B _XL"},F:{"1":"_BO","2":"_xG","132":"_JB _ZF","164":"_8 _rK"},G:{"1":"_VD","2":"_r","132":"_IC _xI _FH"},H:{"164":"4D"},I:{"1":"VB","2":"_W","132":"_z"},J:{"132":"_B"},K:{"1":"H","2":"A","164":"_cD"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"164":"_C"}},B:4,C:"CSS3 tab-size",D:true};
   	return css3Tabsize;
   }
 
@@ -17424,7 +17578,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireIntrinsicWidth () {
   	if (hasRequiredIntrinsicWidth) return intrinsicWidth;
   	hasRequiredIntrinsicWidth = 1;
-  	intrinsicWidth={A:{A:{"2":"_E"},B:{"2":"_I","1025":"_WN _xJ","1537":"_IB _7G"},C:{"2":"BD","932":"_qP _qQ","2308":"_lO"},D:{"2":"_iL","545":"_zB _7D _uD","1025":"_WN _0L","1537":"_pH _ID _cC _7G"},E:{"1":"_0C","2":"_3C","516":"_9R","548":"_5R","676":"_QJ _sE"},F:{"2":"_T","513":"oB","545":"_cG","1025":"_SL _ME","1537":"nB _PQ _mE _qI _YF"},G:{"1":"_jB","2":"_o","516":"_hN","548":"_ZR","676":"_TC"},H:{"2":"vD"},I:{"2":"_W","545":"_w","1025":"I"},J:{"2":"D","545":"A"},K:{"2":"_D","1025":"H"},L:{"1025":"I"},M:{"2308":"VC"},N:{"2":"_A"},O:{"1537":"YC"},P:{"545":"J","1025":"_kQ","1537":"_rI _zQ _gS"},Q:{"1537":"DE"},R:{"1537":"EE"},S:{"932":"FE","2308":"GE"}},B:5,C:"Intrinsic & Extrinsic Sizing",D:true};
+  	intrinsicWidth={A:{A:{"2":"_E"},B:{"2":"_I","1025":"_DN _k","1537":"_CB _2G"},C:{"2":"JD","932":"_lP _sQ","2308":"_SO"},D:{"2":"_OL","545":"_4B _0B _zD","1025":"_DN _l","1537":"_tP _YD _2G"},E:{"1":"_2C","2":"_5C","516":"_IS","548":"_DS","676":"_9I _1E"},F:{"2":"_T","513":"uB","545":"_TB sB","1025":"_cQ _q","1537":"tB _TH _JG _bF"},G:{"1":"_oB","2":"_r","516":"_ON","548":"_lR","676":"_IC"},H:{"2":"4D"},I:{"2":"_W","545":"_z","1025":"VB"},J:{"2":"D","545":"A"},K:{"2":"_D","1025":"H"},L:{"1025":"VB"},M:{"2308":"bC"},N:{"2":"_A"},O:{"1537":"eC"},P:{"545":"I","1025":"_mQ","1537":"_gI _1Q _rS"},Q:{"1537":"ME"},R:{"1537":"NE"},S:{"932":"OE","2308":"PE"}},B:5,C:"Intrinsic & Extrinsic Sizing",D:true};
   	return intrinsicWidth;
   }
 
@@ -17434,7 +17588,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssWidthStretch () {
   	if (hasRequiredCssWidthStretch) return cssWidthStretch;
   	hasRequiredCssWidthStretch = 1;
-  	cssWidthStretch={A:{D:{"1":"_NP _dK _KE","2":"_iL","33":"_aG _vG _DL VB"},L:{"1":"I"},B:{"1":"_NP _dK _hE","2":"_I","33":"_kN _DL VB"},C:{"2":"_bR _L","33":"_JH _mJ"},M:{"33":"VC"},A:{"2":"_E"},F:{"1":"6 _XG CB","2":"_T","33":"_sD 5 _sC _UC"},K:{"2":"_D","33":"H"},E:{"1":"K","2":"_XC SD","33":"_xR _lF _cU"},G:{"2":"_o","33":"_z"},P:{"2":"J","33":"_U"},I:{"1":"I","2":"_W","33":"_w"}},B:6,C:"width: stretch property",D:undefined};
+  	cssWidthStretch={A:{D:{"1":"_wO _AH _FC","2":"_OL","33":"_aG _QL _YO HB"},L:{"1":"VB"},B:{"1":"_wO _AH","2":"_I","33":"_QN _YO HB"},C:{"2":"_0T _L","33":"_DG _8B"},M:{"33":"bC"},A:{"2":"_E"},F:{"1":"5 _kH _q","2":"_T","33":"_ZC 4 _oC _QD"},K:{"2":"_D","33":"H"},E:{"1":"J _LP","2":"_YC aD","33":"_7R _jF _5E _kP"},G:{"1":"_bI","2":"_r","33":"_IC _NI _TK"},P:{"2":"I","33":"_U"},I:{"1":"VB","2":"_W","33":"_z"}},B:6,C:"width: stretch property",D:undefined};
   	return cssWidthStretch;
   }
 
@@ -17444,7 +17598,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCss3CursorsNewer () {
   	if (hasRequiredCss3CursorsNewer) return css3CursorsNewer;
   	hasRequiredCss3CursorsNewer = 1;
-  	css3CursorsNewer={A:{A:{"2":"_E"},B:{"1":"_J"},C:{"1":"_4M _kB","33":"_LS"},D:{"1":"_UI","33":"_CK"},E:{"1":"_PB","33":"_TB"},F:{"1":"_yM _WF _uB _3I","2":"_5C","33":"_1M"},G:{"2":"_M"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"33":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"2":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"2":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"2":"_C"}},B:2,C:"CSS3 Cursors: zoom-in & zoom-out",D:true};
+  	css3CursorsNewer={A:{A:{"2":"_E"},B:{"1":"_J"},C:{"1":"_oM _h","33":"_OR"},D:{"1":"_MI","33":"_VJ"},E:{"1":"_RB","33":"_YB"},F:{"1":"_jM _MT _g _rI","2":"_7C","33":"_JB NB"},G:{"2":"_M"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"33":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"2":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"2":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"2":"_C"}},B:2,C:"CSS3 Cursors: zoom-in & zoom-out",D:true};
   	return css3CursorsNewer;
   }
 
@@ -17454,7 +17608,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCss3CursorsGrab () {
   	if (hasRequiredCss3CursorsGrab) return css3CursorsGrab;
   	hasRequiredCss3CursorsGrab = 1;
-  	css3CursorsGrab={A:{A:{"2":"_E"},B:{"1":"_SE","2":"_v"},C:{"1":"_1R","33":"_OS"},D:{"1":"_VN _iC","33":"_6 _EF"},E:{"1":"_oB","33":"_pB"},F:{"1":"_yM _6I _3I","2":"_5C","33":"_iD _fD"},G:{"2":"_M"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"33":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"2":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"2":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"2":"_C"}},B:2,C:"CSS grab & grabbing cursors",D:true};
+  	css3CursorsGrab={A:{A:{"2":"_E"},B:{"1":"_VE","2":"_y"},C:{"1":"_CS","33":"_VS"},D:{"1":"_CN _fC","33":"_9 _gH"},E:{"1":"_sB","33":"_tB"},F:{"1":"_jM _AE _g _rI","2":"_7C","33":"_nF _lD"},G:{"2":"_M"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"33":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"2":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"2":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"2":"_C"}},B:2,C:"CSS grab & grabbing cursors",D:true};
   	return css3CursorsGrab;
   }
 
@@ -17464,7 +17618,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssSticky () {
   	if (hasRequiredCssSticky) return cssSticky;
   	hasRequiredCssSticky = 1;
-  	cssSticky={A:{A:{"2":"_E"},B:{"1":"_lR","2":"_3B","1028":"_IB _MB","4100":"_GE"},C:{"1":"_9P _tB","2":"_BP","194":"_zK lB","516":"_5I _bC _mE"},D:{"1":"_mR","2":"_hJ _AJ _fJ","322":"_CC _eJ _lC 9B","1028":"AC _RG _cC _MB"},E:{"1":"_ZE","2":"_3C","33":"_gT _lF _pL","2084":"D JD"},F:{"1":"_2P _4K","2":"_XO","322":"tB uB vB","1028":"wB _vN _HL"},G:{"1":"_UE","2":"_1","33":"_yJ kD","2084":"aD bD"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_gB","2":"_qC"},Q:{"1028":"DE"},R:{"1":"EE"},S:{"1":"GE","516":"FE"}},B:5,C:"CSS position:sticky",D:true};
+  	cssSticky={A:{A:{"2":"_E"},B:{"1":"_wR","2":"_6B","1028":"_CB _PB","4100":"_OD"},C:{"1":"_H _h","2":"_rO","194":"_WQ","516":"_UB"},D:{"1":"_xR","2":"_GC xB _FG _NJ","322":"_EC _wD _CJ FC","1028":"_RQ _YD _PB"},E:{"1":"_eE","2":"_5C","33":"_sT _jF _XL","2084":"D QD"},F:{"1":"_1P _pK","2":"_qO","322":"zB 0B 1B","1028":"_oK JC _zK"},G:{"1":"_YE","2":"_2","33":"_kJ sD","2084":"iD jD"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_lB","2":"_mC"},Q:{"1028":"ME"},R:{"1":"NE"},S:{"1":"PE","516":"OE"}},B:5,C:"CSS position:sticky",D:true};
   	return cssSticky;
   }
 
@@ -17474,7 +17628,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requirePointer () {
   	if (hasRequiredPointer) return pointer;
   	hasRequiredPointer = 1;
-  	pointer={A:{A:{"1":"B","2":"_Z","164":"A"},B:{"1":"_J"},C:{"1":"_9P _tB","2":"_1C","8":"_dC _bH","328":"_YC _mE"},D:{"1":"_WL","2":"_iL","8":"_zB _KO","584":"_lC"},E:{"1":"_ZE","2":"_3C","8":"_gC _DE _yB _GD","1096":"XC"},F:{"1":"_TI","2":"_T","8":"_KD sB","584":"tB uB vB"},G:{"1":"_XP _RD","8":"_DF","6148":"lD"},H:{"2":"vD"},I:{"1":"I","8":"_G"},J:{"8":"_B"},K:{"1":"H","2":"A","8":"_YD"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"B","36":"A"},O:{"1":"YC"},P:{"1":"_gB","2":"2D","8":"J"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","328":"FE"}},B:2,C:"Pointer events",D:true};
+  	pointer={A:{A:{"1":"B","2":"_Y","164":"A"},B:{"1":"_J"},C:{"1":"_H _h","2":"_3C","8":"_bC _TB _JE","328":"_NG"},D:{"1":"_zL","2":"_OL","8":"_4B _xN","584":"_CJ"},E:{"1":"_eE","2":"_5C","8":"_dC _EE _1B _HD","1096":"dC"},F:{"1":"_LI","2":"_T","8":"_TB _bG","584":"zB 0B 1B"},G:{"1":"_MP _VD","8":"_JF","6148":"tD"},H:{"2":"4D"},I:{"1":"VB","8":"_G"},J:{"8":"_B"},K:{"1":"H","2":"A","8":"_cD"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"B","36":"A"},O:{"1":"eC"},P:{"1":"_lB","2":"BE","8":"I"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","328":"OE"}},B:2,C:"Pointer events",D:true};
   	return pointer;
   }
 
@@ -17484,7 +17638,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireTextDecoration () {
   	if (hasRequiredTextDecoration) return textDecoration$1;
   	hasRequiredTextDecoration = 1;
-  	textDecoration$1={A:{A:{"2":"_E"},B:{"2":"_I","2052":"_K"},C:{"2":"_1C","1028":"_8E","1060":"_tQ"},D:{"2":"_jJ","226":"_zK _NE _3E","2052":"_qF"},E:{"2":"_4C","772":"_FF","804":"_1O","1316":"KD"},F:{"2":"_TK","226":"_PQ xB","2052":"_HF"},G:{"2":"_DB","292":"_7B"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"2":"_B"},K:{"2":"_D","2052":"H"},L:{"2052":"I"},M:{"1028":"VC"},N:{"2":"_A"},O:{"2052":"YC"},P:{"2":"_1B","2052":"_wB"},Q:{"2052":"DE"},R:{"2052":"EE"},S:{"1028":"_C"}},B:4,C:"text-decoration styling",D:true};
+  	textDecoration$1={A:{A:{"2":"_E"},B:{"2":"_I","2052":"_K"},C:{"2":"_3C","1028":"_NF","1060":"_uQ"},D:{"2":"_ZJ","226":"_WQ _xC _CF","2052":"_pF"},E:{"2":"_6C","772":"_OF","804":"_jO","1316":"RD"},F:{"2":"_DK","226":"_OQ 3B","2052":"_QF"},G:{"2":"_HB","292":"_BC"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"2":"_B"},K:{"2":"_D","2052":"H"},L:{"2052":"VB"},M:{"1028":"bC"},N:{"2":"_A"},O:{"2052":"eC"},P:{"2":"_5B","2052":"_xB"},Q:{"2052":"ME"},R:{"2052":"NE"},S:{"1028":"_C"}},B:4,C:"text-decoration styling",D:true};
   	return textDecoration$1;
   }
 
@@ -17494,7 +17648,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireMdnTextDecorationShorthand () {
   	if (hasRequiredMdnTextDecorationShorthand) return mdnTextDecorationShorthand;
   	hasRequiredMdnTextDecorationShorthand = 1;
-  	mdnTextDecorationShorthand={A:{D:{"1":"_qF","2":"_jF"},L:{"1":"I"},B:{"1":"_K","2":"_I"},C:{"1":"_IM","2":"_1C"},M:{"1":"VC"},A:{"2":"_E"},F:{"1":"_HF","2":"_XI"},K:{"1":"H","2":"_D"},E:{"1":"K _iM _FG","2":"_yR","33":"_kH G LD _qL _wQ"},G:{"1":"_iM _FG","2":"_DB","33":"_jC _IK _wQ"},P:{"1":"_wB","2":"_1B"},I:{"1":"I","2":"_G"}},B:6,C:"text-decoration shorthand property",D:undefined};
+  	mdnTextDecorationShorthand={A:{D:{"1":"_pF","2":"_hF"},L:{"1":"VB"},B:{"1":"_K","2":"_I"},C:{"1":"_6L","2":"_3C"},M:{"1":"bC"},A:{"2":"_E"},F:{"1":"_QF","2":"_PI"},K:{"1":"H","2":"_D"},E:{"1":"J _SM _IP _LP","2":"_8R","33":"_YH G SD _YL _vQ"},G:{"1":"_SM _RL","2":"_HB","33":"_gC _NI _vQ"},P:{"1":"_xB","2":"_5B"},I:{"1":"VB","2":"_G"}},B:6,C:"text-decoration shorthand property",D:undefined};
   	return mdnTextDecorationShorthand;
   }
 
@@ -17504,7 +17658,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireMdnTextDecorationColor () {
   	if (hasRequiredMdnTextDecorationColor) return mdnTextDecorationColor;
   	hasRequiredMdnTextDecorationColor = 1;
-  	mdnTextDecorationColor={A:{D:{"1":"_qF","2":"_jF"},L:{"1":"I"},B:{"1":"_K","2":"_I"},C:{"1":"_8E","2":"_1C","33":"_tQ"},M:{"1":"VC"},A:{"2":"_E"},F:{"1":"_HF","2":"_XI"},K:{"1":"H","2":"_D"},E:{"1":"_4I _sI _PE","2":"_yR","33":"_1O"},G:{"1":"_kC","2":"_DB","33":"_yJ"},P:{"1":"_wB","2":"_1B"},I:{"1":"I","2":"_G"}},B:6,C:"text-decoration-color property",D:undefined};
+  	mdnTextDecorationColor={A:{D:{"1":"_pF","2":"_hF"},L:{"1":"VB"},B:{"1":"_K","2":"_I"},C:{"1":"_NF","2":"_3C","33":"_uQ"},M:{"1":"bC"},A:{"2":"_E"},F:{"1":"_QF","2":"_PI"},K:{"1":"H","2":"_D"},E:{"1":"_sI _hI _TE","2":"_8R","33":"_jO"},G:{"1":"_hC","2":"_HB","33":"_kJ"},P:{"1":"_xB","2":"_5B"},I:{"1":"VB","2":"_G"}},B:6,C:"text-decoration-color property",D:undefined};
   	return mdnTextDecorationColor;
   }
 
@@ -17514,7 +17668,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireMdnTextDecorationLine () {
   	if (hasRequiredMdnTextDecorationLine) return mdnTextDecorationLine;
   	hasRequiredMdnTextDecorationLine = 1;
-  	mdnTextDecorationLine={A:{D:{"1":"_qF","2":"_jF"},L:{"1":"I"},B:{"1":"_K","2":"_I"},C:{"1":"_8E","2":"_1C","33":"_tQ"},M:{"1":"VC"},A:{"2":"_E"},F:{"1":"_HF","2":"_XI"},K:{"1":"H","2":"_D"},E:{"1":"_4I _sI _PE","2":"_yR","33":"_1O"},G:{"1":"_kC","2":"_DB","33":"_yJ"},P:{"1":"_wB","2":"_1B"},I:{"1":"I","2":"_G"}},B:6,C:"text-decoration-line property",D:undefined};
+  	mdnTextDecorationLine={A:{D:{"1":"_pF","2":"_hF"},L:{"1":"VB"},B:{"1":"_K","2":"_I"},C:{"1":"_NF","2":"_3C","33":"_uQ"},M:{"1":"bC"},A:{"2":"_E"},F:{"1":"_QF","2":"_PI"},K:{"1":"H","2":"_D"},E:{"1":"_sI _hI _TE","2":"_8R","33":"_jO"},G:{"1":"_hC","2":"_HB","33":"_kJ"},P:{"1":"_xB","2":"_5B"},I:{"1":"VB","2":"_G"}},B:6,C:"text-decoration-line property",D:undefined};
   	return mdnTextDecorationLine;
   }
 
@@ -17524,7 +17678,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireMdnTextDecorationStyle () {
   	if (hasRequiredMdnTextDecorationStyle) return mdnTextDecorationStyle;
   	hasRequiredMdnTextDecorationStyle = 1;
-  	mdnTextDecorationStyle={A:{D:{"1":"_qF","2":"_jF"},L:{"1":"I"},B:{"1":"_K","2":"_I"},C:{"1":"_8E","2":"_1C","33":"_tQ"},M:{"1":"VC"},A:{"2":"_E"},F:{"1":"_HF","2":"_XI"},K:{"1":"H","2":"_D"},E:{"1":"_4I _sI _PE","2":"_yR","33":"_1O"},G:{"1":"_kC","2":"_DB","33":"_yJ"},P:{"1":"_wB","2":"_1B"},I:{"1":"I","2":"_G"}},B:6,C:"text-decoration-style property",D:undefined};
+  	mdnTextDecorationStyle={A:{D:{"1":"_pF","2":"_hF"},L:{"1":"VB"},B:{"1":"_K","2":"_I"},C:{"1":"_NF","2":"_3C","33":"_uQ"},M:{"1":"bC"},A:{"2":"_E"},F:{"1":"_QF","2":"_PI"},K:{"1":"H","2":"_D"},E:{"1":"_sI _hI _TE","2":"_8R","33":"_jO"},G:{"1":"_hC","2":"_HB","33":"_kJ"},P:{"1":"_xB","2":"_5B"},I:{"1":"VB","2":"_G"}},B:6,C:"text-decoration-style property",D:undefined};
   	return mdnTextDecorationStyle;
   }
 
@@ -17534,7 +17688,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireTextSizeAdjust () {
   	if (hasRequiredTextSizeAdjust) return textSizeAdjust;
   	hasRequiredTextSizeAdjust = 1;
-  	textSizeAdjust={A:{A:{"2":"_E"},B:{"1":"_K","33":"_I"},C:{"2":"_S"},D:{"1":"_EM","2":"_jJ _jH _NE _VG","258":"JB"},E:{"2":"_qM _e _cP","258":"ID"},F:{"1":"_H xB _NG _PD","2":"_gH yB _P"},G:{"2":"_d","33":"_r"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"33":"VC"},N:{"161":"_A"},O:{"1":"YC"},P:{"1":"_U","2":"J"},Q:{"1":"DE"},R:{"1":"EE"},S:{"2":"_C"}},B:7,C:"CSS text-size-adjust",D:true};
+  	textSizeAdjust={A:{A:{"2":"_E"},B:{"1":"_K","33":"_I"},C:{"2":"_S"},D:{"1":"_3L","2":"_ZJ _JN _xC _VG","258":"QB"},E:{"2":"_bM _e _RP","258":"PD"},F:{"1":"_H 3B _iK _g","2":"_TD 4B _P"},G:{"2":"_d","33":"_u"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"33":"bC"},N:{"161":"_A"},O:{"1":"eC"},P:{"1":"_U","2":"I"},Q:{"1":"ME"},R:{"1":"NE"},S:{"2":"_C"}},B:7,C:"CSS text-size-adjust",D:true};
   	return textSizeAdjust;
   }
 
@@ -17544,7 +17698,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssMasks () {
   	if (hasRequiredCssMasks) return cssMasks;
   	hasRequiredCssMasks = 1;
-  	cssMasks={A:{A:{"2":"_E"},B:{"1":"_GI","2":"_ZB","164":"_NC _wH","3138":"P","12292":"Q"},C:{"1":"_FM","2":"_g","260":"_GC _UU"},D:{"1":"_3G","164":"_NC _yG"},E:{"1":"_uC","2":"_e","164":"_DC _SD _XN"},F:{"1":"_QK","2":"_T","164":"_sC _BL"},G:{"1":"_5B","164":"_YE"},H:{"2":"vD"},I:{"1":"I","164":"_w","676":"_W"},J:{"164":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"164":"YC"},P:{"1":"_NB","164":"_OM"},Q:{"164":"DE"},R:{"164":"EE"},S:{"1":"GE","260":"FE"}},B:4,C:"CSS Masks",D:true};
+  	cssMasks={A:{A:{"2":"_E"},B:{"1":"_tJ","2":"_fB","164":"_rC _DL","3138":"O","12292":"P"},C:{"1":"_1L","2":"_c","260":"_3B _jU"},D:{"1":"_CI","164":"_rC _xF"},E:{"1":"_qC","2":"_e","164":"_SC _WD _FN"},F:{"1":"_BK","2":"_T","164":"_oC _vK"},G:{"1":"_9B","164":"_dE"},H:{"2":"4D"},I:{"1":"VB","164":"_z","676":"_W"},J:{"164":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"164":"eC"},P:{"1":"_WC","164":"_tL"},Q:{"164":"ME"},R:{"164":"NE"},S:{"1":"PE","260":"OE"}},B:4,C:"CSS Masks",D:true};
   	return cssMasks;
   }
 
@@ -17554,7 +17708,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssClipPath () {
   	if (hasRequiredCssClipPath) return cssClipPath;
   	hasRequiredCssClipPath = 1;
-  	cssClipPath={A:{A:{"2":"_E"},B:{"2":"_1F","260":"_K","3138":"Q"},C:{"1":"_DN _7I","2":"_g","132":"_Y _dT","644":"_QC _VG"},D:{"2":"_tF","260":"_WL","292":"_WF _LO"},E:{"2":"_XC","260":"_cE","292":"_gC _qJ _lF _pL"},F:{"2":"_T","260":"_TI","292":"_bH vB"},G:{"2":"_o","260":"_UE","292":"_TC _DJ kD"},H:{"2":"vD"},I:{"2":"_W","260":"I","292":"_w"},J:{"2":"_B"},K:{"2":"_D","260":"H"},L:{"260":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"260":"YC"},P:{"260":"_gB","292":"_qC"},Q:{"260":"DE"},R:{"260":"EE"},S:{"1":"GE","644":"FE"}},B:4,C:"CSS clip-path property (for HTML)",D:true};
+  	cssClipPath={A:{A:{"2":"_E"},B:{"2":"_1F","260":"_K","3138":"P"},C:{"1":"_vM _h","2":"_c","132":"_vB _pT","644":"_rE _VG"},D:{"2":"_vF","260":"_zL","292":"_6K _yN"},E:{"2":"_YC","260":"_hE","292":"_dC _TJ _jF _XL"},F:{"2":"_T","260":"_LI","292":"_TB _lF"},G:{"2":"_r","260":"_YE","292":"_IC _xI sD"},H:{"2":"4D"},I:{"2":"_W","260":"VB","292":"_z"},J:{"2":"_B"},K:{"2":"_D","260":"H"},L:{"260":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"260":"eC"},P:{"260":"_lB","292":"_mC"},Q:{"260":"ME"},R:{"260":"NE"},S:{"1":"PE","644":"OE"}},B:4,C:"CSS clip-path property (for HTML)",D:true};
   	return cssClipPath;
   }
 
@@ -17564,7 +17718,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssBoxdecorationbreak () {
   	if (hasRequiredCssBoxdecorationbreak) return cssBoxdecorationbreak;
   	hasRequiredCssBoxdecorationbreak = 1;
-  	cssBoxdecorationbreak={A:{A:{"2":"_E"},B:{"1":"_dJ _hE","2":"_I","164":"_kN _dL"},C:{"1":"_OO","2":"_DP"},D:{"1":"_dJ _KE","2":"_iL","164":"_aG _vG _dL"},E:{"2":"_3C","164":"_iB"},F:{"1":"_H _fE CB","2":"_pC","129":"_5 _tE","164":"_sC _UC"},G:{"2":"_o","164":"_z"},H:{"132":"vD"},I:{"1":"I","2":"_W","164":"_w"},J:{"2":"D","164":"A"},K:{"2":"A","129":"_YD","164":"H"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"164":"YC"},P:{"164":"_F"},Q:{"164":"DE"},R:{"164":"EE"},S:{"1":"_C"}},B:4,C:"CSS box-decoration-break",D:true};
+  	cssBoxdecorationbreak={A:{A:{"2":"_E"},B:{"1":"_BJ","2":"_I","164":"_QN _nQ"},C:{"1":"_SN","2":"_3N"},D:{"1":"_BJ _FC","2":"_OL","164":"_aG _QL _nQ"},E:{"2":"_5C","164":"_nB"},F:{"1":"_H z _HQ","2":"_lC","129":"_8 _2E","164":"_oC _PE _xO"},G:{"2":"_r","164":"_3"},H:{"132":"4D"},I:{"1":"VB","2":"_W","164":"_z"},J:{"2":"D","164":"A"},K:{"2":"A","129":"_cD","164":"H"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"164":"eC"},P:{"164":"_F"},Q:{"164":"ME"},R:{"164":"NE"},S:{"1":"_C"}},B:4,C:"CSS box-decoration-break",D:true};
   	return cssBoxdecorationbreak;
   }
 
@@ -17574,7 +17728,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireObjectFit () {
   	if (hasRequiredObjectFit) return objectFit;
   	hasRequiredObjectFit = 1;
-  	objectFit={A:{A:{"2":"_E"},B:{"1":"_K","2":"_3B","260":"_GE"},C:{"1":"_8E","2":"_WI"},D:{"1":"_PO","2":"_hL"},E:{"1":"_LB","2":"_4C","132":"_iQ"},F:{"1":"_nN","2":"F _UB _jK VD","33":"_5 _7K"},G:{"1":"_8","2":"_DB","132":"_jC _eC"},H:{"33":"vD"},I:{"1":"_VD","2":"_xG"},J:{"2":"_B"},K:{"1":"H","2":"A","33":"_YD"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"CSS3 object-fit/object-position",D:true};
+  	objectFit={A:{A:{"2":"_E"},B:{"1":"_K","2":"_6B","260":"_OD"},C:{"1":"_NF","2":"_4H"},D:{"1":"_UN","2":"_aB"},E:{"1":"_SB","2":"_6C","132":"_kQ"},F:{"1":"_WN","2":"F _ZB _XK dD","33":"_8 _rK"},G:{"1":"_EB","2":"_HB","132":"_gC _cC"},H:{"33":"4D"},I:{"1":"_aD","2":"_tG"},J:{"2":"_B"},K:{"1":"H","2":"A","33":"_cD"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"CSS3 object-fit/object-position",D:true};
   	return objectFit;
   }
 
@@ -17584,7 +17738,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssShapes () {
   	if (hasRequiredCssShapes) return cssShapes;
   	hasRequiredCssShapes = 1;
-  	cssShapes={A:{A:{"2":"_E"},B:{"1":"_K","2":"_I"},C:{"1":"_TL","2":"_NR","322":"_ID"},D:{"1":"_UI","2":"_yN","194":"_jE qB"},E:{"1":"_HB","2":"_4C","33":"_6H _lF"},F:{"1":"_6G","2":"_SK"},G:{"1":"_9","2":"_DB","33":"_jC _AF"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","2":"FE"}},B:4,C:"CSS Shapes Level 1",D:true};
+  	cssShapes={A:{A:{"2":"_E"},B:{"1":"_K","2":"_I"},C:{"1":"_FL","2":"_aR","322":"_tE _AB"},D:{"1":"_MI","2":"_mN","194":"_BH wB"},E:{"1":"_MB","2":"_6C","33":"_uH _jF"},F:{"1":"_1G","2":"_iJ"},G:{"1":"_BB","2":"_HB","33":"_gC _HF"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","2":"OE"}},B:4,C:"CSS Shapes Level 1",D:true};
   	return cssShapes;
   }
 
@@ -17594,7 +17748,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireTextOverflow () {
   	if (hasRequiredTextOverflow) return textOverflow;
   	hasRequiredTextOverflow = 1;
-  	textOverflow={A:{A:{"1":"_PC","2":"AD"},B:{"1":"_J"},C:{"1":"_XL _IC","8":"_g _vB _L"},D:{"1":"_Q"},E:{"1":"_R"},F:{"1":"_zJ","33":"_pC"},G:{"1":"_M"},H:{"1":"vD"},I:{"1":"_O"},J:{"1":"_B"},K:{"1":"_YB","33":"_bB"},L:{"1":"I"},M:{"1":"VC"},N:{"1":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:2,C:"CSS3 Text-overflow",D:true};
+  	textOverflow={A:{A:{"1":"_QC","2":"ID"},B:{"1":"_J"},C:{"1":"_GL _VC","8":"_c _wB _L"},D:{"1":"_Q"},E:{"1":"_R"},F:{"1":"_lJ","33":"_lC"},G:{"1":"_M"},H:{"1":"4D"},I:{"1":"_O"},J:{"1":"_B"},K:{"1":"_dB","33":"_gB"},L:{"1":"VB"},M:{"1":"bC"},N:{"1":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:2,C:"CSS3 Text-overflow",D:true};
   	return textOverflow;
   }
 
@@ -17604,7 +17758,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssDeviceadaptation () {
   	if (hasRequiredCssDeviceadaptation) return cssDeviceadaptation;
   	hasRequiredCssDeviceadaptation = 1;
-  	cssDeviceadaptation={A:{A:{"2":"_Z","164":"_A"},B:{"66":"_K","164":"_I"},C:{"2":"_S"},D:{"2":"_iJ","66":"_WR"},E:{"2":"_R"},F:{"2":"_5O","66":"_JM"},G:{"2":"_M"},H:{"292":"vD"},I:{"2":"_O"},J:{"2":"_B"},K:{"2":"A H","292":"_YD"},L:{"2":"I"},M:{"2":"VC"},N:{"164":"_A"},O:{"2":"YC"},P:{"2":"_F"},Q:{"66":"DE"},R:{"2":"EE"},S:{"2":"_C"}},B:5,C:"CSS Device Adaptation",D:true};
+  	cssDeviceadaptation={A:{A:{"2":"_Y","164":"_A"},B:{"66":"_K","164":"_I"},C:{"2":"_S"},D:{"2":"_bJ","66":"_iR"},E:{"2":"_R"},F:{"2":"_mO","66":"_7L"},G:{"2":"_M"},H:{"292":"4D"},I:{"2":"_O"},J:{"2":"_B"},K:{"2":"A H","292":"_cD"},L:{"2":"VB"},M:{"2":"bC"},N:{"164":"_A"},O:{"2":"eC"},P:{"2":"_F"},Q:{"66":"ME"},R:{"2":"NE"},S:{"2":"_C"}},B:5,C:"CSS Device Adaptation",D:true};
   	return cssDeviceadaptation;
   }
 
@@ -17614,7 +17768,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssMediaResolution () {
   	if (hasRequiredCssMediaResolution) return cssMediaResolution;
   	hasRequiredCssMediaResolution = 1;
-  	cssMediaResolution={A:{A:{"2":"_c","132":"_V"},B:{"1":"_K","1028":"_I"},C:{"1":"_TL","2":"_g","260":"_DC _L","1028":"_1L _wE"},D:{"1":"_VN _iC","548":"_iJ","1028":"_qB _wE _EF"},E:{"1":"_0C","2":"_e","548":"_DC _SD _JG"},F:{"1":"_H _6I XC","2":"F","548":"_5 _EJ","1028":"_iD _fD"},G:{"1":"_jB","16":"iC","548":"_PR _AL"},H:{"132":"vD"},I:{"1":"I","16":"_k","548":"_mL","1028":"_w"},J:{"548":"_B"},K:{"1":"_YB","548":"_bB"},L:{"1":"I"},M:{"1":"VC"},N:{"132":"_A"},O:{"1":"YC"},P:{"1":"_9E","1028":"_MD"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"Media Queries: resolution feature",D:true};
+  	cssMediaResolution={A:{A:{"2":"_a","132":"_V"},B:{"1":"_K","1028":"_I"},C:{"1":"_FL","2":"_c","260":"_KR","1028":"_RR _UB _AB"},D:{"1":"_CN _fC","548":"_bJ","1028":"_iC _UB _xQ"},E:{"1":"_2C","2":"_e","548":"_SC _WD _5E"},F:{"1":"_nP _g dC","2":"F","548":"_8 _yI","1028":"_nF _lD"},G:{"1":"_oB","16":"oC","548":"_cR _uK"},H:{"132":"4D"},I:{"1":"VB","16":"_o","548":"_UL","1028":"_z"},J:{"548":"_B"},K:{"1":"_dB","548":"_gB"},L:{"1":"VB"},M:{"1":"bC"},N:{"132":"_A"},O:{"1":"eC"},P:{"1":"_GF","1028":"_MD"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"Media Queries: resolution feature",D:true};
   	return cssMediaResolution;
   }
 
@@ -17624,7 +17778,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssTextAlignLast () {
   	if (hasRequiredCssTextAlignLast) return cssTextAlignLast;
   	hasRequiredCssTextAlignLast = 1;
-  	cssTextAlignLast={A:{A:{"132":"_E"},B:{"1":"_K","4":"_I"},C:{"1":"_wD","2":"_g _MG _L","33":"_v _vK"},D:{"1":"_eO","2":"_uQ","322":"_PQ _MH"},E:{"1":"_0C","2":"_HE"},F:{"1":"_SO","2":"_KS","578":"_zB _LH"},G:{"1":"_jB","2":"_xC"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"132":"_A"},O:{"1":"YC"},P:{"1":"_U","2":"J"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","33":"FE"}},B:4,C:"CSS3 text-align-last",D:true};
+  	cssTextAlignLast={A:{A:{"132":"_E"},B:{"1":"_K","4":"_I"},C:{"1":"_1D","2":"_c _MG _L","33":"_y _RE _zC"},D:{"1":"_OO","2":"_BR","322":"_OQ _kD"},E:{"1":"_2C","2":"_ND"},F:{"1":"_CO","2":"_TS","578":"_4B _iD"},G:{"1":"_oB","2":"_yC"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"132":"_A"},O:{"1":"eC"},P:{"1":"_U","2":"I"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","33":"OE"}},B:4,C:"CSS3 text-align-last",D:true};
   	return cssTextAlignLast;
   }
 
@@ -17634,7 +17788,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssCrispEdges () {
   	if (hasRequiredCssCrispEdges) return cssCrispEdges;
   	hasRequiredCssCrispEdges = 1;
-  	cssCrispEdges={A:{A:{"2":"_CQ","2340":"_sJ"},B:{"2":"_I","1025":"_K"},C:{"1":"_H _aO","2":"_LC","513":"_GJ _JD _fF","545":"_4Q GD"},D:{"1":"_hI _pE","2":"_XD","1025":"_2M _rL _IL _IH"},E:{"1":"_LB","2":"_s","164":"L","4644":"_gC _yB"},F:{"2":"_uM _9M _TH _sB","545":"_LL","1025":"_fO"},G:{"1":"_8","2":"_d","4260":"_wC","4644":"_TC _eC"},H:{"2":"vD"},I:{"2":"_G","1025":"I"},J:{"2":"D","4260":"A"},K:{"2":"_fB","545":"_JL","1025":"H"},L:{"1025":"I"},M:{"1":"VC"},N:{"2340":"_A"},O:{"1025":"YC"},P:{"1025":"_F"},Q:{"1025":"DE"},R:{"1025":"EE"},S:{"1":"GE","4097":"FE"}},B:4,C:"Crisp edges/pixelated images",D:true};
+  	cssCrispEdges={A:{A:{"2":"_AQ","2340":"_dJ"},B:{"2":"_I","1025":"_K"},C:{"1":"_H _PN","2":"_NC","513":"_0I _KD _fF","545":"_6Q ND"},D:{"1":"_oQ _FC","2":"_bE","1025":"_iP _YD _7I _LM"},E:{"1":"_SB","2":"_v","164":"K","4644":"_dC _1B"},F:{"2":"_gM _JB _oE _HH _uB","545":"_2K","1025":"_MO"},G:{"1":"_EB","2":"_d","4260":"_wC","4644":"_IC _cC"},H:{"2":"4D"},I:{"2":"_G","1025":"VB"},J:{"2":"D","4260":"A"},K:{"2":"_kB","545":"_0K","1025":"H"},L:{"1025":"VB"},M:{"1":"bC"},N:{"2340":"_A"},O:{"1025":"eC"},P:{"1025":"_F"},Q:{"1025":"ME"},R:{"1025":"NE"},S:{"1":"PE","4097":"OE"}},B:4,C:"Crisp edges/pixelated images",D:true};
   	return cssCrispEdges;
   }
 
@@ -17644,7 +17798,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssLogicalProps () {
   	if (hasRequiredCssLogicalProps) return cssLogicalProps;
   	hasRequiredCssLogicalProps = 1;
-  	cssLogicalProps={A:{A:{"2":"_E"},B:{"1":"_4H","2":"_I","1028":"_1P","1540":"_mG W"},C:{"1":"_lO","2":"BD","164":"cC _XD _L","1540":"_YC _fC _AD"},D:{"1":"_3H","292":"_2Q","1028":"_1P","1540":"_gK _fL W"},E:{"1":"_eE","292":"_TD","1540":"_AC _AE","3076":"ND"},F:{"1":"_aJ","2":"_T","292":"_iD _TE","1028":"_DG","1540":"AC _dM DC _lE"},G:{"1":"_dE","292":"_LD","1540":"_oI","3076":"qD"},H:{"2":"vD"},I:{"1":"I","292":"_G"},J:{"292":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_rF","292":"_MD","1540":"_zQ"},Q:{"1540":"DE"},R:{"1":"EE"},S:{"1":"GE","1540":"FE"}},B:5,C:"CSS Logical Properties",D:true};
+  	cssLogicalProps={A:{A:{"2":"_E"},B:{"1":"_rH","2":"_I","1028":"_0P","1540":"_kG V"},C:{"1":"_SO","2":"JD","164":"iC _bE _L","1540":"_NG _wQ"},D:{"1":"_qH","292":"_4Q","1028":"_0P","1540":"_RK _ML V"},E:{"1":"_kE","292":"_XD","1540":"_DC _CE","3076":"UD"},F:{"1":"_JJ","2":"_T","292":"_nF _WE","1028":"_CG","1540":"_RQ JC _uE"},G:{"1":"_iE","292":"_LD","1540":"_eI","3076":"yD"},H:{"2":"4D"},I:{"1":"VB","292":"_G"},J:{"292":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_qF","292":"_MD","1540":"_1Q"},Q:{"1540":"ME"},R:{"1":"NE"},S:{"1":"PE","1540":"OE"}},B:5,C:"CSS Logical Properties",D:true};
   	return cssLogicalProps;
   }
 
@@ -17654,7 +17808,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssAppearance () {
   	if (hasRequiredCssAppearance) return cssAppearance;
   	hasRequiredCssAppearance = 1;
-  	cssAppearance={A:{A:{"2":"_E"},B:{"1":"_2R","33":"T","164":"_IB","388":"_I"},C:{"1":"_WJ _SQ","164":"_QQ _yD","676":"_MS"},D:{"1":"_3R","33":"T","164":"_u"},E:{"1":"_uC","164":"_BH"},F:{"1":"_bJ","2":"_T","33":"MC _QP","164":"_PJ _yL"},G:{"1":"_5B","164":"_YE"},H:{"2":"vD"},I:{"1":"I","164":"_G"},J:{"164":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"A","388":"B"},O:{"1":"YC"},P:{"1":"_tD","164":"_XE"},Q:{"164":"DE"},R:{"1":"EE"},S:{"1":"GE","164":"FE"}},B:5,C:"CSS Appearance",D:true};
+  	cssAppearance={A:{A:{"2":"_E"},B:{"1":"_WO","33":"S","164":"_CB","388":"_I"},C:{"1":"_HJ _SQ","164":"_TH _QJ","676":"_PS"},D:{"1":"_XO","33":"S","164":"_w"},E:{"1":"_qC","164":"_4G"},F:{"1":"_KJ","2":"_T","33":"SC _DP","164":"_BE JC _oI RC"},G:{"1":"_9B","164":"_dE"},H:{"2":"4D"},I:{"1":"VB","164":"_G"},J:{"164":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"A","388":"B"},O:{"1":"eC"},P:{"1":"_yD","164":"_cE"},Q:{"164":"ME"},R:{"1":"NE"},S:{"1":"PE","164":"OE"}},B:5,C:"CSS Appearance",D:true};
   	return cssAppearance;
   }
 
@@ -17664,7 +17818,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssSnappoints () {
   	if (hasRequiredCssSnappoints) return cssSnappoints;
   	hasRequiredCssSnappoints = 1;
-  	cssSnappoints={A:{A:{"2":"_Z","6308":"A","6436":"B"},B:{"1":"_K","6436":"_I"},C:{"1":"_7R","2":"_PN sB _L","2052":"_oH _fC _EF"},D:{"1":"_sO","2":"_1Q","8258":"_TP"},E:{"1":"_oB","2":"_TB","3108":"_5R"},F:{"1":"_8F","2":"_XK","8258":"8B _eL _rB"},G:{"1":"_AB","2":"_2","3108":"_HD"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_9E","2":"_MD"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","2052":"FE"}},B:4,C:"CSS Scroll Snap",D:true};
+  	cssSnappoints={A:{A:{"2":"_Y","6308":"A","6436":"B"},B:{"1":"_K","6436":"_I"},C:{"1":"_GS","2":"_PD _bG _L","2052":"_2M _xQ"},D:{"1":"_bO","2":"_3Q","8258":"_GP"},E:{"1":"_sB","2":"_YB","3108":"_DS"},F:{"1":"_8F","2":"_FK","8258":"_TG _iG"},G:{"1":"_DB","2":"_4","3108":"_ID"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_GF","2":"_MD"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","2052":"OE"}},B:4,C:"CSS Scroll Snap",D:true};
   	return cssSnappoints;
   }
 
@@ -17674,7 +17828,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssRegions () {
   	if (hasRequiredCssRegions) return cssRegions;
   	hasRequiredCssRegions = 1;
-  	cssRegions={A:{A:{"2":"_Z","420":"_A"},B:{"2":"_K","420":"_I"},C:{"2":"_S"},D:{"2":"_H _Y pB _TG","36":"_UB","66":"_hC _7H"},E:{"2":"_vB _rK _VH _xS","33":"_sJ _6Q"},F:{"2":"_b"},G:{"2":"_o _KC","33":"_TC _iT"},H:{"2":"vD"},I:{"2":"_O"},J:{"2":"_B"},K:{"2":"_N"},L:{"2":"I"},M:{"2":"VC"},N:{"420":"_A"},O:{"2":"YC"},P:{"2":"_F"},Q:{"2":"DE"},R:{"2":"EE"},S:{"2":"_C"}},B:5,C:"CSS Regions",D:true};
+  	cssRegions={A:{A:{"2":"_Y","420":"_A"},B:{"2":"_K","420":"_I"},C:{"2":"_S"},D:{"2":"_H _j _TH _i","36":"_ZB","66":"_TC _ME"},E:{"2":"_wB _eK _JH _8S","33":"_dJ _8Q"},F:{"2":"_b"},G:{"2":"_r _MC","33":"_IC _tT"},H:{"2":"4D"},I:{"2":"_O"},J:{"2":"_B"},K:{"2":"_N"},L:{"2":"VB"},M:{"2":"bC"},N:{"420":"_A"},O:{"2":"eC"},P:{"2":"_F"},Q:{"2":"ME"},R:{"2":"NE"},S:{"2":"_C"}},B:5,C:"CSS Regions",D:true};
   	return cssRegions;
   }
 
@@ -17684,7 +17838,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssImageSet () {
   	if (hasRequiredCssImageSet) return cssImageSet;
   	hasRequiredCssImageSet = 1;
-  	cssImageSet={A:{A:{"2":"_E"},B:{"1":"_rR","2":"_I","164":"_IB _DR","2049":"x"},C:{"1":"_wO","2":"_aB _oD _L","66":"_JF","2305":"_dI _cK _AG","2820":"Y"},D:{"1":"_sR","2":"_uF","164":"_4B _vG _DR","2049":"x"},E:{"1":"_2D","2":"_s","132":"_qJ _OE","164":"_OC _yB","1540":"_sH _CE _gF"},F:{"1":"_GS","2":"_T","164":"_sC _5N","2049":"j"},G:{"1":"_VE","2":"_1","132":"_BE _IG _9K","164":"_QD _eC","1540":"_hN _mH"},H:{"2":"vD"},I:{"1":"I","2":"_W","164":"_w"},J:{"2":"D","164":"A"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"164":"YC"},P:{"1":"_CC","164":"_OK"},Q:{"164":"DE"},R:{"164":"EE"},S:{"2":"_C"}},B:5,C:"CSS image-set",D:true};
+  	cssImageSet={A:{A:{"2":"_E"},B:{"1":"_1R","2":"_I","164":"_CB _JR","2049":"w"},C:{"1":"_fO","2":"_eB _uD _L","66":"_SF","2305":"_TI _LK _AG","2820":"X"},D:{"1":"_2R","2":"_sF","164":"_7B _QL _JR","2049":"w"},E:{"1":"_5D","2":"_v","132":"_TJ _OE","164":"_PC _1B","1540":"_hH _DE _EF"},F:{"1":"_RS","2":"_T","164":"_oC _tN","2049":"i"},G:{"1":"_ZE","2":"_2","132":"_nD _IG _tK","164":"_UD _cC","1540":"_ON _ZG"},H:{"2":"4D"},I:{"1":"VB","2":"_W","164":"_z"},J:{"2":"D","164":"A"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"164":"eC"},P:{"1":"_EC","164":"_xJ"},Q:{"164":"ME"},R:{"164":"NE"},S:{"2":"_C"}},B:5,C:"CSS image-set",D:true};
   	return cssImageSet;
   }
 
@@ -17694,7 +17848,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssWritingMode () {
   	if (hasRequiredCssWritingMode) return cssWritingMode;
   	hasRequiredCssWritingMode = 1;
-  	cssWritingMode={A:{A:{"132":"_E"},B:{"1":"_J"},C:{"1":"_8L","2":"_WI","322":"_tN"},D:{"1":"_5F","2":"_vB","16":"D","33":"_kH _CJ"},E:{"1":"_oB","2":"_i","16":"jB","33":"_DI jC"},F:{"1":"_PI","2":"_T","33":"_bF"},G:{"1":"_AB","16":"_d","33":"_rD _HD"},H:{"2":"vD"},I:{"1":"I","2":"_l","33":"_pJ"},J:{"33":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"36":"_A"},O:{"1":"YC"},P:{"1":"_U","33":"J"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:2,C:"CSS writing-mode property",D:true};
+  	cssWritingMode={A:{A:{"132":"_E"},B:{"1":"_J"},C:{"1":"_vJ","2":"_4H","322":"_qQ"},D:{"1":"_4F","2":"_wB","16":"D","33":"_YH _RE _jC"},E:{"1":"_sB","2":"_m","16":"qB","33":"_1H pC"},F:{"1":"_KI","2":"_T","33":"_dN"},G:{"1":"_DB","16":"_d","33":"_xD _ID"},H:{"2":"4D"},I:{"1":"VB","2":"_p","33":"_SJ"},J:{"33":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"36":"_A"},O:{"1":"eC"},P:{"1":"_U","33":"I"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:2,C:"CSS writing-mode property",D:true};
   	return cssWritingMode;
   }
 
@@ -17704,7 +17858,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssCrossFade () {
   	if (hasRequiredCssCrossFade) return cssCrossFade;
   	hasRequiredCssCrossFade = 1;
-  	cssCrossFade={A:{A:{"2":"_E"},B:{"2":"_I","33":"_K"},C:{"2":"_S"},D:{"2":"_wN","33":"_jP _xL"},E:{"1":"_LB","2":"_3","33":"_OC _SD"},F:{"2":"_T","33":"_a"},G:{"1":"_8","2":"_d","33":"_rD _eC"},H:{"2":"vD"},I:{"2":"_W","33":"_X"},J:{"2":"_B"},K:{"2":"_D","33":"H"},L:{"33":"I"},M:{"2":"VC"},N:{"2":"_A"},O:{"33":"YC"},P:{"33":"_F"},Q:{"33":"DE"},R:{"33":"EE"},S:{"2":"_C"}},B:4,C:"CSS Cross-Fade Function",D:true};
+  	cssCrossFade={A:{A:{"2":"_E"},B:{"2":"_I","33":"_K"},C:{"2":"_S"},D:{"2":"_eN","33":"_cP _dL"},E:{"1":"_SB","2":"_6","33":"_PC _WD"},F:{"2":"_T","33":"_Z"},G:{"1":"_EB","2":"_d","33":"_xD _cC"},H:{"2":"4D"},I:{"2":"_W","33":"_X"},J:{"2":"_B"},K:{"2":"_D","33":"H"},L:{"33":"VB"},M:{"2":"bC"},N:{"2":"_A"},O:{"33":"eC"},P:{"33":"_F"},Q:{"33":"ME"},R:{"33":"NE"},S:{"2":"_C"}},B:4,C:"CSS Cross-Fade Function",D:true};
   	return cssCrossFade;
   }
 
@@ -17714,7 +17868,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssReadOnlyWrite () {
   	if (hasRequiredCssReadOnlyWrite) return cssReadOnlyWrite;
   	hasRequiredCssReadOnlyWrite = 1;
-  	cssReadOnlyWrite={A:{A:{"2":"_E"},B:{"1":"_xD","2":"C"},C:{"1":"_yO","16":"BD","33":"_qP _6R"},D:{"1":"_2H","16":"_Y","132":"_LG"},E:{"1":"_PB","16":"_e","132":"_QG _UJ"},F:{"1":"_GM","16":"_JR","132":"C _0B _PL"},G:{"1":"_p","16":"_rC","132":"_qO"},H:{"2":"vD"},I:{"1":"I","16":"_k","132":"_1N"},J:{"1":"A","132":"D"},K:{"1":"H","2":"_A WC","132":"C _TQ"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","33":"FE"}},B:1,C:"CSS :read-only and :read-write selectors",D:true};
+  	cssReadOnlyWrite={A:{A:{"2":"_E"},B:{"1":"_2D","2":"C"},C:{"1":"_hO","16":"JD","33":"_lP _ES"},D:{"1":"_6H","16":"_j","132":"_8P"},E:{"1":"_RB","16":"_e","132":"_PG _EJ"},F:{"1":"_yL","16":"_TR","132":"C _JB _9K"},G:{"1":"_s","16":"_nC","132":"_ZO"},H:{"2":"4D"},I:{"1":"VB","16":"_o","132":"_jN"},J:{"1":"A","132":"D"},K:{"1":"H","2":"_A cC","132":"C _TQ"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","33":"OE"}},B:1,C:"CSS :read-only and :read-write selectors",D:true};
   	return cssReadOnlyWrite;
   }
 
@@ -17724,7 +17878,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireTextEmphasis () {
   	if (hasRequiredTextEmphasis) return textEmphasis;
   	hasRequiredTextEmphasis = 1;
-  	textEmphasis={A:{A:{"2":"_E"},B:{"1":"_qN _j","2":"_I","164":"_IB _5N"},C:{"1":"_ZJ _0E","2":"_IJ _ZC _L","322":"zB"},D:{"1":"_qN _q","2":"_rG","164":"_NB _vG _5N"},E:{"1":"_VI","2":"_3C","164":"D JD"},F:{"1":"_oG _IR","2":"_T","164":"_sC _oD"},G:{"1":"_z","2":"_o"},H:{"2":"vD"},I:{"1":"I","2":"_W","164":"_w"},J:{"2":"D","164":"A"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_jQ","164":"_0O"},Q:{"164":"DE"},R:{"164":"EE"},S:{"1":"_C"}},B:4,C:"text-emphasis styling",D:true};
+  	textEmphasis={A:{A:{"2":"_E"},B:{"1":"_aN _k","2":"_I","164":"_CB _tN"},C:{"1":"_LJ _h","2":"_sD _aC _L","322":"5B"},D:{"1":"_aN _l","2":"_sG","164":"_hK _YD _tN"},E:{"1":"_OI","2":"_5C","164":"D QD"},F:{"1":"_lG _SR","2":"_T","164":"_oC _uD"},G:{"1":"_3","2":"_r"},H:{"2":"4D"},I:{"1":"VB","2":"_W","164":"_z"},J:{"2":"D","164":"A"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_lQ","164":"_iO"},Q:{"164":"ME"},R:{"164":"NE"},S:{"1":"_C"}},B:4,C:"text-emphasis styling",D:true};
   	return textEmphasis;
   }
 
@@ -17734,7 +17888,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssGrid () {
   	if (hasRequiredCssGrid) return cssGrid;
   	hasRequiredCssGrid = 1;
-  	cssGrid={A:{A:{"2":"_c","8":"F","292":"_A"},B:{"1":"_aE","292":"_3B"},C:{"1":"_DN _7I","2":"_uL","8":"_hC _lH _eD","584":"_2I _fJ","1025":"_RQ"},D:{"1":"_QM","2":"_rG","8":"_CG","200":"_qB _NE _3E","1025":"BC"},E:{"1":"_HB","2":"_s","8":"_1E _yB"},F:{"1":"_HF","2":"_UK","200":"_OG _sQ"},G:{"1":"_9","2":"_1","8":"_QD _AF"},H:{"2":"vD"},I:{"1":"I","2":"_0N zD","8":"_gN"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"292":"_A"},O:{"1":"YC"},P:{"1":"_gB","2":"2D","8":"J"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"CSS Grid Layout (level 1)",D:true};
+  	cssGrid={A:{A:{"2":"_a","8":"F","292":"_A"},B:{"1":"_fE","292":"_6B"},C:{"1":"_vM _h","2":"_jL","8":"_TC _kF","584":"_iH _NJ","1025":"_QQ"},D:{"1":"_9L","2":"_sG","8":"_WI RB","200":"_iC _xC _CF","1025":"HC"},E:{"1":"_MB","2":"_v","8":"_9E _1B"},F:{"1":"_QF","2":"_jJ","200":"_nE _0B 3B"},G:{"1":"_BB","2":"_2","8":"_UD _HF"},H:{"2":"4D"},I:{"1":"VB","2":"_iN 8D","8":"_NN"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"292":"_A"},O:{"1":"eC"},P:{"1":"_lB","2":"BE","8":"I"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"CSS Grid Layout (level 1)",D:true};
   	return cssGrid;
   }
 
@@ -17744,7 +17898,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssTextSpacing () {
   	if (hasRequiredCssTextSpacing) return cssTextSpacing;
   	hasRequiredCssTextSpacing = 1;
-  	cssTextSpacing={A:{A:{"2":"_GB","161":"_JC"},B:{"2":"_K","161":"_I"},C:{"2":"_S"},D:{"2":"_Q"},E:{"2":"_R"},F:{"2":"_b"},G:{"2":"_M"},H:{"2":"vD"},I:{"2":"_O"},J:{"2":"_B"},K:{"2":"_N"},L:{"2":"I"},M:{"2":"VC"},N:{"16":"_A"},O:{"2":"YC"},P:{"2":"_F"},Q:{"2":"DE"},R:{"2":"EE"},S:{"2":"_C"}},B:5,C:"CSS Text 4 text-spacing",D:false};
+  	cssTextSpacing={A:{A:{"2":"_LB","161":"_LC"},B:{"2":"_K","161":"_I"},C:{"2":"_S"},D:{"2":"_Q"},E:{"2":"_R"},F:{"2":"_b"},G:{"2":"_M"},H:{"2":"4D"},I:{"2":"_O"},J:{"2":"_B"},K:{"2":"_N"},L:{"2":"VB"},M:{"2":"bC"},N:{"16":"_A"},O:{"2":"eC"},P:{"2":"_F"},Q:{"2":"ME"},R:{"2":"NE"},S:{"2":"_C"}},B:5,C:"CSS Text 4 text-spacing",D:false};
   	return cssTextSpacing;
   }
 
@@ -17754,7 +17908,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssAnyLink () {
   	if (hasRequiredCssAnyLink) return cssAnyLink;
   	hasRequiredCssAnyLink = 1;
-  	cssAnyLink={A:{A:{"2":"_E"},B:{"1":"_K","2":"_I"},C:{"1":"_GF","16":"BD","33":"cC _kL _L"},D:{"1":"_RM","16":"_Y","33":"_RF _qD"},E:{"1":"_PB","16":"_3C","33":"_QJ _sE"},F:{"1":"_SI","2":"_T","33":"_BR"},G:{"1":"_p","16":"_1","33":"_QD"},H:{"2":"vD"},I:{"1":"I","16":"_W","33":"_w"},J:{"16":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_sF","16":"J","33":"_oJ 5D"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","33":"FE"}},B:5,C:"CSS :any-link selector",D:true};
+  	cssAnyLink={A:{A:{"2":"_E"},B:{"1":"_K","2":"_I"},C:{"1":"_PF","16":"JD","33":"iC _bL _L"},D:{"1":"_AM","16":"_j","33":"_WF _ZH"},E:{"1":"_RB","16":"_5C","33":"_9I _1E"},F:{"1":"_JI","2":"_T","33":"_3R"},G:{"1":"_s","16":"_2","33":"_UD"},H:{"2":"4D"},I:{"1":"VB","16":"_W","33":"_z"},J:{"16":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_rF","16":"I","33":"_RJ EE"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","33":"OE"}},B:5,C:"CSS :any-link selector",D:true};
   	return cssAnyLink;
   }
 
@@ -17764,7 +17918,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireMdnCssUnicodeBidiIsolate () {
   	if (hasRequiredMdnCssUnicodeBidiIsolate) return mdnCssUnicodeBidiIsolate;
   	hasRequiredMdnCssUnicodeBidiIsolate = 1;
-  	mdnCssUnicodeBidiIsolate={A:{D:{"1":"_5F","2":"_DC","33":"_1L _uN"},L:{"1":"I"},B:{"1":"_K","2":"_I"},C:{"1":"_GF","2":"_RK","33":"_lD _ZG"},M:{"1":"VC"},A:{"2":"_E"},F:{"1":"_PI","2":"_T","33":"_bF"},K:{"1":"H","2":"_D"},E:{"1":"_zI _UN _PE","2":"_s SD","33":"_1E _6Q"},G:{"1":"_AB","2":"_1","33":"_QD _HD"},P:{"1":"_U","2":"J"},I:{"1":"I","2":"_G"}},B:6,C:"isolate from unicode-bidi",D:undefined};
+  	mdnCssUnicodeBidiIsolate={A:{D:{"1":"_4F","2":"_SC","33":"_OD _EN _jC"},L:{"1":"VB"},B:{"1":"_K","2":"_I"},C:{"1":"_PF","2":"_CK","33":"_qD _DO"},M:{"1":"bC"},A:{"2":"_E"},F:{"1":"_KI","2":"_T","33":"_dN"},K:{"1":"H","2":"_D"},E:{"1":"_nI _AN _TE","2":"_v aD","33":"_9E _8Q"},G:{"1":"_DB","2":"_2","33":"_UD _ID"},P:{"1":"_U","2":"I"},I:{"1":"VB","2":"_G"}},B:6,C:"isolate from unicode-bidi",D:undefined};
   	return mdnCssUnicodeBidiIsolate;
   }
 
@@ -17774,7 +17928,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireMdnCssUnicodeBidiPlaintext () {
   	if (hasRequiredMdnCssUnicodeBidiPlaintext) return mdnCssUnicodeBidiPlaintext;
   	hasRequiredMdnCssUnicodeBidiPlaintext = 1;
-  	mdnCssUnicodeBidiPlaintext={A:{D:{"1":"_5F","2":"_8H"},L:{"1":"I"},B:{"1":"_K","2":"_I"},C:{"1":"_GF","2":"_RK","33":"_lD _ZG"},M:{"1":"VC"},A:{"2":"_E"},F:{"1":"_PI","2":"_TK"},K:{"1":"H","2":"_D"},E:{"1":"_zI _UN _PE","2":"_s SD","33":"_1E _6Q"},G:{"1":"_AB","2":"_1","33":"_QD _HD"},P:{"1":"_U","2":"J"},I:{"1":"I","2":"_G"}},B:6,C:"plaintext from unicode-bidi",D:undefined};
+  	mdnCssUnicodeBidiPlaintext={A:{D:{"1":"_4F","2":"_zH"},L:{"1":"VB"},B:{"1":"_K","2":"_I"},C:{"1":"_PF","2":"_CK","33":"_qD _DO"},M:{"1":"bC"},A:{"2":"_E"},F:{"1":"_KI","2":"_DK"},K:{"1":"H","2":"_D"},E:{"1":"_nI _AN _TE","2":"_v aD","33":"_9E _8Q"},G:{"1":"_DB","2":"_2","33":"_UD _ID"},P:{"1":"_U","2":"I"},I:{"1":"VB","2":"_G"}},B:6,C:"plaintext from unicode-bidi",D:undefined};
   	return mdnCssUnicodeBidiPlaintext;
   }
 
@@ -17784,7 +17938,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireMdnCssUnicodeBidiIsolateOverride () {
   	if (hasRequiredMdnCssUnicodeBidiIsolateOverride) return mdnCssUnicodeBidiIsolateOverride;
   	hasRequiredMdnCssUnicodeBidiIsolateOverride = 1;
-  	mdnCssUnicodeBidiIsolateOverride={A:{D:{"1":"_5F","2":"_8H"},L:{"1":"I"},B:{"1":"_K","2":"_I"},C:{"1":"_GF","2":"_3N","33":"_iN _zO"},M:{"1":"VC"},A:{"2":"_E"},F:{"1":"_PI","2":"_TK"},K:{"1":"H","2":"_D"},E:{"1":"_zI _UN _PE","2":"_XC SD","33":"_gC A _dR"},G:{"1":"_AB","2":"_o","33":"_TC _HD"},P:{"1":"_U","2":"J"},I:{"1":"I","2":"_G"}},B:6,C:"isolate-override from unicode-bidi",D:undefined};
+  	mdnCssUnicodeBidiIsolateOverride={A:{D:{"1":"_4F","2":"_zH"},L:{"1":"VB"},B:{"1":"_K","2":"_I"},C:{"1":"_PF","2":"_0N","33":"_YQ _NE"},M:{"1":"bC"},A:{"2":"_E"},F:{"1":"_KI","2":"_DK"},K:{"1":"H","2":"_D"},E:{"1":"_nI _AN _TE","2":"_YC aD","33":"_dC A _nR"},G:{"1":"_DB","2":"_r","33":"_IC _ID"},P:{"1":"_U","2":"I"},I:{"1":"VB","2":"_G"}},B:6,C:"isolate-override from unicode-bidi",D:undefined};
   	return mdnCssUnicodeBidiIsolateOverride;
   }
 
@@ -17794,7 +17948,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssOverscrollBehavior () {
   	if (hasRequiredCssOverscrollBehavior) return cssOverscrollBehavior;
   	hasRequiredCssOverscrollBehavior = 1;
-  	cssOverscrollBehavior={A:{A:{"2":"_Z","132":"_A"},B:{"1":"_K","132":"_1F","516":"Q"},C:{"1":"_9P _tB","2":"_sL _L"},D:{"1":"_RM","2":"_2N","260":"FC GC"},E:{"1":"_0C","2":"_hF","1090":"G _CE"},F:{"1":"_SI","2":"_9O","260":"4B 5B"},G:{"1":"_jB","2":"_VF","1090":"_lK"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"132":"_A"},O:{"1":"YC"},P:{"1":"_xB","2":"_nC"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"GE","2":"FE"}},B:5,C:"CSS overscroll-behavior",D:true};
+  	cssOverscrollBehavior={A:{A:{"2":"_Y","132":"_A"},B:{"1":"_K","132":"_1F","516":"P"},C:{"1":"_H _h","2":"_iL _L"},D:{"1":"_AM","2":"_kN","260":"LC MC"},E:{"1":"_2C","2":"_gF","1090":"G _DE"},F:{"1":"_JI","2":"_vO","260":"AC BC"},G:{"1":"_oB","2":"_aF","1090":"_ZK"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"132":"_A"},O:{"1":"eC"},P:{"1":"_yB","2":"_kC"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"PE","2":"OE"}},B:5,C:"CSS overscroll-behavior",D:true};
   	return cssOverscrollBehavior;
   }
 
@@ -17804,7 +17958,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssTextOrientation () {
   	if (hasRequiredCssTextOrientation) return cssTextOrientation;
   	hasRequiredCssTextOrientation = 1;
-  	cssTextOrientation={A:{A:{"2":"_E"},B:{"1":"_K","2":"_I"},C:{"1":"_8L","2":"_PM","194":"_kI"},D:{"1":"_5F","2":"_8H"},E:{"1":"_7L","2":"_SB","16":"A","33":"_5 M _OE"},F:{"1":"_PI","2":"_TK"},G:{"1":"_8","2":"_OB"},H:{"2":"vD"},I:{"1":"I","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_U","2":"J"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:2,C:"CSS text-orientation",D:true};
+  	cssTextOrientation={A:{A:{"2":"_E"},B:{"1":"_K","2":"_I"},C:{"1":"_vJ","2":"_kL","194":"_QK"},D:{"1":"_4F","2":"_zH"},E:{"1":"_sL","2":"_XB","16":"A","33":"_8 L _OE"},F:{"1":"_KI","2":"_DK"},G:{"1":"_EB","2":"_QB"},H:{"2":"4D"},I:{"1":"VB","2":"_G"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_U","2":"I"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:2,C:"CSS text-orientation",D:true};
   	return cssTextOrientation;
   }
 
@@ -17814,7 +17968,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssPrintColorAdjust () {
   	if (hasRequiredCssPrintColorAdjust) return cssPrintColorAdjust;
   	hasRequiredCssPrintColorAdjust = 1;
-  	cssPrintColorAdjust={A:{D:{"1":"UB _nQ","2":"_wN","33":"_jP _hC _vG _3K _fI TB"},L:{"1":"I"},B:{"1":"UB _mQ","2":"_I","33":"_kN _3K _fI TB"},C:{"1":"_yH _dG","2":"_WK","33":"_0M _ID _VB _5G"},M:{"1":"VC"},A:{"2":"_E"},F:{"1":"_qH CB","2":"_T","33":"_sD _sC _UC"},K:{"2":"_D","33":"H"},E:{"1":"_AT _PE","2":"_s SD","33":"_gJ _7Q"},G:{"1":"_5B","2":"_1","33":"_QD _YR _YG"},P:{"1":"_qB","33":"_NN _CG _vE"},I:{"1":"I","2":"_W","33":"_w"}},B:6,C:"print-color-adjust property",D:undefined};
+  	cssPrintColorAdjust={A:{D:{"1":"GB _4L","2":"_eN","33":"_cP _TC _QL _eH _BL FB"},L:{"1":"VB"},B:{"1":"GB _dG","2":"_I","33":"_QN _eH _BL FB"},C:{"1":"_tH _n","2":"_EK","33":"_GT _XE _0G"},M:{"1":"bC"},A:{"2":"_E"},F:{"1":"_OG _q","2":"_T","33":"_ZC _oC _QD"},K:{"2":"_D","33":"H"},E:{"1":"_OT _TE","2":"_v aD","33":"_OJ _9Q"},G:{"1":"_9B","2":"_2","33":"_UD _kR _XG"},P:{"1":"_iC","33":"_VH _ZF _4E"},I:{"1":"VB","2":"_W","33":"_z"}},B:6,C:"print-color-adjust property",D:undefined};
   	return cssPrintColorAdjust;
   }
 
@@ -17824,7 +17978,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   function requireCssInitialLetter () {
   	if (hasRequiredCssInitialLetter) return cssInitialLetter;
   	hasRequiredCssInitialLetter = 1;
-  	cssInitialLetter={A:{A:{"2":"_E"},B:{"2":"_0 _6F","260":"_5H _j"},C:{"2":"_S"},D:{"2":"_u _6F","260":"_5H _q"},E:{"2":"_TB","260":"F","292":"_FS","420":"_FO LD _qL _tG"},F:{"2":"_MR","260":"_YJ"},G:{"2":"_2","292":"_zN","420":"_IK _tG"},H:{"2":"vD"},I:{"2":"_G","260":"I"},J:{"2":"_B"},K:{"2":"_D","260":"H"},L:{"260":"I"},M:{"2":"VC"},N:{"2":"_A"},O:{"2":"YC"},P:{"2":"_OL","260":"_4B"},Q:{"2":"DE"},R:{"2":"EE"},S:{"2":"_C"}},B:5,C:"CSS Initial Letter",D:true};
+  	cssInitialLetter={A:{A:{"2":"_E"},B:{"2":"_1 _5F","260":"_sH _k"},C:{"2":"_S"},D:{"2":"_w _5F","260":"_sH _l"},E:{"2":"_YB","260":"F","292":"_QS","420":"_hL SD _YL _nG"},F:{"2":"_XR","260":"_3J"},G:{"2":"_4","292":"_fN","420":"_NI _nG"},H:{"2":"4D"},I:{"2":"_G","260":"VB"},J:{"2":"_B"},K:{"2":"_D","260":"H"},L:{"260":"VB"},M:{"2":"bC"},N:{"2":"_A"},O:{"2":"eC"},P:{"2":"_4K","260":"_7B"},Q:{"2":"ME"},R:{"2":"NE"},S:{"2":"_C"}},B:5,C:"CSS Initial Letter",D:true};
   	return cssInitialLetter;
   }
 
@@ -18982,7 +19136,27 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   var utils$i = {};
 
+  var vendor$5 = {
+    prefix(prop) {
+      let match = prop.match(/^(-\w+-)/);
+      if (match) {
+        return match[0]
+      }
+
+      return ''
+    },
+
+    unprefixed(prop) {
+      return prop.replace(/^-\w+-/, '')
+    }
+  };
+
   let { list: list$5 } = postcss_1;
+
+  let vendor$4 = vendor$5;
+
+  const IGNORE_NEXT_WARNING = /(!\s*)?autoprefixer:\s*ignore\s+next\s+warning/i;
+  const PREFIXED_VALUE = /(^|[\s,(])-\w+-/;
 
   /**
    * Throw special error, to tell beniary,
@@ -19074,6 +19248,33 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       return /^[0-9]+$/.test(value)
     }
     return false
+  };
+
+  /**
+   * Is the node right after an `ignore next warning` control comment?
+   * Prefixed copies inserted before the node are skipped on the way back.
+   */
+  function hasIgnoreWarningComment(node) {
+    let prev = node.prev();
+    while (
+      prev &&
+      prev.type === 'decl' &&
+      (vendor$4.prefix(prev.prop) || PREFIXED_VALUE.test(prev.value))
+    ) {
+      prev = prev.prev();
+    }
+    return (
+      !!prev && prev.type === 'comment' && IGNORE_NEXT_WARNING.test(prev.text)
+    )
+  }
+
+  /**
+   * Add a warning, unless the node is hidden
+   * by an `ignore next warning` control comment.
+   */
+  utils$i.warn = function (result, text, opts = {}) {
+    if (opts.node && hasIgnoreWarningComment(opts.node)) return
+    result.warn(text, opts);
   };
 
   let browserslist$2 = browserslist_1;
@@ -19280,24 +19481,9 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     return out
   };
 
-  var vendor$4 = {
-    prefix(prop) {
-      let match = prop.match(/^(-\w+-)/);
-      if (match) {
-        return match[0]
-      }
-
-      return ''
-    },
-
-    unprefixed(prop) {
-      return prop.replace(/^-\w+-/, '')
-    }
-  };
-
   let Browsers$6 = browsers$3;
   let utils$g = utils$i;
-  let vendor$3 = vendor$4;
+  let vendor$3 = vendor$5;
 
   /**
    * Recursively clone objects
@@ -19956,10 +20142,26 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   let Prefixer$2 = prefixer;
   let utils$d = utils$i;
 
+  // Old pseudos that every browser knows, so a selector with only them is safe
+  // to keep next to a prefixed one
+  const SAFE_PSEUDOS = new Set([
+    'active',
+    'after',
+    'before',
+    'first-child',
+    'first-letter',
+    'first-line',
+    'focus',
+    'hover',
+    'link',
+    'visited'
+  ]);
+
   let Selector$6 = class Selector extends Prefixer$2 {
     constructor(name, prefixes, all) {
       super(name, prefixes, all);
       this.regexpCache = new Map();
+      this.nameRegexp = new RegExp(utils$d.escapeRegexp(name), 'i');
     }
 
     /**
@@ -19982,6 +20184,17 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     already(rule, prefixeds, prefix) {
       let index = rule.parent.index(rule) - 1;
 
+      // Other selectors in the same rule put their copies before it too
+      let others = [];
+      if (this.all) {
+        for (let selector of this.all.add.selectors) {
+          if (selector !== this && selector.check(rule)) {
+            let variants = selector.prefixeds(rule)[selector.name];
+            others.push(...Object.values(variants));
+          }
+        }
+      }
+
       while (index >= 0) {
         let before = rule.parent.nodes[index];
 
@@ -20003,7 +20216,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
             }
           }
         }
-        if (!some) {
+        if (!some && !others.includes(beforeSelector)) {
           return false
         }
 
@@ -20014,10 +20227,47 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     }
 
     /**
+     * Can selector without this pseudo stay in the prefixed rule.
+     * Browser ignores the whole rule if it does not know any selector in it,
+     * and we have no data on most pseudos, so only selectors without pseudos
+     * or with old CSS2 pseudos stay. Attribute flags like `[a=b i]` are new too.
+     */
+    canStay(selector) {
+      let quote = false;
+      let brackets = 0;
+      let start = 0;
+      for (let i = 0; i < selector.length; i++) {
+        let char = selector[i];
+        if (char === '\\') {
+          i++;
+        } else if (quote) {
+          if (char === quote) quote = false;
+        } else if (char === '"' || char === "'") {
+          quote = char;
+        } else if (char === '[') {
+          if (brackets === 0) start = i + 1;
+          brackets++;
+        } else if (char === ']') {
+          brackets--;
+          let attr = selector.slice(start, i);
+          if (brackets === 0 && /=.*(\s|["'])[is]\s*$/is.test(attr)) {
+            return false
+          }
+        } else if (char === ':' && brackets === 0) {
+          if (selector[i + 1] === ':') i++;
+          let name = /^[\w-]*/.exec(selector.slice(i + 1))[0];
+          if (!SAFE_PSEUDOS.has(name.toLowerCase())) return false
+          i += name.length;
+        }
+      }
+      return true
+    }
+
+    /**
      * Is rule selectors need to be prefixed
      */
     check(rule) {
-      if (rule.selector.includes(this.name)) {
+      if (this.nameRegexp.test(rule.selector)) {
         return !!rule.selector.match(this.regexp())
       }
 
@@ -20060,12 +20310,17 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       let prefixeds = {};
       if (rule.selector.includes(',')) {
         let ruleParts = list$4.comma(rule.selector);
-        let toProcess = ruleParts.filter(el => el.includes(this.name));
 
         for (let prefix of this.possible()) {
-          prefixeds[prefix] = toProcess
-            .map(el => this.replace(el, prefix))
-            .join(', ');
+          let parts = [];
+          for (let el of ruleParts) {
+            if (this.nameRegexp.test(el)) {
+              parts.push(this.replace(el, prefix));
+            } else if (this.canStay(el)) {
+              parts.push(el);
+            }
+          }
+          prefixeds[prefix] = parts.join(', ');
         }
       } else {
         for (let prefix of this.possible()) {
@@ -20387,7 +20642,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   let OldValue$4 = oldValue;
   let Prefixer$1 = prefixer;
   let utils$8 = utils$i;
-  let vendor$2 = vendor$4;
+  let vendor$2 = vendor$5;
 
   let Value$b = class Value extends Prefixer$1 {
     /**
@@ -20514,6 +20769,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   let Value$a = value;
 
+  const PERCENTAGE = /^\s*([+-]?(\d*\.)?\d+(e[+-]?\d+)?%?)/i;
+
   class CrossFade extends Value$a {
     replace(string, prefix) {
       return list$3
@@ -20528,10 +20785,10 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
           let args = value.slice(this.name.length + 1, close);
 
           if (prefix === '-webkit-') {
-            let match = args.match(/\d*.?\d+%?/);
+            let match = args.match(PERCENTAGE);
             if (match) {
               args = args.slice(match[0].length).trim();
-              args += `, ${match[0]}`;
+              args += `, ${match[1]}`;
             } else {
               args += ', 0.5';
             }
@@ -21954,9 +22211,10 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
               /^(calc|min|max|clamp)$/i.test(tokens[0].value)))
         ) {
           if (decl && result) {
-            decl.warn(
+            utils$6.warn(
               result,
-              'Gradient color hints are not supported by old WebKit'
+              'Gradient color hints are not supported by old WebKit',
+              { node: decl }
             );
           }
           return false
@@ -22068,6 +22326,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   let uniq = utils$i.uniq;
   let escapeRegexp = utils$i.escapeRegexp;
   let splitSelector = utils$i.splitSelector;
+  let warn$4 = utils$i.warn;
 
   const GAP_PROPS = /^(grid-)?((row|column)-)?gap$/;
 
@@ -22668,7 +22927,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
                 Object.assign(i, {
                   raws: {
                     between: gridArea.raws.between
-                  }
+                  },
+                  source: gridArea.source
                 })
               )
             );
@@ -22690,7 +22950,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
                 Object.assign(i, {
                   raws: {
                     between: gridArea.raws.between
-                  }
+                  },
+                  source: gridArea.source
                 })
               )
             );
@@ -22725,7 +22986,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
                 Object.assign(i, {
                   raws: {
                     between: gridArea.raws.between
-                  }
+                  },
+                  source: gridArea.source
                 })
               )
             );
@@ -22747,7 +23009,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
                 Object.assign(i, {
                   raws: {
                     between: gridArea.raws.between
-                  }
+                  },
+                  source: gridArea.source
                 })
               )
             );
@@ -22796,7 +23059,11 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         .filter(p => p !== 'lastRule')
         .forEach(params => {
           if (data[params].length > 0 && lastRule) {
-            lastRule.after({ name: 'media', params });
+            lastRule.after({
+              name: 'media',
+              params,
+              source: data[params][0].source
+            });
             lastRule.next().append(data[params]);
           }
         });
@@ -22822,7 +23089,9 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     });
 
     if (missed.length > 0) {
-      decl.warn(result, 'Can not find grid areas: ' + missed.join(', '));
+      warn$4(result, 'Can not find grid areas: ' + missed.join(', '), {
+        node: decl
+      });
     }
 
     return undefined
@@ -22892,11 +23161,12 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
       // warn user if we didn't find template
       if (!gridTemplateFound && duplicatesFound) {
-        decl.warn(
+        warn$4(
           result,
           'Autoprefixer cannot find a grid-template ' +
             `containing the duplicate grid-area "${decl.value}" ` +
-            `with full selector matching: ${slicedSelectorArr.join(' ')}`
+            `with full selector matching: ${slicedSelectorArr.join(' ')}`,
+          { node: decl }
         );
       }
     }
@@ -22925,10 +23195,11 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     });
     if (decls.length > 0) {
       decls.forEach(d => {
-        d.warn(
+        warn$4(
           result,
           'You already have a grid-area declaration present in the rule. ' +
-            `You should use either grid-area or ${d.prop}, not both`
+            `You should use either grid-area or ${d.prop}, not both`,
+          { node: d }
         );
       });
     }
@@ -23122,10 +23393,9 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
     let hasBothGaps = gap.row && gap.column;
     if (!hasColumns && (hasBothGaps || (gap.column && !gap.row))) {
       delete gap.column;
-      decl.warn(
-        result,
-        'Can not implement grid-gap without grid-template-columns'
-      );
+      warn$4(result, 'Can not implement grid-gap without grid-template-columns', {
+        node: decl
+      });
     }
   }
 
@@ -23228,8 +23498,12 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       node.selector = nodeSelector;
 
       // insert prefixed row/column values
-      node.append({ prop: '-ms-grid-row', value: row.start });
-      node.append({ prop: '-ms-grid-column', value: column.start });
+      node.append({ prop: '-ms-grid-row', source: decl.source, value: row.start });
+      node.append({
+        prop: '-ms-grid-column',
+        source: decl.source,
+        value: column.start
+      });
 
       // insert rule
       parent.after(node);
@@ -23303,7 +23577,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   var gridColumnAlign = GridColumnAlign;
 
   let Declaration$m = declaration;
-  let { isPureNumber } = utils$i;
+  let { isPureNumber, warn: warn$3 } = utils$i;
 
   class GridEnd extends Declaration$m {
     /**
@@ -23338,9 +23612,10 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
             return undefined
           }
         } else {
-          decl.warn(
+          warn$3(
             result,
-            `Can not prefix ${decl.prop} (${startProp} is not found)`
+            `Can not prefix ${decl.prop} (${startProp} is not found)`,
+            { node: decl }
           );
         }
       }
@@ -23421,10 +23696,11 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   let Value$5 = value;
   let insertAreas = gridUtils.insertAreas;
+  let { warn: warn$2 } = utils$i;
 
   const OLD_LINEAR = /(^|[^-])linear-gradient\(\s*(top|left|right|bottom)/i;
   const OLD_RADIAL = /(^|[^-])radial-gradient\(\s*\d+(\w*|%)\s+\d+(\w*|%)\s*,/i;
-  const IGNORE_NEXT = /(!\s*)?autoprefixer:\s*ignore\s+next/i;
+  const IGNORE_NEXT = /(!\s*)?autoprefixer:\s*ignore\s+next(?!\s+warning)/i;
   const GRID_REGEX = /(!\s*)?autoprefixer\s*grid:\s*(on|off|(no-)?autoplace)/i;
 
   const SIZES = [
@@ -23528,26 +23804,30 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
         if (prop === 'color-adjust') {
           if (parent.every(i => i.prop !== 'print-color-adjust')) {
-            result.warn(
+            warn$2(
+              result,
               'Replace color-adjust to print-color-adjust. ' +
                 'The color-adjust shorthand is currently deprecated.',
               { node: decl }
             );
           }
         } else if (prop === 'grid-row-span') {
-          result.warn(
+          warn$2(
+            result,
             'grid-row-span is not part of final Grid Layout. Use grid-row.',
             { node: decl }
           );
           return undefined
         } else if (prop === 'grid-column-span') {
-          result.warn(
+          warn$2(
+            result,
             'grid-column-span is not part of final Grid Layout. Use grid-column.',
             { node: decl }
           );
           return undefined
         } else if (prop === 'display' && value === 'box') {
-          result.warn(
+          warn$2(
+            result,
             'You should write display: flex by final spec ' +
               'instead of display: box',
             { node: decl }
@@ -23555,14 +23835,16 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
           return undefined
         } else if (prop === 'text-emphasis-position') {
           if (value === 'under' || value === 'over') {
-            result.warn(
+            warn$2(
+              result,
               'You should use 2 values for text-emphasis-position ' +
                 'For example, `under left` instead of just `under`.',
               { node: decl }
             );
           }
         } else if (prop === 'text-decoration-skip' && value === 'ink') {
-          result.warn(
+          warn$2(
+            result,
             'Replace text-decoration-skip: ink to ' +
               'text-decoration-skip-ink: auto, because spec had been changed',
             { node: decl }
@@ -23570,11 +23852,12 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         } else {
           if (gridPrefixes && this.gridStatus(decl, result)) {
             if (decl.value === 'subgrid') {
-              result.warn('IE does not support subgrid', { node: decl });
+              warn$2(result, 'IE does not support subgrid', { node: decl });
             }
             if (/^(align|justify|place)-items$/.test(prop) && insideGrid(decl)) {
               let fixed = prop.replace('-items', '-self');
-              result.warn(
+              warn$2(
+                result,
                 `IE does not support ${prop} on grid containers. ` +
                   `Try using ${fixed} on child elements instead: ` +
                   `${decl.parent.selector} > * { ${fixed}: ${decl.value} }`,
@@ -23584,11 +23867,16 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
               /^(align|justify|place)-content$/.test(prop) &&
               insideGrid(decl)
             ) {
-              result.warn(`IE does not support ${decl.prop} on grid containers`, {
-                node: decl
-              });
+              warn$2(
+                result,
+                `IE does not support ${decl.prop} on grid containers`,
+                {
+                  node: decl
+                }
+              );
             } else if (prop === 'display' && decl.value === 'contents') {
-              result.warn(
+              warn$2(
+                result,
                 'Please do not use display: contents; ' +
                   'if you have grid setting enabled',
                 { node: decl }
@@ -23601,7 +23889,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
                 !hasRowsAndColumns(decl) &&
                 !hasGridTemplate(decl)
               ) {
-                result.warn(
+                warn$2(
+                  result,
                   'grid-gap only works if grid-template(-areas) is being ' +
                     'used or both rows and columns have been declared ' +
                     'and cells have not been manually ' +
@@ -23612,33 +23901,37 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
                 (status === true || status === 'no-autoplace') &&
                 !hasGridTemplate(decl)
               ) {
-                result.warn(
+                warn$2(
+                  result,
                   'grid-gap only works if grid-template(-areas) is being used',
                   { node: decl }
                 );
               }
             } else if (prop === 'grid-auto-columns') {
-              result.warn('grid-auto-columns is not supported by IE', {
+              warn$2(result, 'grid-auto-columns is not supported by IE', {
                 node: decl
               });
               return undefined
             } else if (prop === 'grid-auto-rows') {
-              result.warn('grid-auto-rows is not supported by IE', { node: decl });
+              warn$2(result, 'grid-auto-rows is not supported by IE', {
+                node: decl
+              });
               return undefined
             } else if (prop === 'grid-auto-flow') {
               let hasRows = parent.some(i => i.prop === 'grid-template-rows');
               let hasCols = parent.some(i => i.prop === 'grid-template-columns');
 
               if (hasGridTemplate(decl)) {
-                result.warn('grid-auto-flow is not supported by IE', {
+                warn$2(result, 'grid-auto-flow is not supported by IE', {
                   node: decl
                 });
               } else if (value.includes('dense')) {
-                result.warn('grid-auto-flow: dense is not supported by IE', {
+                warn$2(result, 'grid-auto-flow: dense is not supported by IE', {
                   node: decl
                 });
               } else if (!hasRows && !hasCols) {
-                result.warn(
+                warn$2(
+                  result,
                   'grid-auto-flow works only if grid-template-rows and ' +
                     'grid-template-columns are present in the same rule',
                   { node: decl }
@@ -23646,19 +23939,20 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
               }
               return undefined
             } else if (value.includes('auto-fit')) {
-              result.warn('auto-fit value is not supported by IE', {
+              warn$2(result, 'auto-fit value is not supported by IE', {
                 node: decl,
                 word: 'auto-fit'
               });
               return undefined
             } else if (value.includes('auto-fill')) {
-              result.warn('auto-fill value is not supported by IE', {
+              warn$2(result, 'auto-fill value is not supported by IE', {
                 node: decl,
                 word: 'auto-fill'
               });
               return undefined
             } else if (prop.startsWith('grid-template') && value.includes('[')) {
-              result.warn(
+              warn$2(
+                result,
                 'Autoprefixer currently does not support line names. ' +
                   'Try using grid-template-areas instead.',
                 { node: decl, word: '[' }
@@ -23667,7 +23961,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
           }
           if (value.includes('radial-gradient')) {
             if (OLD_RADIAL.test(decl.value)) {
-              result.warn(
+              warn$2(
+                result,
                 'Gradient has outdated direction syntax. ' +
                   'New syntax is like `closest-side at 0 0` ' +
                   'instead of `0 0, closest-side`.',
@@ -23681,13 +23976,15 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
                   for (let word of i.nodes) {
                     if (word.type === 'word') {
                       if (word.value === 'cover') {
-                        result.warn(
+                        warn$2(
+                          result,
                           'Gradient has outdated direction syntax. ' +
                             'Replace `cover` to `farthest-corner`.',
                           { node: decl }
                         );
                       } else if (word.value === 'contain') {
-                        result.warn(
+                        warn$2(
+                          result,
                           'Gradient has outdated direction syntax. ' +
                             'Replace `contain` to `closest-side`.',
                           { node: decl }
@@ -23701,7 +23998,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
           }
           if (value.includes('linear-gradient')) {
             if (OLD_LINEAR.test(value)) {
-              result.warn(
+              warn$2(
+                result,
                 'Gradient has outdated direction syntax. ' +
                   'New syntax is like `to left` instead of `right`.',
                 { node: decl }
@@ -23713,7 +24011,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         if (SIZES.includes(decl.prop)) {
           if (!decl.value.includes('-fill-available')) {
             if (decl.value.includes('fill-available')) {
-              result.warn(
+              warn$2(
+                result,
                 'Replace fill-available to stretch, ' +
                   'because spec had been changed',
                 { node: decl }
@@ -23721,7 +24020,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
             } else if (decl.value.includes('fill')) {
               let ast = parser$1(value);
               if (ast.nodes.some(i => i.type === 'word' && i.value === 'fill')) {
-                result.warn(
+                warn$2(
+                  result,
                   'Replace fill to stretch, because spec had been changed',
                   { node: decl }
                 );
@@ -23825,7 +24125,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
           if (i.type !== 'comment') return
           if (/(!\s*)?autoprefixer:\s*(off|on)/i.test(i.text)) {
             if (typeof status !== 'undefined') {
-              result.warn(
+              warn$2(
+                result,
                 'Second Autoprefixer control comment ' +
                   'was ignored. Autoprefixer applies control ' +
                   'comment to whole block, not to next rules.',
@@ -23937,7 +24238,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
             let hasAutoplace = /:\s*autoplace/i.test(i.text);
             let noAutoplace = /no-autoplace/i.test(i.text);
             if (typeof status !== 'undefined') {
-              result.warn(
+              warn$2(
+                result,
                 'Second Autoprefixer grid control comment was ' +
                   'ignored. Autoprefixer applies control comments to the whole ' +
                   'block, not to the next rules.',
@@ -24130,6 +24432,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   let Declaration$j = declaration;
   let Processor$1 = processor;
+  let { warn: warn$1 } = utils$i;
   let {
     autoplaceGridItems,
     getGridGap: getGridGap$2,
@@ -24196,9 +24499,10 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
         if (!rowDecl && hasGridTemplate) {
           return undefined
         } else if (!rowDecl && !hasGridTemplate) {
-          decl.warn(
+          warn$1(
             result,
-            'Autoplacement does not work without grid-template-rows property'
+            'Autoplacement does not work without grid-template-rows property',
+            { node: decl }
           );
           return undefined
         }
@@ -24210,9 +24514,10 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
           return i.prop === 'grid-template-columns'
         });
         if (!columnDecl && !hasGridTemplate) {
-          decl.warn(
+          warn$1(
             result,
-            'Autoplacement does not work without grid-template-columns property'
+            'Autoplacement does not work without grid-template-columns property',
+            { node: decl }
           );
         }
 
@@ -26248,7 +26553,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
 
   var resolution = Resolution$1;
 
-  var cssFeaturequeries={A:{A:{"2":"_E"},B:{"1":"_J"},C:{"1":"_RI","2":"_CF"},D:{"1":"_gO","2":"_lJ"},E:{"1":"_PB","2":"_TB"},F:{"1":"_xF","2":"_WE"},G:{"1":"_p","2":"_2"},H:{"1":"vD"},I:{"1":"_X","2":"_W"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"I"},M:{"1":"VC"},N:{"2":"_A"},O:{"1":"YC"},P:{"1":"_F"},Q:{"1":"DE"},R:{"1":"EE"},S:{"1":"_C"}},B:4,C:"CSS Feature Queries",D:true};
+  var cssFeaturequeries={A:{A:{"2":"_E"},B:{"1":"_J"},C:{"1":"_HI","2":"_KF"},D:{"1":"_NO","2":"_YJ"},E:{"1":"_RB","2":"_YB"},F:{"1":"_wF","2":"_aE"},G:{"1":"_s","2":"_4"},H:{"1":"4D"},I:{"1":"_X","2":"_W"},J:{"2":"_B"},K:{"1":"H","2":"_D"},L:{"1":"VB"},M:{"1":"bC"},N:{"2":"_A"},O:{"1":"eC"},P:{"1":"_F"},Q:{"1":"ME"},R:{"1":"NE"},S:{"1":"_C"}},B:4,C:"CSS Feature Queries",D:true};
 
   function last(array) {
     return array[array.length - 1]
@@ -26614,7 +26919,8 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   let parser = lib;
 
   let Browsers$2 = browsers$3;
-  let vendor$1 = vendor$4;
+  let { warn } = utils$i;
+  let vendor$1 = vendor$5;
 
   let Transition$1 = class Transition {
     constructor(prefixes) {
@@ -26733,12 +27039,13 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
       });
 
       if (isPrefixed && hasAssociatedProp) {
-        decl.warn(
+        warn(
           result,
           'Replace transition-property to transition, ' +
             'because Autoprefixer could not support ' +
             'any cases of transition-property ' +
-            'and other transition-*'
+            'and other transition-*',
+          { node: decl }
         );
       }
     }
@@ -27007,7 +27314,7 @@ var autoprefixer = (function (/*AH+*/countryStatisticsService, undefined) {
   let Transition = transition;
   let utils = utils$i;
   let Value = value;
-  let vendor = vendor$4;
+  let vendor = vendor$5;
 
   Selector.hack(hackAutofill);
   Selector.hack(hackFullscreen);

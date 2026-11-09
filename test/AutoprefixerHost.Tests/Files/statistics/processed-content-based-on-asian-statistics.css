@@ -17,6 +17,7 @@
 }
 
 .transitioned-box {
+    -o-transition: all 0.8s ease;
     transition: all 0.8s ease;
     transform: scale(1);
 }
