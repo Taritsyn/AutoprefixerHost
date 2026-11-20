@@ -11,7 +11,7 @@ For correct working, you need to install one of the following NuGet packages:
 
  * [JavaScriptEngineSwitcher.ChakraCore](https://nuget.org/packages/JavaScriptEngineSwitcher.ChakraCore)
  * [JavaScriptEngineSwitcher.Jint](https://www.nuget.org/packages/JavaScriptEngineSwitcher.Jint)
- * [JavaScriptEngineSwitcher.Msie](https://nuget.org/packages/JavaScriptEngineSwitcher.Msie) (only in the Chakra JsRT modes)
+ * [JavaScriptEngineSwitcher.Msie](https://nuget.org/packages/JavaScriptEngineSwitcher.Msie) (only in the Chakra “Edge” JsRT mode)
  * [JavaScriptEngineSwitcher.V8](https://nuget.org/packages/JavaScriptEngineSwitcher.V8)
 
 After installing the packages, you will need to [register the default JS engine](https://github.com/Taritsyn/JavaScriptEngineSwitcher/wiki/Registration-of-JS-engines).
@@ -175,7 +175,7 @@ Let's consider in detail properties of the <code title="AutoprefixerHost.Process
             <td><code>Supports</code></td>
             <td><code title="System.Boolean">Boolean</code></td>
             <td><code>true</code></td>
-            <td>Flag for whether to add prefixes for <code>@supports</code> parameters.</td>
+            <td>Flag for whether to add prefixes for <code>@supports</code> parameters and for declarations inside <code>@supports</code> blocks.</td>
         </tr>
         <tr valign="top">
             <td><code>Flexbox</code></td>
