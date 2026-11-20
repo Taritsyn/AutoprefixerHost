@@ -44,7 +44,8 @@ namespace AutoprefixerHost
 		}
 
 		/// <summary>
-		/// Gets or sets a flag for whether to add prefixes for <code>@supports</code> parameters
+		/// Gets or sets a flag for whether to add prefixes for <code>@supports</code> parameters and for declarations
+		/// inside <code>@supports</code> blocks
 		/// </summary>
 		public bool Supports
 		{

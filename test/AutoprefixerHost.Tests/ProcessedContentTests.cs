@@ -193,8 +193,7 @@ namespace AutoprefixerHost.Tests
     animation-name: test;
 }";
 			const string targetOutput1 = @"@supports (animation-name: test) {
-    -webkit-animation-name: test;
-            animation-name: test;
+    animation-name: test;
 }";
 			const string targetOutput2 = @"@supports ((-webkit-animation-name: test) or (animation-name: test)) {
     -webkit-animation-name: test;
